@@ -1,8 +1,13 @@
-blank_issues_enabled: false
+blank_issues_enabled: true
 contact_links:
-- name: Join the CNCF Slack and access our meetings.
-  url: https://www.kubeflow.org/docs/about/community/
-  about: Join our CNCF Slack Channel and access Kubeflow community meetings.
-- name: Our channel on the CNCF Slack is kubeflow-platform.
-  url: https://app.slack.com/client/T08PSQ7BQ/C073W572LA2
-  about: You can join our channel on the CNCF slack.
+  - name: Kubeflow Documentation
+    url: https://www.kubeflow.org/
+    about: Official Kubeflow Documentation
+
+  - name: Kubeflow Documentation - Dashboard
+    url: https://www.kubeflow.org/docs/components/central-dash/
+    about: Official Kubeflow Documentation
+
+  - name: "Kubeflow Slack (join `#kubeflow-platform` channel)"
+    url: https://www.kubeflow.org/docs/about/community/#kubeflow-slack-channels
+    about: Join the Kubeflow Slack

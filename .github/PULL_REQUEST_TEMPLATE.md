@@ -1,19 +1,15 @@
-# Pull Request Template for Kubeflow Manifests
+<!-- 
+⚠️ please review https://www.kubeflow.org/docs/about/contributing/
 
-## ✏️ Summary of Changes
-> Describe the changes you have made, including any refactoring or feature additions.
+Thank you for contributing to Kubeflow!
 
-## 📦 Dependencies
-> List any dependencies or related PRs (e.g., "Depends on #123").
+If there are related issues, please reference them using one of the following:
 
-## 🐛 Related Issues
-> Link any issues that are resolved or affected by this PR.
+ closes: #ISSUE
+ related: #ISSUE
 
-## ✅ Contributor Checklist
-  - [ ] I have tested these changes with kustomize. See [Installation Prerequisites](https://github.com/kubeflow/manifests#prerequisites).
-  - [ ] All commits are [_signed-off_](https://github.com/kubeflow/community/tree/master/dco-signoff-hook#signing-off-commits) to satisfy the DCO check.
-
----     
- 
-> You can join the CNCF Slack and access our meetings at the [Kubeflow Community](https://www.kubeflow.org/docs/about/community/) website. Our channel on the CNCF Slack is here [**#kubeflow-platform**](https://app.slack.com/client/T08PSQ7BQ/C073W572LA2).
-  
+Please remember:
+ - provide enough information so that others can review your pull request
+ - use a semantic title for your pull request (like "fix: xxxxx" or "feat: xxxxx", see contributing guide)
+ - the title of your pull request will be used to generate the changelog entry, so make it count!
+-->
