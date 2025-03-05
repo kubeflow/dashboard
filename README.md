@@ -1,10 +1,48 @@
-# Dashboard
+# Kubeflow Dashboard
 
-This repository is being migrated from kubeflow/kubeflow. Fell free to help us moving it according to the Option 3 in https://github.com/kubeflow/kubeflow/issues/7549.
+[Kubeflow Dashboard](https://www.kubeflow.org/docs/components/central-dash/overview/) is the web-based hub of a Kubeflow Platform.
+It exposes the access controlled web interfaces for Kubeflow components and more.
 
-- We need to set up the new kubeflow/dashboard repository readme, owners file, and issue templates.
-- We should merge (or close) any obvious PRs for the dashboard components, and write down links for any we aren't ready for (so we don't loose track after migration)
-- The commit PR (#xxx) suffix in the new repository should be rewritten as (kubeflow/kubeflow#xxx) so we don't break the links
-- We should only move the folders under components/ that actually correspond to the new dashboard components (using git-filter-repo)
-- We should only migrate the necessary GitHub actions
+> ⚠️ __Note__ ⚠️
+> 
+> We are currently moving the Kubeflow Dashboard codebase from [`kubeflow/kubeflow`](https://github.com/kubeflow/kubeflow) to this repository ([`kubeflow/dashboard`](https://github.com/kubeflow/dashboard)).
+> Please see [`kubeflow/kubeflow#7549`](https://github.com/kubeflow/kubeflow/issues/7549) for more information.
 
+## What is Kubeflow Dashboard?
+
+Key features of Kubeflow Dashboard include:
+
+- Access to the [web interfaces](https://www.kubeflow.org/docs/components/central-dash/overview/#navigation) of Kubeflow components.
+- Authorization using [Kubeflow Profiles](https://www.kubeflow.org/docs/components/central-dash/profiles/) and Kubernetes Namespaces.
+   - _Note, authentication depends on how you [install](https://www.kubeflow.org/docs/started/installing-kubeflow/#kubeflow-platform) your Kubeflow Platform, and is not directly handled by Kubeflow Dashboard._
+- Ability to [Customize](https://www.kubeflow.org/docs/components/central-dash/customize/) and include links to third-party applications.
+
+In this repository, there are multiple components which are versioned and released together:
+
+- `access-management` - Kubeflow Access Management
+- `admission-webhook` - Kubeflow Admission Webhook (PodDefaults)
+- `centraldashboard` - Central Dashboard
+- `profile-controller` - Kubeflow Profile Controller
+
+## Installation
+
+Kubeflow Dashboard is designed to be deployed as part of a [Kubeflow Platform](https://www.kubeflow.org/docs/started/introduction/#what-is-kubeflow-platform) (not as a standalone component).
+
+Please refer to the [Installing Kubeflow](https://www.kubeflow.org/docs/started/installing-kubeflow/) page for more information.
+
+## Documentation
+
+The official documentation for Kubeflow Dashboard can be found [here](https://www.kubeflow.org/docs/components/central-dash/).
+
+## Community
+
+Kubeflow Dashboard is part of the Kubeflow project, refer to the [Kubeflow Community](https://www.kubeflow.org/docs/about/community/) page for more information.
+
+Connect with _other users_ and the [Notebooks Working Group](https://github.com/kubeflow/community/tree/master/wg-notebooks) (maintainers of Kubeflow Dashboard) in the following places:
+
+- [Kubeflow Slack](https://www.kubeflow.org/docs/about/community/#kubeflow-slack-channels) - Join the [`#kubeflow-platform`](https://cloud-native.slack.com/archives/C073W572LA2) channel.
+- [Kubeflow Mailing List](https://groups.google.com/g/kubeflow-discuss)
+
+## Contributing
+
+Please see the [Contributing to Kubeflow](https://www.kubeflow.org/docs/about/contributing/) page for more information.
