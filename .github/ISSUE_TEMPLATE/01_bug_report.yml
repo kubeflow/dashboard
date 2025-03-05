@@ -27,10 +27,10 @@ body:
       required: true
 
   - type: input
-    id: kubeflow-distribution
+    id: kubeflow-platform
     attributes:
-      label: Kubeflow Distribution
-      description: How are you deploying Kubeflow Platform?
+      label: Kubeflow Platform
+      description: Which method did you use to [install](https://www.kubeflow.org/docs/started/installing-kubeflow/#kubeflow-platform) your Kubeflow Platform?
       placeholder: ...
     validations:
       required: true

@@ -14,7 +14,7 @@ Key features of Kubeflow Dashboard include:
 
 - Access to the [web interfaces](https://www.kubeflow.org/docs/components/central-dash/overview/#navigation) of Kubeflow components.
 - Authorization using [Kubeflow Profiles](https://www.kubeflow.org/docs/components/central-dash/profiles/) and Kubernetes Namespaces.
-   - _Note, authentication depends on your Kubeflow Distribution, and is not directly handled by Kubeflow Dashboard._
+   - _Note, authentication depends on how you [install](https://www.kubeflow.org/docs/started/installing-kubeflow/#kubeflow-platform) your Kubeflow Platform, and is not directly handled by Kubeflow Dashboard._
 - Ability to [Customize](https://www.kubeflow.org/docs/components/central-dash/customize/) and include links to third-party applications.
 
 In this repository, there are multiple components which are versioned and released together:
