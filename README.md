@@ -17,6 +17,8 @@ Key features of Kubeflow Dashboard include:
    - _Note, authentication depends on how you [install](https://www.kubeflow.org/docs/started/installing-kubeflow/#kubeflow-platform) your Kubeflow Platform, and is not directly handled by Kubeflow Dashboard._
 - Ability to [Customize](https://www.kubeflow.org/docs/components/central-dash/customize/) and include links to third-party applications.
 
+## Components
+
 In this repository, there are multiple components which are versioned and released together:
 
 - `access-management` - Kubeflow Access Management
@@ -45,4 +47,4 @@ Connect with _other users_ and the [Notebooks Working Group](https://github.com/
 
 ## Contributing
 
-Please see the [Contributing to Kubeflow](https://www.kubeflow.org/docs/about/contributing/) page for more information.
+Please see the [`CONTRIBUTING.md`](CONTRIBUTING.md) file for more information.
