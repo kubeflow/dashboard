@@ -15,7 +15,7 @@ wip-placeholder
 
 ### Getting Started
 
-Make sure you have and use the proper version of `node` installed along with `npm` for this component (See Dockerfile). First, clone the repository and change directories to `components/centraldashboard`
+Make sure you have and use the proper version of `node` installed along with `npm` for this component (See Dockerfile). First, clone the repository and change directories to `components/centraldashboard-angular`
 
 ### Backend
 
@@ -25,16 +25,42 @@ Backend server side code resides in the [backend](./backend) directory. The serv
 ```
 cd components/centraldashboard-angular/backend
 npm i
-npm run backend
+npm run build
+npm run serve
 ```
 
 This starts the Express API server at http://localhost:8082. Requests from the front-end starting with `/api` are proxied to the Express server. All other requests are handled by the front-end server which mirrors the production configuration.
 
+ℹ️ The server will also attempt to connect to the Kubernetes cluster as identified in `kubectl config current-context`
+
 ### Frontend
 
+With the re-organization of `kubeflow/dashboard` from `kubeflow/kubeflow` - the `frontend` component current still requires dependencies from `kubeflow-common-lib` package of `kubeflow/kubeflow` `crud-web-apps` component.
+
+In order to run `centraldashboard-angular` - one still must clone [`kubeflow/kubeflow`](https://github.com/kubeflow/kubeflow) and perform the following:
+
+```bash
+cd components/crud-web-apps/common/frontend/kubeflow-common-lib
+npm i
+npm run build
+cd dist/kubeflow
+npm link
+```
+- ⚠️ Details on [building for local development](https://github.com/kubeflow/kubeflow/blob/master/components/crud-web-apps/common/frontend/kubeflow-common-lib/README.md#building-the-library-locally)
+    - Ensure `node -v` aligns with the version of NodeJS as specified in the [`Dockerfile`](./Dockerfile)
+
+Once the `kubeflow-common-lib` is built and linked successfully, you should be able to verify via the following:
+```bash
+npm ls kubeflow
+kubeflow@0.0.4 [...]/kubeflow/components/crud-web-apps/common/frontend/kubeflow-common-lib/dist/kubeflow
+└── (empty)
+```
+
+Finally, the `frontend` component of `kubeflow/dashboard` can then be built and served using the following commands:
 ```bash
 cd components/centraldashboard-angular/frontend
 npm i
+npm link kubeflow
 npm run serve
 ```
 
