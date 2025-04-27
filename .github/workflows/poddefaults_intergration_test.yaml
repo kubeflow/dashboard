@@ -32,23 +32,23 @@ jobs:
         make docker-build-multi-arch
 
     - name: Install KinD
-      run: ./components/testing/gh-actions/install_kind.sh
+      run: ./testing/gh-actions/install_kind.sh
 
     - name: Create KinD Cluster
-      run: kind create cluster --config components/testing/gh-actions/kind-1-25.yaml
+      run: kind create cluster --config testing/gh-actions/kind-1-25.yaml
 
     - name: Load Images into KinD Cluster
       run: |
         kind load docker-image "${IMG}:${TAG}"
 
     - name: Install kustomize
-      run: ./components/testing/gh-actions/install_kustomize.sh
+      run: ./testing/gh-actions/install_kustomize.sh
 
     - name: Install Istio
-      run: ./components/testing/gh-actions/install_istio.sh
+      run: ./testing/gh-actions/install_istio.sh
 
     - name: Install cert-manager
-      run: ./components/testing/gh-actions/install_cert_manager.sh
+      run: ./testing/gh-actions/install_cert_manager.sh
 
     - name: Build & Apply manifests
       run: |
