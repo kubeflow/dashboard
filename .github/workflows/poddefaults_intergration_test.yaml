@@ -6,7 +6,7 @@ on:
       - releasing/version/VERSION
     branches:
       - main
-      - release-*
+      - v*-branch
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.number }}
