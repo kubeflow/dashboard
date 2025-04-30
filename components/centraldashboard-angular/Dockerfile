@@ -1,7 +1,7 @@
 # --- Build the backend ---
 FROM node:16.20.2-bullseye as backend
 
-COPY ./centraldashboard-angular/backend/ ./src
+COPY ./backend/ ./src
 WORKDIR /src
 
 RUN npm ci && \
@@ -14,22 +14,22 @@ FROM node:16.20.2-bullseye as frontend-kubeflow-lib
 WORKDIR /src
 
 ENV NG_CLI_ANALYTICS "ci"
-COPY ./crud-web-apps/common/frontend/kubeflow-common-lib/package.json ./
-COPY ./crud-web-apps/common/frontend/kubeflow-common-lib/package-lock.json ./
+COPY ./kubeflow-common-lib/package.json ./
+COPY ./kubeflow-common-lib/package-lock.json ./
 RUN npm ci
 
-COPY ./crud-web-apps/common/frontend/kubeflow-common-lib/projects ./projects
-COPY ./crud-web-apps/common/frontend/kubeflow-common-lib/angular.json .
-COPY ./crud-web-apps/common/frontend/kubeflow-common-lib/tsconfig.json .
+COPY ./kubeflow-common-lib/projects ./projects
+COPY ./kubeflow-common-lib/angular.json .
+COPY ./kubeflow-common-lib/tsconfig.json .
 RUN npm run build
 
 # --- Build the frontend ---
 FROM node:16.20.2-bullseye as frontend
 
-ARG kubeflowversion
+ARG kubeflowversion=unknown
 ENV BUILD_VERSION=$kubeflowversion
 
-COPY ./centraldashboard-angular/frontend ./src
+COPY ./frontend /src
 WORKDIR /src
 
 ENV NG_CLI_ANALYTICS "ci"
