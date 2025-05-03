@@ -5,7 +5,7 @@ metadata:
 spec:
   template:
     metadata:
-      annotations:
+      lavels:
         sidecar.istio.io/inject: "true"
     spec:
       securityContext:
