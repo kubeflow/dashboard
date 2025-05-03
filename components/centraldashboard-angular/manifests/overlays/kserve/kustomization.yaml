@@ -4,11 +4,13 @@ kind: Kustomization
 resources:
 - ../istio
 
-commonLabels:
-  kustomize.component: centraldashboard-angular
-  app: centraldashboard-angular
-  app.kubernetes.io/component: centraldashboard-angular
-  app.kubernetes.io/name: centraldashboard-angular
 
-patchesStrategicMerge:
-- patches/configmap.yaml
+labels:
+- includeSelectors: true
+  pairs:
+    app: centraldashboard-angular
+    app.kubernetes.io/component: centraldashboard-angular
+    app.kubernetes.io/name: centraldashboard-angular
+    kustomize.component: centraldashboard-angular
+patches:
+- path: patches/configmap.yaml
