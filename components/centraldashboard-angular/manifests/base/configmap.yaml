@@ -1,4 +1,7 @@
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: centraldashboard-angular-config
 data:
   settings: |-
     {
@@ -130,6 +133,3 @@ data:
           }
         ]
     }
-kind: ConfigMap
-metadata:
-  name: centraldashboard-angular-config
