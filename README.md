@@ -1,5 +1,7 @@
 # Kubeflow Dashboard
 
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10673/badge)](https://www.bestpractices.dev/projects/10673)
+
 [Kubeflow Dashboard](https://www.kubeflow.org/docs/components/central-dash/overview/) is the web-based hub of a Kubeflow Platform.
 It exposes the access controlled web interfaces for Kubeflow components and more.
 
