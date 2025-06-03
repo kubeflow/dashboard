@@ -8,11 +8,12 @@ resources:
 
 namespace: kubeflow
 
-commonLabels:
-  kustomize.component: centraldashboard-angular
-  app: centraldashboard-angular
-  app.kubernetes.io/component: centraldashboard-angular
-  app.kubernetes.io/name: centraldashboard-angular
-
 configurations:
 - params.yaml
+labels:
+- includeSelectors: true
+  pairs:
+    app: centraldashboard-angular
+    app.kubernetes.io/component: centraldashboard-angular
+    app.kubernetes.io/name: centraldashboard-angular
+    kustomize.component: centraldashboard-angular
