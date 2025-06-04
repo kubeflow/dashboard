@@ -15,9 +15,9 @@ OVERLAY="${6:-overlays/kubeflow}"
 cd "${COMPONENT_PATH}"
 if [ -f "Makefile" ]; then
     if grep -q "docker-build-multi-arch" Makefile; then
-        make docker-build-multi-arch IMG="${IMAGE_NAME}"
+        make docker-build-multi-arch IMG="${IMAGE_NAME}" TAG="${TAG}"
     else
-        make docker-build IMG="${IMAGE_NAME}:${TAG}"
+        make docker-build IMG="${IMAGE_NAME}" TAG="${TAG}"
     fi
 else
     exit 1
