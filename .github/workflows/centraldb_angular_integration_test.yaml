@@ -17,7 +17,7 @@ env:
   TAG: integration-test
 
 jobs:
-  build:
+  integration-test:
     runs-on: ubuntu-22.04
     steps:
     - name: Checkout
@@ -25,20 +25,11 @@ jobs:
       with:
         fetch-depth: 0
 
-    - name: Build CentralDashboard-Angular Image
-      run: |
-        cd components/centraldashboard-angular
-        make docker-build
-
     - name: Install KinD
       run: ./testing/gh-actions/install_kind.sh
 
     - name: Create KinD Cluster
       run: kind create cluster --config testing/gh-actions/kind-1-25.yaml
-
-    - name: Load Images into KinD Cluster
-      run: |
-        kind load docker-image "${IMG}:${TAG}"
 
     - name: Install kustomize
       run: ./testing/gh-actions/install_kustomize.sh
@@ -46,20 +37,59 @@ jobs:
     - name: Install Istio
       run: ./testing/gh-actions/install_istio.sh
 
-    - name: Build & Apply manifests
+    - name: Create Kubeflow Namespace
+      run: kubectl create namespace kubeflow
+
+    - name: Make Scripts Executable
+      run: chmod +x testing/gh-actions/*.sh
+
+    - name: Deploy CentralDashboard-Angular Component
       run: |
-        cd components/centraldashboard-angular/manifests
-        kubectl create ns kubeflow
+        ./testing/gh-actions/deploy_component.sh \
+          "centraldashboard-angular" \
+          "components/centraldashboard-angular" \
+          "${IMG}" \
+          "${TAG}" \
+          "manifests" \
+          "overlays/kserve"
 
-        export CURRENT_IMAGE="${IMG}"
-        export PR_IMAGE="${IMG}:${TAG}"
+    - name: Wait for CentralDashboard-Angular to be Ready
+      run: |
+        kubectl wait --for=condition=Ready pods -n kubeflow -l app=centraldashboard-angular --timeout=300s
+        kubectl wait --for=condition=Available deployment -n kubeflow centraldashboard-angular --timeout=300s
 
-        # escape "." in the image names, as it is a special characters in sed
-        export CURRENT_IMAGE=$(echo "$CURRENT_IMAGE" | sed 's|\.|\\.|g')
-        export PR_IMAGE=$(echo "$PR_IMAGE" | sed 's|\.|\\.|g')
+    - name: Validate Service
+      run: |
+        ./testing/gh-actions/test_service.sh validate-service centraldashboard-angular kubeflow
 
-        kustomize build overlays/kserve \
-          | sed "s|${CURRENT_IMAGE}:[a-zA-Z0-9_.-]*|${PR_IMAGE}|g" \
-          | kubectl apply -f -
+    - name: Start Port Forward for Dashboard Testing
+      run: |
+        ./testing/gh-actions/test_service.sh port-forward centraldashboard-angular kubeflow 8080 80
 
-        kubectl wait pods -n kubeflow -l app=centraldashboard-angular --for=condition=Ready --timeout=300s
+    - name: Test Dashboard Health
+      run: |
+        ./testing/gh-actions/test_service.sh test-health centraldashboard-angular kubeflow 8080
+
+    - name: Test Dashboard Web Interface
+      run: |
+        ./testing/gh-actions/test_service.sh test-dashboard centraldashboard-angular kubeflow 8080
+
+    - name: Test Dashboard Performance
+      run: |
+        ./testing/gh-actions/test_service.sh performance-test centraldashboard-angular kubeflow 8080 80 8
+
+    - name: Test Dashboard Metrics
+      run: |
+        ./testing/gh-actions/test_service.sh test-metrics centraldashboard-angular kubeflow 8080
+
+    - name: Check Dashboard Logs
+      run: |
+        ./testing/gh-actions/test_service.sh check-logs centraldashboard-angular kubeflow 50
+
+    - name: Check for Errors in Logs
+      run: |
+        ./testing/gh-actions/test_service.sh check-errors centraldashboard-angular kubeflow
+
+    - name: Stop Port Forward
+      run: |
+        ./testing/gh-actions/test_service.sh stop-port-forward centraldashboard-angular kubeflow 8080

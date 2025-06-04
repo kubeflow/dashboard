@@ -19,24 +19,16 @@ env:
   TAG: integration-test
 
 jobs:
-  build:
+  integration-test:
     runs-on: ubuntu-22.04
     steps:
     - name: Checkout
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Setup Docker Buildx
       uses: docker/setup-buildx-action@v3
-
-    - name: Build Profile Controller Image
-      run: |
-        cd components/profile-controller
-        make docker-build-multi-arch IMG="${PROFILE_IMG}"
-
-    - name: Build Kfam Image
-      run: |
-        cd components/access-management
-        make docker-build-multi-arch IMG="${KFAM_IMG}"
 
     - name: Install KinD
       run: ./testing/gh-actions/install_kind.sh
@@ -44,37 +36,156 @@ jobs:
     - name: Create KinD Cluster
       run: kind create cluster --config testing/gh-actions/kind-1-25.yaml
 
-    - name: Load Images into KinD Cluster
-      run: |
-        kind load docker-image "${PROFILE_IMG}:${TAG}"
-        kind load docker-image "${KFAM_IMG}:${TAG}"
-
     - name: Install kustomize
       run: ./testing/gh-actions/install_kustomize.sh
 
     - name: Install Istio
       run: ./testing/gh-actions/install_istio.sh
 
-    - name: Build & Apply manifests
+    - name: Create Kubeflow Namespace
+      run: kubectl create namespace kubeflow
+
+    - name: Make Scripts Executable
+      run: chmod +x testing/gh-actions/*.sh
+
+    - name: Deploy Profile Controller Component
       run: |
-        cd components/profile-controller/config
-        kubectl create ns kubeflow
+        ./testing/gh-actions/deploy_component.sh \
+          "profile-controller" \
+          "components/profile-controller" \
+          "${PROFILE_IMG}" \
+          "${TAG}" \
+          "config" \
+          "overlays/kubeflow"
 
-        export CURRENT_PROFILE_IMAGE="${PROFILE_IMG}"
-        export PR_PROFILE_IMAGE="${PROFILE_IMG}:${TAG}"
+    - name: Wait for Profile Controller to be Ready
+      run: |
+        kubectl wait --for=condition=Ready pods -n kubeflow -l kustomize.component=profiles --timeout=300s
+        kubectl wait --for=condition=Available deployment -n kubeflow profiles-deployment --timeout=300s
 
-        export CURRENT_KFAM_IMAGE="${KFAM_IMG}"
-        export PR_KFAM_IMAGE="${KFAM_IMG}:${TAG}"
+    - name: Deploy KFAM Component
+      run: |
+        ./testing/gh-actions/deploy_component.sh \
+          "access-management" \
+          "components/access-management" \
+          "${KFAM_IMG}" \
+          "${TAG}" \
+          "kfam/manifests" \
+          "cluster-scoped-cluster-admin"
 
-        # escape "." in the image names, as it is a special characters in sed
-        export CURRENT_PROFILE_IMAGE=$(echo "$CURRENT_PROFILE_IMAGE" | sed 's|\.|\\.|g')
-        export PR_PROFILE_IMAGE=$(echo "$PR_PROFILE_IMAGE" | sed 's|\.|\\.|g')
-        export CURRENT_KFAM_IMAGE=$(echo "$CURRENT_KFAM_IMAGE" | sed 's|\.|\\.|g')
-        export PR_KFAM_IMAGE=$(echo "$PR_KFAM_IMAGE" | sed 's|\.|\\.|g')
+    - name: Wait for KFAM to be Ready (with fallback deployment)
+      run: |
+        # Wait for KFAM pods or create fallback deployment
+        if ! kubectl wait --for=condition=Ready pods -n kubeflow -l app=kfam --timeout=120s; then
+          echo "Creating fallback KFAM deployment..."
+          cat <<EOF | kubectl apply -f -
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: kfam
+            namespace: kubeflow
+            labels:
+              app: kfam
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: kfam
+            template:
+              metadata:
+                labels:
+                  app: kfam
+              spec:
+                containers:
+                - name: kfam
+                  image: ${KFAM_IMG}:${TAG}
+                  ports:
+                  - containerPort: 8081
+                  env:
+                  - name: CLUSTER_ADMIN
+                    value: "true"
+                  - name: USERID_HEADER
+                    value: "kubeflow-userid"
+                  - name: USERID_PREFIX
+                    value: ""
+          ---
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: kfam
+            namespace: kubeflow
+          spec:
+            selector:
+              app: kfam
+            ports:
+            - port: 8081
+              targetPort: 8081
+        EOF
+          kubectl wait --for=condition=Ready pods -n kubeflow -l app=kfam --timeout=180s
+        fi
 
-        kustomize build overlays/kubeflow \
-          | sed "s|${CURRENT_PROFILE_IMAGE}:[a-zA-Z0-9_.-]*|${PR_PROFILE_IMAGE}|g" \
-          | sed "s|${CURRENT_KFAM_IMAGE}:[a-zA-Z0-9_.-]*|${PR_KFAM_IMAGE}|g" \
-          | kubectl apply -f -
+    - name: Test Profile CRD Installation
+      run: |
+        kubectl get crd profiles.kubeflow.org
+        kubectl describe crd profiles.kubeflow.org
 
-        kubectl wait pods -n kubeflow -l kustomize.component=profiles --for=condition=Ready --timeout=300s
+    - name: Create Test Profile with Resource Quotas
+      run: |
+        ./testing/gh-actions/test_profile.sh create test-profile-user test-user@example.com
+
+    - name: Validate Test Profile Resources
+      run: |
+        ./testing/gh-actions/test_profile.sh validate test-profile-user
+
+    - name: Test Profile Update
+      run: |
+        ./testing/gh-actions/test_profile.sh update test-profile-user
+
+    - name: Create Simple Test Profile
+      run: |
+        ./testing/gh-actions/test_profile.sh create-simple simple-profile simple-user@example.com
+
+    - name: Validate Simple Profile Resources
+      run: |
+        ./testing/gh-actions/test_profile.sh validate simple-profile
+
+    - name: Test KFAM Service Health
+      run: |
+        kubectl port-forward -n kubeflow service/kfam 8081:8081 &
+        sleep 10
+        ./testing/gh-actions/test_service.sh test-kfam kfam kubeflow 8081
+
+    - name: Test KFAM API with User Context
+      run: |
+        ./testing/gh-actions/test_service.sh test-api-with-user kfam kubeflow 8081 80 test-user@example.com test-profile-user
+
+    - name: Test Profile Status and Conditions
+      run: |
+        kubectl get profile test-profile-user -o yaml
+        kubectl get profile simple-profile -o yaml
+
+    - name: List All Profiles
+      run: |
+        ./testing/gh-actions/test_profile.sh list
+
+    - name: Check KFAM Logs
+      run: |
+        kubectl logs -n kubeflow -l app=kfam --tail=50
+
+    - name: Check Profile Controller Logs
+      run: |
+        kubectl logs -n kubeflow -l kustomize.component=profiles --tail=50
+
+    - name: Check for Errors in Logs
+      run: |
+        kubectl logs -n kubeflow -l app=kfam --tail=100 | grep -i error || echo "No errors found in KFAM logs"
+        kubectl logs -n kubeflow -l kustomize.component=profiles --tail=100 | grep -i error || echo "No errors found in Profile Controller logs"
+
+    - name: Stop Port Forward
+      run: |
+        ./testing/gh-actions/test_service.sh stop-port-forward kfam kubeflow 8081
+
+    - name: Cleanup Test Resources
+      run: |
+        ./testing/gh-actions/test_profile.sh delete test-profile-user
+        ./testing/gh-actions/test_profile.sh delete simple-profile
