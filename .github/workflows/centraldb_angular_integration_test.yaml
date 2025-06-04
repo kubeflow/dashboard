@@ -46,13 +46,30 @@ jobs:
 
     - name: Deploy CentralDashboard-Angular Component
       run: |
-        ./testing/gh-actions/deploy_component.sh \
-          "centraldashboard-angular" \
-          "components/centraldashboard-angular" \
-          "${IMG}" \
-          "${TAG}" \
-          "manifests" \
-          "overlays/kserve"
+        cd components/centraldashboard-angular
+        
+        if [ -f "Makefile" ]; then
+            if grep -q "docker-build-multi-arch" Makefile; then
+                make docker-build-multi-arch IMG="${IMG}" TAG="${TAG}"
+            else
+                make docker-build IMG="${IMG}" TAG="${TAG}"
+            fi
+        fi
+        
+        kind load docker-image "${IMG}:${TAG}"
+        
+        cd manifests
+        export CD_NAMESPACE=kubeflow
+        export CD_CLUSTER_DOMAIN=cluster.local
+        export CURRENT_IMAGE="${IMG}"
+        export PR_IMAGE="${IMG}:${TAG}"
+        export CURRENT_IMAGE_ESCAPED=$(echo "$CURRENT_IMAGE" | sed 's|\.|\\.|g')
+        export PR_IMAGE_ESCAPED=$(echo "$PR_IMAGE" | sed 's|\.|\\.|g')
+        
+        kustomize build overlays/kserve \
+          | sed "s|${CURRENT_IMAGE_ESCAPED}:[a-zA-Z0-9_.-]*|${PR_IMAGE_ESCAPED}|g" \
+          | envsubst \
+          | kubectl apply -f -
 
     - name: Wait for CentralDashboard-Angular to be Ready
       run: |

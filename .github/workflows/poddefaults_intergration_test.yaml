@@ -62,8 +62,8 @@ jobs:
 
     - name: Wait for Admission Webhook to be Ready
       run: |
-        kubectl wait --for=condition=Ready pods -n kubeflow -l app=poddefaults-webhook --timeout=300s
-        kubectl wait --for=condition=Available deployment -n kubeflow poddefaults-webhook --timeout=300s
+        kubectl wait --for=condition=Ready pods -n kubeflow -l app=poddefaults --timeout=300s
+        kubectl wait --for=condition=Available deployment -n kubeflow admission-webhook-deployment --timeout=300s
 
     - name: Validate Webhook Configuration
       run: |
@@ -95,11 +95,11 @@ jobs:
 
     - name: Check Webhook Logs
       run: |
-        kubectl logs -n kubeflow -l app=poddefaults-webhook --tail=100
+        kubectl logs -n kubeflow -l app=poddefaults --tail=100
 
     - name: Check for Errors in Webhook Logs  
       run: |
-        kubectl logs -n kubeflow -l app=poddefaults-webhook --tail=100 | grep -i error || echo "No errors found in webhook logs"
+        kubectl logs -n kubeflow -l app=poddefaults --tail=100 | grep -i error || echo "No errors found in webhook logs"
 
     - name: Cleanup Test Resources
       run: |
