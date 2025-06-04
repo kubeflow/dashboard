@@ -70,7 +70,27 @@ jobs:
 
     - name: Create Test Profile for Dashboard Testing
       run: |
-        ./testing/gh-actions/test_profile.sh create test-dashboard-profile dashboard-user@example.com
+        cat <<EOF | kubectl apply -f -
+        apiVersion: kubeflow.org/v1
+        kind: Profile
+        metadata:
+          name: test-dashboard-profile
+        spec:
+          owner:
+            kind: User
+            name: dashboard-user@example.com
+        EOF
+        
+        for i in {1..60}; do
+          if kubectl get namespace test-dashboard-profile >/dev/null 2>&1; then
+            break
+          fi
+          echo "Waiting for namespace... (attempt $i/60)"
+          sleep 5
+        done
+        
+        kubectl get profile test-dashboard-profile
+        kubectl get namespace test-dashboard-profile
 
     - name: Validate Service
       run: |
@@ -119,4 +139,11 @@ jobs:
 
     - name: Cleanup Test Resources
       run: |
-        ./testing/gh-actions/test_profile.sh delete test-dashboard-profile
+        kubectl delete profile test-dashboard-profile --ignore-not-found=true
+        for i in {1..30}; do
+          if ! kubectl get namespace test-dashboard-profile >/dev/null 2>&1; then
+            break
+          fi
+          echo "Waiting for namespace deletion... (attempt $i/30)"
+          sleep 5
+        done

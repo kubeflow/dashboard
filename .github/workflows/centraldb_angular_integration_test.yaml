@@ -68,7 +68,8 @@ jobs:
         
         kustomize build overlays/kserve \
           | sed "s|${CURRENT_IMAGE_ESCAPED}:[a-zA-Z0-9_.-]*|${PR_IMAGE_ESCAPED}|g" \
-          | envsubst \
+          | sed "s|\$(CD_NAMESPACE)|${CD_NAMESPACE}|g" \
+          | sed "s|\$(CD_CLUSTER_DOMAIN)|${CD_CLUSTER_DOMAIN}|g" \
           | kubectl apply -f -
 
     - name: Wait for CentralDashboard-Angular to be Ready
