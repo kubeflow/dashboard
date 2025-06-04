@@ -4,6 +4,7 @@ on:
     paths:
       - components/centraldashboard/**
       - releasing/version/VERSION
+      - .github/workflows/centraldb_frontend_tests.yaml
     branches:
       - main
       - v*-branch

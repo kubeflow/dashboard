@@ -4,6 +4,7 @@ on:
     paths:
       - components/profile-controller/**
       - releasing/version/VERSION
+      - .github/workflows/prof_controller_multi_arch_test.yaml
     branches:
       - main
       - v*-branch

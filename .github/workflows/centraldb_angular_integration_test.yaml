@@ -4,6 +4,7 @@ on:
     paths:
       - components/centraldashboard-angular/**
       - releasing/version/VERSION
+      - .github/workflows/centraldb_angular_integration_test.yaml
     branches:
       - main
       - v*-branch

@@ -5,6 +5,7 @@ on:
       - components/profile-controller/**
       - components/access-management/**
       - releasing/version/VERSION
+      - .github/workflows/profiles_kfam_integration_test.yaml
     branches:
       - main
       - v*-branch
