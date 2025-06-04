@@ -106,9 +106,9 @@ jobs:
 
     - name: Test Dashboard Web Interface
       run: |
-        curl -f "http://localhost:8082/" >/dev/null 2>&1 || echo "Main page test failed"
+        curl -f "http://localhost:8082/" >/dev/null 2>&1 
         
-        curl -f "http://localhost:8082/healthz" >/dev/null 2>&1 || echo "Health endpoint not available"
+        curl -f "http://localhost:8082/healthz" >/dev/null 2>&1 
         
         RESPONSE=$(curl -s "http://localhost:8082/" | head -c 100)
         if [[ -n "$RESPONSE" ]]; then
@@ -138,12 +138,12 @@ jobs:
 
     - name: Test Dashboard Configuration
       run: |
-        kubectl get configmap centraldashboard-config -n kubeflow || echo "ConfigMap not found, this is optional"
-        kubectl describe configmap centraldashboard-config -n kubeflow || echo "ConfigMap not found, this is optional"
+        kubectl get configmap centraldashboard-config -n kubeflow 
+        kubectl describe configmap centraldashboard-config -n kubeflow 
 
     - name: Test Virtual Service (if Istio is configured)
       run: |
-        kubectl get virtualservice centraldashboard -n kubeflow || echo "VirtualService not found (might not be configured)"
+        kubectl get virtualservice centraldashboard -n kubeflow 
 
     - name: Stop Port Forward
       run: |
