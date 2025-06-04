@@ -89,6 +89,11 @@ jobs:
           sleep 5
         done
         
+        if ! kubectl get namespace test-dashboard-profile >/dev/null 2>&1; then
+          echo "Failed to create test-dashboard-profile namespace"
+          exit 1
+        fi
+        
         kubectl get profile test-dashboard-profile
         kubectl get namespace test-dashboard-profile
 
@@ -115,6 +120,7 @@ jobs:
           echo "Dashboard is serving content: ${RESPONSE:0:50}..."
         else
           echo "Dashboard is not serving content"
+          exit 1
         fi
         
         kubectl get service centraldashboard -n kubeflow

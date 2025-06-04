@@ -91,7 +91,20 @@ jobs:
 
     - name: Test Dashboard Web Interface
       run: |
-        ./testing/gh-actions/test_service.sh test-dashboard centraldashboard-angular kubeflow 8080
+        curl -f "http://localhost:8080/" >/dev/null 2>&1 
+        
+        curl -f "http://localhost:8080/healthz" >/dev/null 2>&1 
+        
+        RESPONSE=$(curl -s "http://localhost:8080/" | head -c 100)
+        if [[ -n "$RESPONSE" ]]; then
+          echo "Dashboard is serving content: ${RESPONSE:0:50}..."
+        else
+          echo "Dashboard is not serving content"
+          exit 1
+        fi
+        
+        kubectl get service centraldashboard-angular -n kubeflow
+        kubectl get pods -n kubeflow -l app=centraldashboard-angular
 
     - name: Test Dashboard Performance
       run: |
