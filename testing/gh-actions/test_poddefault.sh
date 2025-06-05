@@ -73,11 +73,18 @@ spec:
     image: busybox:latest
     command: ["sleep", "3600"]
 EOF
+                
+        kubectl get pod "${TEST_POD_NAME}" -n "${NAMESPACE}" -o yaml | grep -q "TEST_ENV_VAR" || {
+            echo "ERROR: TEST_ENV_VAR not found in pod spec"
+            kubectl get pod "${TEST_POD_NAME}" -n "${NAMESPACE}" -o yaml
+            exit 1
+        }
+        kubectl get pod "${TEST_POD_NAME}" -n "${NAMESPACE}" -o yaml | grep -q "test-volume" || {
+            echo "ERROR: test-volume not found in pod spec"
+            kubectl get pod "${TEST_POD_NAME}" -n "${NAMESPACE}" -o yaml
+            exit 1
+        }
         
-        kubectl wait --for=condition=PodReadyForStartCondition pod/${TEST_POD_NAME} -n "${NAMESPACE}" --timeout=60s 
-        
-        kubectl get pod "${TEST_POD_NAME}" -n "${NAMESPACE}" -o yaml | grep -q "TEST_ENV_VAR"
-        kubectl get pod "${TEST_POD_NAME}" -n "${NAMESPACE}" -o yaml | grep -q "test-volume"
         ;;
 
     "test-multi-mutation")
@@ -97,10 +104,17 @@ spec:
     command: ["sleep", "300"]
 EOF
 
-        kubectl wait --for=condition=PodReadyForStartCondition pod/${TEST_POD_NAME}-multi -n "${NAMESPACE}" --timeout=60s 
+        kubectl get pod "${TEST_POD_NAME}-multi" -n "${NAMESPACE}" -o yaml | grep -q "TEST_ENV_VAR" || {
+            echo "ERROR: TEST_ENV_VAR not found in pod spec"
+            kubectl get pod "${TEST_POD_NAME}-multi" -n "${NAMESPACE}" -o yaml
+            exit 1
+        }
+        kubectl get pod "${TEST_POD_NAME}-multi" -n "${NAMESPACE}" -o yaml | grep -q "SECOND_ENV_VAR" || {
+            echo "ERROR: SECOND_ENV_VAR not found in pod spec"
+            kubectl get pod "${TEST_POD_NAME}-multi" -n "${NAMESPACE}" -o yaml
+            exit 1
+        }
         
-        kubectl get pod "${TEST_POD_NAME}-multi" -n "${NAMESPACE}" -o yaml | grep -q "TEST_ENV_VAR"
-        kubectl get pod "${TEST_POD_NAME}-multi" -n "${NAMESPACE}" -o yaml | grep -q "SECOND_ENV_VAR"
         ;;
 
     "test-error-handling")
