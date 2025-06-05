@@ -52,27 +52,13 @@ jobs:
 
     - name: Deploy PodDefaults Webhook Component
       run: |
-        cd components/admission-webhook
-        
-        if [ -f "Makefile" ]; then
-            if grep -q "docker-build-multi-arch" Makefile; then
-                make docker-build-multi-arch IMG="${IMG}" TAG="${TAG}"
-            else
-                make docker-build IMG="${IMG}" TAG="${TAG}"
-            fi
-        fi
-        
-        kind load docker-image "${IMG}:${TAG}"
-        
-        cd manifests
-        export CURRENT_IMAGE="${IMG}"
-        export PR_IMAGE="${IMG}:${TAG}"
-        export CURRENT_IMAGE_ESCAPED=$(echo "$CURRENT_IMAGE" | sed 's|\.|\\.|g')
-        export PR_IMAGE_ESCAPED=$(echo "$PR_IMAGE" | sed 's|\.|\\.|g')
-        
-        kustomize build overlays/cert-manager \
-          | sed "s|${CURRENT_IMAGE_ESCAPED}:[a-zA-Z0-9_.-]*|${PR_IMAGE_ESCAPED}|g" \
-          | kubectl apply -f -
+        ./testing/gh-actions/deploy_component.sh \
+          "admission-webhook" \
+          "components/admission-webhook" \
+          "${IMG}" \
+          "${TAG}" \
+          "manifests" \
+          "overlays/cert-manager"
 
     - name: Wait for Admission Webhook to be Ready
       run: |

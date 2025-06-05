@@ -123,8 +123,8 @@ EOF
     "validate-webhook")
         kubectl get crd poddefaults.kubeflow.org
         kubectl describe crd poddefaults.kubeflow.org
-        kubectl get mutatingwebhookconfiguration poddefaults.kubeflow.org
-        kubectl describe mutatingwebhookconfiguration poddefaults.kubeflow.org
+        kubectl get mutatingwebhookconfiguration admission-webhook-mutating-webhook-configuration
+        kubectl describe mutatingwebhookconfiguration admission-webhook-mutating-webhook-configuration
         ;;
 
     "cleanup")
