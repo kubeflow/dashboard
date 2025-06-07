@@ -14,6 +14,7 @@ case "$OPERATION" in
     "create-namespace")
         kubectl create namespace "${NAMESPACE}" 
         kubectl label namespace "${NAMESPACE}" katib.kubeflow.org/metrics-collector-injection=enabled 
+        kubectl label namespace "${NAMESPACE}" app.kubernetes.io/part-of=kubeflow-profile
         ;;
 
     "create-poddefault")
