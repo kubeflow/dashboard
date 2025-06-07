@@ -41,9 +41,17 @@ export PR_IMAGE_ESCAPED=$(echo "$PR_IMAGE" | sed 's|\.|\\.|g')
 
 for overlay_path in "${OVERLAY}" "overlays/kserve" "overlays/cert-manager"; do
     if [ -d "$overlay_path" ]; then
-        kustomize build "$overlay_path" \
-          | sed "s|${CURRENT_IMAGE_ESCAPED}:[a-zA-Z0-9_.-]*|${PR_IMAGE_ESCAPED}|g" \
-          | kubectl apply -f -
+        if [ "$overlay_path" = "overlays/cert-manager" ]; then
+            kustomize build "$overlay_path" \
+              | sed "s|${CURRENT_IMAGE_ESCAPED}:[a-zA-Z0-9_.-]*|${PR_IMAGE_ESCAPED}|g" \
+              | sed 's/$(podDefaultsServiceName)/admission-webhook-service/g' \
+              | sed 's/$(podDefaultsNamespace)/kubeflow/g' \
+              | kubectl apply -f -
+        else
+            kustomize build "$overlay_path" \
+              | sed "s|${CURRENT_IMAGE_ESCAPED}:[a-zA-Z0-9_.-]*|${PR_IMAGE_ESCAPED}|g" \
+              | kubectl apply -f -
+        fi
         exit 0
     fi
 done
