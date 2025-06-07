@@ -1,5 +1,5 @@
 ARG GOLANG_VERSION=1.17
-FROM golang:${GOLANG_VERSION} as builder
+FROM golang:${GOLANG_VERSION} AS builder
 
 WORKDIR /workspace
 
@@ -17,7 +17,7 @@ RUN chmod a+rx access-management
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM gcr.io/distroless/static:nonroot as serve
+FROM gcr.io/distroless/static:nonroot AS serve
 
 WORKDIR /
 COPY third_party third_party

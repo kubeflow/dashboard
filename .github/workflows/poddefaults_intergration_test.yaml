@@ -4,6 +4,7 @@ on:
     paths:
       - components/admission-webhook/**
       - releasing/version/VERSION
+      - .github/workflows/poddefaults_intergration_test.yaml
     branches:
       - main
       - v*-branch
@@ -17,29 +18,22 @@ env:
   TAG: integration-test
 
 jobs:
-  build:
+  integration-test:
     runs-on: ubuntu-22.04
     steps:
     - name: Checkout
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Setup Docker Buildx
       uses: docker/setup-buildx-action@v3
-
-    - name: Build PodDefaults Image
-      run: |
-        cd components/admission-webhook
-        make docker-build-multi-arch
 
     - name: Install KinD
       run: ./testing/gh-actions/install_kind.sh
 
     - name: Create KinD Cluster
-      run: kind create cluster --config testing/gh-actions/kind-1-25.yaml
-
-    - name: Load Images into KinD Cluster
-      run: |
-        kind load docker-image "${IMG}:${TAG}"
+      run: kind create cluster --config testing/gh-actions/kind-1-33.yaml
 
     - name: Install kustomize
       run: ./testing/gh-actions/install_kustomize.sh
@@ -50,20 +44,63 @@ jobs:
     - name: Install cert-manager
       run: ./testing/gh-actions/install_cert_manager.sh
 
-    - name: Build & Apply manifests
+    - name: Create Kubeflow Namespace
+      run: kubectl create namespace kubeflow
+
+    - name: Make Scripts Executable
+      run: chmod +x testing/gh-actions/*.sh
+
+    - name: Deploy PodDefaults Webhook Component
       run: |
-        cd components/admission-webhook/manifests
-        kubectl create ns kubeflow
+        ./testing/gh-actions/deploy_component.sh \
+          "admission-webhook" \
+          "components/admission-webhook" \
+          "${IMG}" \
+          "${TAG}" \
+          "manifests" \
+          "overlays/cert-manager"
 
-        export CURRENT_IMAGE="${IMG}"
-        export PR_IMAGE="${IMG}:${TAG}"
+    - name: Wait for Admission Webhook to be Ready
+      run: |
+        kubectl wait --for=condition=Ready pods -n kubeflow -l app=poddefaults --timeout=300s
+        kubectl wait --for=condition=Available deployment -n kubeflow admission-webhook-deployment --timeout=300s
 
-        # escape "." in the image names, as it is a special characters in sed
-        export CURRENT_IMAGE=$(echo "$CURRENT_IMAGE" | sed 's|\.|\\.|g')
-        export PR_IMAGE=$(echo "$PR_IMAGE" | sed 's|\.|\\.|g')
+    - name: Validate Webhook Configuration
+      run: |
+        ./testing/gh-actions/test_poddefault.sh validate-webhook kubeflow
 
-        kustomize build overlays/cert-manager \
-          | sed "s|${CURRENT_IMAGE}:[a-zA-Z0-9_.-]*|${PR_IMAGE}|g" \
-          | kubectl apply -f -
+    - name: Create Test Namespace
+      run: |
+        ./testing/gh-actions/test_poddefault.sh create-namespace test-poddefaults
 
-        kubectl wait pods -n kubeflow -l app=poddefaults --for=condition=Ready --timeout=300s
+    - name: Create Test PodDefault
+      run: |
+        ./testing/gh-actions/test_poddefault.sh create-poddefault test-poddefaults test-poddefault
+
+    - name: Test PodDefault Mutation
+      run: |
+        ./testing/gh-actions/test_poddefault.sh test-mutation test-poddefaults test-poddefault test-pod
+
+    - name: Create Multiple PodDefaults for Testing
+      run: |
+        ./testing/gh-actions/test_poddefault.sh create-multi-poddefault test-poddefaults test-poddefault
+
+    - name: Test Multiple PodDefaults Mutation
+      run: |
+        ./testing/gh-actions/test_poddefault.sh test-multi-mutation test-poddefaults test-poddefault test-pod
+
+    - name: Test Error Handling
+      run: |
+        ./testing/gh-actions/test_poddefault.sh test-error-handling test-poddefaults
+
+    - name: Check Webhook Logs
+      run: |
+        kubectl logs -n kubeflow -l app=poddefaults --tail=100
+
+    - name: Check for Errors in Webhook Logs  
+      run: |
+        kubectl logs -n kubeflow -l app=poddefaults --tail=100 | grep -i error || echo "No errors found in webhook logs"
+
+    - name: Cleanup Test Resources
+      run: |
+        ./testing/gh-actions/test_poddefault.sh cleanup test-poddefaults
