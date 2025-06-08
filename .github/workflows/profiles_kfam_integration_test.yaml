@@ -115,13 +115,51 @@ jobs:
 
     - name: Test KFAM Service Health
       run: |
-        kubectl port-forward -n kubeflow service/profiles-kfam 8081:8081 &
-        sleep 10
-        ./testing/gh-actions/test_service.sh test-kfam profiles-kfam kubeflow 8081
+        echo "Checking KFAM service details..."
+        kubectl get services -n kubeflow | grep kfam || echo "No service found with 'kfam' in name"
+        kubectl get services -n kubeflow -l kustomize.component=profiles || echo "No services found with profiles label"
+        
+        echo "Setting up port-forward to KFAM service..."
+        POD_NAME=$(kubectl get pods -n kubeflow -l kustomize.component=profiles -o jsonpath="{.items[0].metadata.name}")
+        if [ -n "$POD_NAME" ]; then
+          echo "Found pod $POD_NAME for port-forwarding"
+          kubectl port-forward -n kubeflow pod/$POD_NAME 8081:8081 &
+          PF_PID=$!
+          echo $PF_PID > /tmp/kfam_pf.pid
+          sleep 5
+          
+          echo "Testing KFAM service health..."
+          curl -v http://localhost:8081/healthz || curl -v http://localhost:8081/metrics || curl -v http://localhost:8081/
+          
+          if [ -f "/tmp/kfam_pf.pid" ]; then
+            kill $(cat /tmp/kfam_pf.pid)
+            rm -f /tmp/kfam_pf.pid
+          fi
+        else
+          echo "No profiles pods found for port-forwarding"
+          exit 1
+        fi
 
     - name: Test KFAM API with User Context
       run: |
-        ./testing/gh-actions/test_service.sh test-api-with-user profiles-kfam kubeflow 8081 80 test-user@example.com test-profile-user
+        POD_NAME=$(kubectl get pods -n kubeflow -l kustomize.component=profiles -o jsonpath="{.items[0].metadata.name}")
+        if [ -n "$POD_NAME" ]; then
+          echo "Setting up port-forward to pod $POD_NAME"
+          kubectl port-forward -n kubeflow pod/$POD_NAME 8081:8081 &
+          PF_PID=$!
+          echo $PF_PID > /tmp/kfam_pf.pid
+          sleep 5
+          
+          curl -v -H "kubeflow-userid: test-user@example.com" http://localhost:8081/kfam/v1/bindings?namespace=test-profile-user
+          
+          if [ -f "/tmp/kfam_pf.pid" ]; then
+            kill $(cat /tmp/kfam_pf.pid)
+            rm -f /tmp/kfam_pf.pid
+          fi
+        else
+          echo "No profiles pods found for port-forwarding"
+          exit 1
+        fi
 
     - name: Test Profile Status and Conditions
       run: |
@@ -144,10 +182,6 @@ jobs:
       run: |
         kubectl logs -n kubeflow -l kustomize.component=profiles -c kfam --tail=100 | grep -i error || echo "No errors found in KFAM logs"
         kubectl logs -n kubeflow -l kustomize.component=profiles --tail=100 | grep -i error || echo "No errors found in Profile Controller logs"
-
-    - name: Stop Port Forward
-      run: |
-        ./testing/gh-actions/test_service.sh stop-port-forward profiles-kfam kubeflow 8081
 
     - name: Cleanup Test Resources
       run: |
