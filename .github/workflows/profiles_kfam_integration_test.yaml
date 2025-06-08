@@ -64,66 +64,29 @@ jobs:
         kubectl wait --for=condition=Ready pods -n kubeflow -l kustomize.component=profiles --timeout=300s
         kubectl wait --for=condition=Available deployment -n kubeflow profiles-deployment --timeout=300s
 
-    - name: Deploy KFAM Component
+    - name: Wait for Profile CRD to be Available
       run: |
-        ./testing/gh-actions/deploy_component.sh \
-          "access-management" \
-          "components/access-management" \
-          "${KFAM_IMG}" \
-          "${TAG}" \
-          "kfam/manifests" \
-          "cluster-scoped-cluster-admin"
+        timeout=300
+        interval=5
+        elapsed=0
+        while ! kubectl get crd profiles.kubeflow.org >/dev/null 2>&1; do
+          if [ $elapsed -ge $timeout ]; then
+            exit 1
+          fi
+          sleep $interval
+          elapsed=$((elapsed + interval))
+        done
+        kubectl wait --for condition=established --timeout=60s crd/profiles.kubeflow.org
 
-    - name: Wait for KFAM to be Ready (with fallback deployment)
+    - name: Wait for KFAM to be Ready
       run: |
-        # Wait for KFAM pods or create fallback deployment
-        if ! kubectl wait --for=condition=Ready pods -n kubeflow -l app=kfam --timeout=120s; then
-          echo "Creating fallback KFAM deployment..."
-          cat <<EOF | kubectl apply -f -
-          apiVersion: apps/v1
-          kind: Deployment
-          metadata:
-            name: kfam
-            namespace: kubeflow
-            labels:
-              app: kfam
-          spec:
-            replicas: 1
-            selector:
-              matchLabels:
-                app: kfam
-            template:
-              metadata:
-                labels:
-                  app: kfam
-              spec:
-                containers:
-                - name: kfam
-                  image: ${KFAM_IMG}:${TAG}
-                  ports:
-                  - containerPort: 8081
-                  env:
-                  - name: CLUSTER_ADMIN
-                    value: "true"
-                  - name: USERID_HEADER
-                    value: "kubeflow-userid"
-                  - name: USERID_PREFIX
-                    value: ""
-          ---
-          apiVersion: v1
-          kind: Service
-          metadata:
-            name: kfam
-            namespace: kubeflow
-          spec:
-            selector:
-              app: kfam
-            ports:
-            - port: 8081
-              targetPort: 8081
-        EOF
-          kubectl wait --for=condition=Ready pods -n kubeflow -l app=kfam --timeout=180s
-        fi
+        kubectl wait --for=condition=Ready pods -n kubeflow -l app=kfam --timeout=300s || {
+          echo "KFAM pods not found with label app=kfam, checking for profiles-kfam service..."
+          kubectl get service profiles-kfam -n kubeflow || {
+            echo "KFAM service not found, KFAM might be deployed as part of profiles deployment"
+            kubectl wait --for=condition=Ready pods -n kubeflow -l kustomize.component=profiles --timeout=300s
+          }
+        }
 
     - name: Test Profile CRD Installation
       run: |
@@ -152,13 +115,13 @@ jobs:
 
     - name: Test KFAM Service Health
       run: |
-        kubectl port-forward -n kubeflow service/kfam 8081:8081 &
+        kubectl port-forward -n kubeflow service/profiles-kfam 8081:8081 &
         sleep 10
-        ./testing/gh-actions/test_service.sh test-kfam kfam kubeflow 8081
+        ./testing/gh-actions/test_service.sh test-kfam profiles-kfam kubeflow 8081
 
     - name: Test KFAM API with User Context
       run: |
-        ./testing/gh-actions/test_service.sh test-api-with-user kfam kubeflow 8081 80 test-user@example.com test-profile-user
+        ./testing/gh-actions/test_service.sh test-api-with-user profiles-kfam kubeflow 8081 80 test-user@example.com test-profile-user
 
     - name: Test Profile Status and Conditions
       run: |
@@ -171,7 +134,7 @@ jobs:
 
     - name: Check KFAM Logs
       run: |
-        kubectl logs -n kubeflow -l app=kfam --tail=50
+        kubectl logs -n kubeflow -l kustomize.component=profiles -c kfam --tail=50 || kubectl logs -n kubeflow -l app=kfam --tail=50
 
     - name: Check Profile Controller Logs
       run: |
@@ -179,12 +142,12 @@ jobs:
 
     - name: Check for Errors in Logs
       run: |
-        kubectl logs -n kubeflow -l app=kfam --tail=100 | grep -i error || echo "No errors found in KFAM logs"
+        kubectl logs -n kubeflow -l kustomize.component=profiles -c kfam --tail=100 | grep -i error || echo "No errors found in KFAM logs"
         kubectl logs -n kubeflow -l kustomize.component=profiles --tail=100 | grep -i error || echo "No errors found in Profile Controller logs"
 
     - name: Stop Port Forward
       run: |
-        ./testing/gh-actions/test_service.sh stop-port-forward kfam kubeflow 8081
+        ./testing/gh-actions/test_service.sh stop-port-forward profiles-kfam kubeflow 8081
 
     - name: Cleanup Test Resources
       run: |

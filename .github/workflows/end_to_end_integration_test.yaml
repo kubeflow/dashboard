@@ -70,6 +70,30 @@ jobs:
       run: |
         kubectl wait --for=condition=Available deployment -n kubeflow profiles-deployment --timeout=300s
 
+    - name: Wait for Profile CRD to be Available
+      run: |
+        timeout=300
+        interval=5
+        elapsed=0
+        while ! kubectl get crd profiles.kubeflow.org >/dev/null 2>&1; do
+          if [ $elapsed -ge $timeout ]; then
+            exit 1
+          fi
+          sleep $interval
+          elapsed=$((elapsed + interval))
+        done
+        kubectl wait --for condition=established --timeout=60s crd/profiles.kubeflow.org
+
+    - name: Wait for KFAM to be Ready
+      run: |
+        kubectl wait --for=condition=Ready pods -n kubeflow -l app=kfam --timeout=300s || {
+          echo "KFAM pods not found with label app=kfam, checking for profiles-kfam service..."
+          kubectl get service profiles-kfam -n kubeflow || {
+            echo "KFAM service not found, KFAM might be deployed as part of profiles deployment"
+            kubectl wait --for=condition=Ready pods -n kubeflow -l kustomize.component=profiles --timeout=300s
+          }
+        }
+
     - name: Deploy Admission Webhook Component
       run: |
         ./testing/gh-actions/deploy_component.sh \
@@ -83,60 +107,6 @@ jobs:
     - name: Wait for Admission Webhook to be Ready
       run: |
         kubectl wait --for=condition=Available deployment -n kubeflow admission-webhook-deployment --timeout=300s
-
-    - name: Deploy KFAM Component
-      run: |
-        ./testing/gh-actions/deploy_component.sh \
-          "access-management" \
-          "components/access-management" \
-          "${KFAM_IMG}" \
-          "${TAG}" \
-          "kfam/manifests" \
-          "cluster-scoped-cluster-admin"
-
-    - name: Wait for KFAM to be Ready (with fallback)
-      run: |
-        if ! kubectl wait --for=condition=Ready pods -n kubeflow -l app=kfam --timeout=120s; then
-          echo "Creating fallback KFAM deployment..."
-          cat <<EOF | kubectl apply -f -
-          apiVersion: apps/v1
-          kind: Deployment
-          metadata:
-            name: kfam
-            namespace: kubeflow
-          spec:
-            replicas: 1
-            selector:
-              matchLabels:
-                app: kfam
-            template:
-              metadata:
-                labels:
-                  app: kfam
-              spec:
-                containers:
-                - name: kfam
-                  image: ${KFAM_IMG}:${TAG}
-                  ports:
-                  - containerPort: 8081
-                  env:
-                  - name: CLUSTER_ADMIN
-                    value: "true"
-          ---
-          apiVersion: v1
-          kind: Service
-          metadata:
-            name: kfam
-            namespace: kubeflow
-          spec:
-            selector:
-              app: kfam
-            ports:
-            - port: 8081
-              targetPort: 8081
-        EOF
-          kubectl wait --for=condition=Ready pods -n kubeflow -l app=kfam --timeout=180s
-        fi
 
     - name: Deploy CentralDashboard Angular Component
       run: |
@@ -166,7 +136,6 @@ jobs:
       run: |
         kubectl wait --for=condition=Available deployment -n kubeflow centraldashboard --timeout=300s
 
-    # Test Profiles and KFAM Integration
     - name: Create Test Profiles
       run: |
         ./testing/gh-actions/test_profile.sh create e2e-admin admin@example.com
@@ -177,22 +146,19 @@ jobs:
         ./testing/gh-actions/test_profile.sh validate e2e-admin
         ./testing/gh-actions/test_profile.sh validate e2e-user
 
-    # Test PodDefaults Integration
     - name: Test PodDefault Integration
       run: |
         ./testing/gh-actions/test_poddefault.sh create-namespace e2e-test
         ./testing/gh-actions/test_poddefault.sh create-poddefault e2e-test e2e-poddefault
         ./testing/gh-actions/test_poddefault.sh test-mutation e2e-test e2e-poddefault e2e-test-pod
 
-    # Test KFAM Service
     - name: Test KFAM Service Integration
       run: |
-        ./testing/gh-actions/test_service.sh port-forward kfam kubeflow 8081 8081
-        ./testing/gh-actions/test_service.sh test-kfam kfam kubeflow 8081
-        ./testing/gh-actions/test_service.sh test-api-with-user kfam kubeflow 8081 8081 admin@example.com e2e-admin
-        ./testing/gh-actions/test_service.sh stop-port-forward kfam kubeflow 8081
+        ./testing/gh-actions/test_service.sh port-forward profiles-kfam kubeflow 8081 8081
+        ./testing/gh-actions/test_service.sh test-kfam profiles-kfam kubeflow 8081
+        ./testing/gh-actions/test_service.sh test-api-with-user profiles-kfam kubeflow 8081 8081 admin@example.com e2e-admin
+        ./testing/gh-actions/test_service.sh stop-port-forward profiles-kfam kubeflow 8081
 
-    # Test CentralDashboard Angular Service
     - name: Test CentralDashboard Angular Integration
       run: |
         ./testing/gh-actions/test_service.sh port-forward centraldashboard-angular kubeflow 8082 80
@@ -200,7 +166,6 @@ jobs:
         ./testing/gh-actions/test_service.sh test-dashboard centraldashboard-angular kubeflow 8082
         ./testing/gh-actions/test_service.sh stop-port-forward centraldashboard-angular kubeflow 8082
 
-    # Test CentralDashboard Service
     - name: Test CentralDashboard Integration
       run: |
         ./testing/gh-actions/test_service.sh port-forward centraldashboard kubeflow 8083 80
@@ -209,7 +174,6 @@ jobs:
         ./testing/gh-actions/test_service.sh performance-test centraldashboard kubeflow 8083 80 15
         ./testing/gh-actions/test_service.sh stop-port-forward centraldashboard kubeflow 8083
 
-    # Cross-Component Integration Tests
     - name: Test Profile Update with Dashboard Access
       run: |
         ./testing/gh-actions/test_profile.sh update e2e-admin
@@ -218,45 +182,34 @@ jobs:
         ./testing/gh-actions/test_service.sh test-health centraldashboard kubeflow 8084
         ./testing/gh-actions/test_service.sh stop-port-forward centraldashboard kubeflow 8084
 
-    # Component Health and Logs Check
     - name: Check Component Health and Logs
       run: |
-        echo "=== Profile Controller Logs ==="
         ./testing/gh-actions/test_service.sh check-logs profiles-deployment kubeflow 30
         
-        echo "=== KFAM Logs ==="
-        ./testing/gh-actions/test_service.sh check-logs kfam kubeflow 30
+        kubectl logs -n kubeflow -l kustomize.component=profiles -c kfam --tail=30 || kubectl logs -n kubeflow -l app=kfam --tail=30
         
-        echo "=== PodDefaults Webhook Logs ==="
         ./testing/gh-actions/test_service.sh check-logs admission-webhook-deployment kubeflow 30
         
-        echo "=== CentralDashboard Angular Logs ==="
         ./testing/gh-actions/test_service.sh check-logs centraldashboard-angular kubeflow 30
         
-        echo "=== CentralDashboard Logs ==="
         ./testing/gh-actions/test_service.sh check-logs centraldashboard kubeflow 30
 
     - name: Check for Component Errors
       run: |
         ./testing/gh-actions/test_service.sh check-errors profiles-deployment kubeflow
-        ./testing/gh-actions/test_service.sh check-errors kfam kubeflow
+        kubectl logs -n kubeflow -l kustomize.component=profiles -c kfam --tail=100 | grep -i error 
         ./testing/gh-actions/test_service.sh check-errors admission-webhook-deployment kubeflow
         ./testing/gh-actions/test_service.sh check-errors centraldashboard-angular kubeflow
         ./testing/gh-actions/test_service.sh check-errors centraldashboard kubeflow
 
-    # Final Validation
     - name: Final Integration Validation
       run: |
-        echo "=== All Profiles ==="
         ./testing/gh-actions/test_profile.sh list
         
-        echo "=== All Services ==="
         kubectl get services -n kubeflow
         
-        echo "=== All Deployments Status ==="
         kubectl get deployments -n kubeflow
         
-        echo "=== Cluster Status ==="
         kubectl get nodes
         kubectl get pods -A
 
