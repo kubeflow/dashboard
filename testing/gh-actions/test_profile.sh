@@ -6,9 +6,21 @@ set -euo pipefail
 # Usage: ./test_profile.sh OPERATION PROFILE_NAME [USER_EMAIL] [TIMEOUT]
 
 OPERATION="$1"
-PROFILE_NAME="$2"
-USER_EMAIL="${3:-${PROFILE_NAME}@example.com}"
-TIMEOUT="${4:-300}"
+
+# Make PROFILE_NAME optional for 'list' operation
+if [[ "$OPERATION" != "list" ]]; then
+  if [[ $# -lt 2 ]]; then
+    echo "Error: PROFILE_NAME is required for operation: $OPERATION"
+    echo "Usage: ./test_profile.sh OPERATION PROFILE_NAME [USER_EMAIL] [TIMEOUT]"
+    exit 1
+  fi
+  PROFILE_NAME="$2"
+  USER_EMAIL="${3:-${PROFILE_NAME}@example.com}"
+  TIMEOUT="${4:-300}"
+else
+  PROFILE_NAME=""
+  TIMEOUT="${2:-300}"
+fi
 
 case "$OPERATION" in
     "create")
