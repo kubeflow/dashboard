@@ -110,6 +110,10 @@ jobs:
 
     - name: Deploy CentralDashboard Angular Component
       run: |
+        # Set required environment variables for domain name substitution
+        export CD_NAMESPACE=kubeflow
+        export CD_CLUSTER_DOMAIN=cluster.local
+        
         ./testing/gh-actions/deploy_component.sh \
           "centraldashboard-angular" \
           "components/centraldashboard-angular" \
@@ -124,6 +128,11 @@ jobs:
 
     - name: Deploy CentralDashboard Component
       run: |
+        export CD_NAMESPACE=kubeflow
+        export CD_CLUSTER_DOMAIN=cluster.local
+        export CD_NAMESPACE_PLACEHOLDER=kubeflow
+        export CD_CLUSTER_DOMAIN_PLACEHOLDER=cluster.local
+        
         ./testing/gh-actions/deploy_component.sh \
           "centraldashboard" \
           "components/centraldashboard" \

@@ -7,7 +7,6 @@ set -euo pipefail
 
 OPERATION="$1"
 
-# Make PROFILE_NAME optional for 'list' operation
 if [[ "$OPERATION" != "list" ]]; then
   if [[ $# -lt 2 ]]; then
     echo "Error: PROFILE_NAME is required for operation: $OPERATION"
