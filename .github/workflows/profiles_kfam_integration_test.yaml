@@ -128,8 +128,7 @@ jobs:
           echo $PF_PID > /tmp/kfam_pf.pid
           sleep 5
           
-          echo "Testing KFAM service health..."
-          curl -v http://localhost:8081/healthz || curl -v http://localhost:8081/metrics || curl -v http://localhost:8081/
+          curl -v http://localhost:8081/kfam/healthz || curl -v http://localhost:8081/kfam/version || curl -v http://localhost:8081/kfam/ || curl -v http://localhost:8081/metrics || curl -v http://localhost:8081/
           
           if [ -f "/tmp/kfam_pf.pid" ]; then
             kill $(cat /tmp/kfam_pf.pid)

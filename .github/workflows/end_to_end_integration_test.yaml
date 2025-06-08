@@ -167,7 +167,7 @@ jobs:
           sleep 5
           
           echo "Testing KFAM service health..."
-          curl -v http://localhost:8081/healthz || curl -v http://localhost:8081/metrics || curl -v http://localhost:8081/
+          curl -v http://localhost:8081/kfam/healthz || curl -v http://localhost:8081/kfam/version || curl -v http://localhost:8081/kfam/ || curl -v http://localhost:8081/metrics || curl -v http://localhost:8081/
           
           echo "Testing KFAM API with user context..."
           curl -v -H "kubeflow-userid: admin@example.com" http://localhost:8081/kfam/v1/bindings?namespace=e2e-admin
