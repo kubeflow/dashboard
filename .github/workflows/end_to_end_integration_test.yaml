@@ -258,7 +258,7 @@ jobs:
     - name: Check for Component Errors
       run: |
         ./testing/gh-actions/test_service.sh check-errors profiles-deployment kubeflow
-        kubectl logs -n kubeflow -l kustomize.component=profiles -c kfam --tail=100 | grep -i error 
+        kubectl logs -n kubeflow -l kustomize.component=profiles -c kfam --tail=100 | grep -i error || true
         ./testing/gh-actions/test_service.sh check-errors admission-webhook-deployment kubeflow
         ./testing/gh-actions/test_service.sh check-errors centraldashboard-angular kubeflow
         ./testing/gh-actions/test_service.sh check-errors centraldashboard kubeflow
