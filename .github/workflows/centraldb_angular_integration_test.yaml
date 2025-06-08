@@ -99,7 +99,6 @@ jobs:
         if [[ -n "$RESPONSE" ]]; then
           echo "Dashboard is serving content: ${RESPONSE:0:50}..."
         else
-          echo "Dashboard is not serving content"
           exit 1
         fi
         
