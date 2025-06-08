@@ -169,8 +169,8 @@ jobs:
 
     - name: Check for Errors in Logs
       run: |
-        kubectl logs -n kubeflow -l kustomize.component=profiles -c kfam --tail=100 | grep -i error 
-        kubectl logs -n kubeflow -l kustomize.component=profiles --tail=100 | grep -i error 
+        kubectl logs -n kubeflow -l kustomize.component=profiles -c kfam --tail=100 | grep -i error  || echo "No errors found in KFAM logs"
+        kubectl logs -n kubeflow -l kustomize.component=profiles --tail=100 | grep -i error  || echo "No errors found in Profile Controller logs"
 
     - name: Cleanup Test Resources
       run: |

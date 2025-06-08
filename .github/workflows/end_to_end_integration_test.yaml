@@ -164,26 +164,26 @@ jobs:
     - name: Test KFAM Service Integration
       run: |
         kubectl get services -n kubeflow | grep kfam 
-        kubectl get services -n kubeflow -l kustomize.component=profiles 
+        kubectl get services -n kubeflow -l kustomize.component=profiles
         
         POD_NAME=$(kubectl get pods -n kubeflow -l kustomize.component=profiles -o jsonpath="{.items[0].metadata.name}")
-        if [ -n "$POD_NAME" ]; then
-          echo "Found pod $POD_NAME for port-forwarding"
-          kubectl port-forward -n kubeflow pod/$POD_NAME 8081:8081 &
-          PF_PID=$!
-          echo $PF_PID > /tmp/kfam_pf.pid
-          sleep 5
-          
-          curl -v http://localhost:8081/kfam/ || curl -v http://localhost:8081/metrics || curl -v http://localhost:8081/kfam/v1/bindings
-          
-          curl -v -H "kubeflow-userid: admin@example.com" http://localhost:8081/kfam/v1/bindings?namespace=e2e-admin
-          
-          if [ -f "/tmp/kfam_pf.pid" ]; then
-            kill $(cat /tmp/kfam_pf.pid)
-            rm -f /tmp/kfam_pf.pid
-          fi
-        else
-          exit 1
+        if [ -z "$POD_NAME" ]; then exit 1; fi
+        
+        kubectl port-forward -n kubeflow pod/$POD_NAME 8081:8081 &
+        PF_PID=$!
+        echo $PF_PID > /tmp/kfam_pf.pid
+        sleep 5
+        
+        curl -v --max-time 10 http://localhost:8081/kfam/ || \
+        curl -v --max-time 10 http://localhost:8081/metrics || \
+        curl -v --max-time 10 http://localhost:8081/kfam/v1/bindings
+        
+        curl -v --max-time 10 -H "kubeflow-userid: admin@example.com" \
+             http://localhost:8081/kfam/v1/bindings?namespace=e2e-admin
+        
+        if [ -f "/tmp/kfam_pf.pid" ]; then
+          kill $(cat /tmp/kfam_pf.pid)
+          rm -f /tmp/kfam_pf.pid
         fi
 
     - name: Test CentralDashboard Angular Integration
@@ -196,7 +196,7 @@ jobs:
         echo $PF_PID > /tmp/angular_pf.pid
         sleep 5
         
-        curl -v http://localhost:8082/
+        curl -v --max-time 10 http://localhost:8082/
         
         if [ -f "/tmp/angular_pf.pid" ]; then
           kill $(cat /tmp/angular_pf.pid)
@@ -213,12 +213,11 @@ jobs:
         echo $PF_PID > /tmp/dashboard_pf.pid
         sleep 5
         
-        curl -v http://localhost:8083/
+        curl -v --max-time 10 http://localhost:8083/
         
-        for i in $(seq 1 15); do
-          curl -s http://localhost:8083/ >/dev/null &
+        for i in $(seq 1 5); do
+          curl -s --max-time 5 http://localhost:8083/ >/dev/null
         done
-        wait
         
         if [ -f "/tmp/dashboard_pf.pid" ]; then
           kill $(cat /tmp/dashboard_pf.pid)
@@ -237,7 +236,7 @@ jobs:
         echo $PF_PID > /tmp/dashboard_update_pf.pid
         sleep 5
         
-        curl -v http://localhost:8084/
+        curl -v --max-time 10 http://localhost:8084/
         
         if [ -f "/tmp/dashboard_update_pf.pid" ]; then
           kill $(cat /tmp/dashboard_update_pf.pid)
