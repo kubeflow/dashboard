@@ -194,7 +194,7 @@ jobs:
         POD_NAME=$(kubectl get pods -n kubeflow -l app=centraldashboard-angular -o jsonpath="{.items[0].metadata.name}")
         if [ -n "$POD_NAME" ]; then
           echo "Found pod $POD_NAME for port-forwarding"
-          kubectl port-forward -n kubeflow pod/$POD_NAME 8082:80 &
+          kubectl port-forward -n kubeflow pod/$POD_NAME 8082:8082 &
           PF_PID=$!
           echo $PF_PID > /tmp/angular_pf.pid
           sleep 5
@@ -215,7 +215,7 @@ jobs:
         POD_NAME=$(kubectl get pods -n kubeflow -l app=centraldashboard -o jsonpath="{.items[0].metadata.name}")
         if [ -n "$POD_NAME" ]; then
           echo "Found pod $POD_NAME for port-forwarding"
-          kubectl port-forward -n kubeflow pod/$POD_NAME 8083:80 &
+          kubectl port-forward -n kubeflow pod/$POD_NAME 8083:8082 &
           PF_PID=$!
           echo $PF_PID > /tmp/dashboard_pf.pid
           sleep 5
@@ -241,7 +241,7 @@ jobs:
         
         POD_NAME=$(kubectl get pods -n kubeflow -l app=centraldashboard -o jsonpath="{.items[0].metadata.name}")
         if [ -n "$POD_NAME" ]; then
-          kubectl port-forward -n kubeflow pod/$POD_NAME 8084:80 &
+          kubectl port-forward -n kubeflow pod/$POD_NAME 8084:8082 &
           PF_PID=$!
           echo $PF_PID > /tmp/dashboard_update_pf.pid
           sleep 5
