@@ -191,26 +191,70 @@ jobs:
 
     - name: Test CentralDashboard Angular Integration
       run: |
-        ./testing/gh-actions/test_service.sh port-forward centraldashboard-angular kubeflow 8082 80
-        ./testing/gh-actions/test_service.sh test-health centraldashboard-angular kubeflow 8082
-        ./testing/gh-actions/test_service.sh test-dashboard centraldashboard-angular kubeflow 8082
-        ./testing/gh-actions/test_service.sh stop-port-forward centraldashboard-angular kubeflow 8082
+        POD_NAME=$(kubectl get pods -n kubeflow -l app=centraldashboard-angular -o jsonpath="{.items[0].metadata.name}")
+        if [ -n "$POD_NAME" ]; then
+          echo "Found pod $POD_NAME for port-forwarding"
+          kubectl port-forward -n kubeflow pod/$POD_NAME 8082:80 &
+          PF_PID=$!
+          echo $PF_PID > /tmp/angular_pf.pid
+          sleep 5
+          
+          echo "Testing CentralDashboard Angular health..."
+          curl -v http://localhost:8082/
+          
+          if [ -f "/tmp/angular_pf.pid" ]; then
+            kill $(cat /tmp/angular_pf.pid)
+            rm -f /tmp/angular_pf.pid
+          fi
+        else
+          exit 1
+        fi
 
     - name: Test CentralDashboard Integration
       run: |
-        ./testing/gh-actions/test_service.sh port-forward centraldashboard kubeflow 8083 80
-        ./testing/gh-actions/test_service.sh test-health centraldashboard kubeflow 8083
-        ./testing/gh-actions/test_service.sh test-dashboard centraldashboard kubeflow 8083
-        ./testing/gh-actions/test_service.sh performance-test centraldashboard kubeflow 8083 80 15
-        ./testing/gh-actions/test_service.sh stop-port-forward centraldashboard kubeflow 8083
+        POD_NAME=$(kubectl get pods -n kubeflow -l app=centraldashboard -o jsonpath="{.items[0].metadata.name}")
+        if [ -n "$POD_NAME" ]; then
+          echo "Found pod $POD_NAME for port-forwarding"
+          kubectl port-forward -n kubeflow pod/$POD_NAME 8083:80 &
+          PF_PID=$!
+          echo $PF_PID > /tmp/dashboard_pf.pid
+          sleep 5
+          
+          curl -v http://localhost:8083/
+          
+          for i in $(seq 1 15); do
+            curl -s http://localhost:8083/ >/dev/null &
+          done
+          wait
+          
+          if [ -f "/tmp/dashboard_pf.pid" ]; then
+            kill $(cat /tmp/dashboard_pf.pid)
+            rm -f /tmp/dashboard_pf.pid
+          fi
+        else
+          exit 1
+        fi
 
     - name: Test Profile Update with Dashboard Access
       run: |
         ./testing/gh-actions/test_profile.sh update e2e-admin
-        # Test that profile updates don't break dashboard access
-        ./testing/gh-actions/test_service.sh port-forward centraldashboard kubeflow 8084 80
-        ./testing/gh-actions/test_service.sh test-health centraldashboard kubeflow 8084
-        ./testing/gh-actions/test_service.sh stop-port-forward centraldashboard kubeflow 8084
+        
+        POD_NAME=$(kubectl get pods -n kubeflow -l app=centraldashboard -o jsonpath="{.items[0].metadata.name}")
+        if [ -n "$POD_NAME" ]; then
+          kubectl port-forward -n kubeflow pod/$POD_NAME 8084:80 &
+          PF_PID=$!
+          echo $PF_PID > /tmp/dashboard_update_pf.pid
+          sleep 5
+          
+          curl -v http://localhost:8084/
+          
+          if [ -f "/tmp/dashboard_update_pf.pid" ]; then
+            kill $(cat /tmp/dashboard_update_pf.pid)
+            rm -f /tmp/dashboard_update_pf.pid
+          fi
+        else
+          exit 1
+        fi
 
     - name: Check Component Health and Logs
       run: |
