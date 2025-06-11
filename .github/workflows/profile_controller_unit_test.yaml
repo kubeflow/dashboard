@@ -4,7 +4,7 @@ on:
     paths:
       - components/profile-controller/**
       - releasing/version/VERSION
-      - .github/workflows/prof_controller_unit_test.yaml
+      - .github/workflows/profile_controller_unit_test.yaml
     branches:
       - main
       - v*-branch
