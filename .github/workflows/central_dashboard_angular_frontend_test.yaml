@@ -4,6 +4,7 @@ on:
     paths:
       - components/centraldashboard-angular/frontend/**
       - releasing/version/VERSION
+      - .github/workflows/central_dashboard_angular_frontend_test.yaml
     branches:
       - main
       - v*-branch
@@ -75,7 +76,7 @@ jobs:
         run: ./testing/gh-actions/install_kind.sh
 
       - name: Create KinD Cluster
-        run: kind create cluster --config testing/gh-actions/kind-1-25.yaml
+        run: kind create cluster --config testing/gh-actions/kind-1-33.yaml
 
       - name: Install kustomize
         run: ./testing/gh-actions/install_kustomize.sh

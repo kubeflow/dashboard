@@ -4,6 +4,7 @@ on:
     paths:
       - components/admission-webhook/**
       - releasing/version/VERSION
+      - .github/workflows/poddefaults_unit_test.yaml
     branches:
       - main
       - v*-branch
