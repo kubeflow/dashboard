@@ -1,4 +1,4 @@
-name: Build & Publish CentralDashboard Docker image
+name: Build & Publish the Central Dashboard OCI image
 on:
   push:  
     branches:
@@ -14,7 +14,7 @@ env:
 
 jobs:
   push_to_registry:
-    name: Build & Push Docker image to GHCR
+    name: Build & Push OCI image to GHCR
     runs-on: ubuntu-22.04
     steps:
     - name: Checkout
@@ -41,7 +41,7 @@ jobs:
     - name: Setup Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    - name: Build and push multi-arch docker image
+    - name: Build and push multi-architecture OCI image
       run: |
         cd components/centraldashboard
         ARCH=linux/amd64 make docker-build-multi-arch
@@ -49,14 +49,14 @@ jobs:
         ARCH=linux/arm64/v8 make docker-build-multi-arch
         make docker-build-push-multi-arch 
 
-    - name: Build and push latest multi-arch docker image
+    - name: Build and push latest multi-architecture OCI image
       if: github.ref == 'refs/heads/main'
       run: |
         export TAG=latest
         cd components/centraldashboard
         make docker-build-push-multi-arch
 
-    - name: Build and push multi-arch docker image on Version change
+    - name: Build and push multi-arch OCI image on Version change
       id: version
       if: steps.filter.outputs.version == 'true'
       run: |
