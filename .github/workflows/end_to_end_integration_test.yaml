@@ -19,7 +19,7 @@ concurrency:
 
 env:
   CENTRALDASHBOARD_IMG: ghcr.io/kubeflow/kubeflow/centraldashboard
-  CENTRALDASHBOARD_ANGULAR_IMG: ghcr.io/kubeflow/kubeflow/centraldashboard-angular
+  CENTRALDASHBOARD_ANGULAR_IMG: ghcr.io/kubeflow/dashboard/centraldashboard-angular
   PROFILE_CONTROLLER_IMG: ghcr.io/kubeflow/kubeflow/profile-controller
   KFAM_IMG: ghcr.io/kubeflow/kubeflow/kfam
   ADMISSION_WEBHOOK_IMG: ghcr.io/kubeflow/kubeflow/poddefaults-webhook
