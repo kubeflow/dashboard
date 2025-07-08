@@ -5,12 +5,12 @@ on:
       - main
       - v*-branch
     paths:
-      - components/admission-webhook/**
+      - components/poddefaults-webhooks/**
       - releasing/version/VERSION
       - .github/workflows/poddefaults_oci_publish.yaml
 
 env:
-  IMG: ghcr.io/kubeflow/kubeflow/poddefaults-webhook
+  IMG: ghcr.io/kubeflow/dashboard/poddefaults-webhook
   ARCH: linux/amd64,linux/ppc64le,linux/arm64/v8
 
 jobs:
@@ -44,7 +44,7 @@ jobs:
 
     - name: Build and push multi-architecture OCI image
       run: |
-        cd components/admission-webhook
+        cd components/poddefaults-webhooks
         ARCH=linux/amd64 make docker-build-multi-arch
         ARCH=linux/ppc64le make docker-build-multi-arch
         ARCH=linux/arm64/v8 make docker-build-multi-arch
@@ -54,7 +54,7 @@ jobs:
       if: github.ref == 'refs/heads/main'
       run: |
         export TAG=latest
-        cd components/admission-webhook
+        cd components/poddefaults-webhooks
         make docker-build-push-multi-arch
 
     - name: Build and push multi-architecture OCI image on Version change
@@ -62,5 +62,5 @@ jobs:
       if: steps.filter.outputs.version == 'true'
       run: |
         export TAG=$(cat releasing/version/VERSION)
-        cd components/admission-webhook
+        cd components/poddefaults-webhooks
         make docker-build-push-multi-arch 

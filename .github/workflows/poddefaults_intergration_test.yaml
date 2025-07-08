@@ -2,7 +2,7 @@ name: PodDefaults Integration Test
 on:
   pull_request:
     paths:
-      - components/admission-webhook/**
+      - components/poddefaults-webhooks/**
       - releasing/version/VERSION
       - .github/workflows/poddefaults_intergration_test.yaml
     branches:
@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  IMG: ghcr.io/kubeflow/kubeflow/poddefaults-webhook
+  IMG: ghcr.io/kubeflow/dashboard/poddefaults-webhook
   TAG: integration-test
 
 jobs:
@@ -50,8 +50,7 @@ jobs:
     - name: Deploy PodDefaults Webhook Component
       run: |
         ./testing/gh-actions/deploy_component.sh \
-          "admission-webhook" \
-          "components/admission-webhook" \
+          "components/poddefaults-webhooks" \
           "${IMG}" \
           "${TAG}" \
           "manifests" \
@@ -60,7 +59,7 @@ jobs:
     - name: Wait for Admission Webhook to be Ready
       run: |
         kubectl wait --for=condition=Ready pods -n kubeflow -l app=poddefaults --timeout=300s
-        kubectl wait --for=condition=Available deployment -n kubeflow admission-webhook-deployment --timeout=300s
+        kubectl wait --for=condition=Available deployment -n kubeflow poddefaults-webhook-deployment --timeout=300s
 
     - name: Validate Webhook Configuration
       run: |
@@ -94,9 +93,17 @@ jobs:
       run: |
         kubectl logs -n kubeflow -l app=poddefaults --tail=100
 
-    - name: Check for Errors in Webhook Logs  
+    - name: Check for Errors in Webhook Logs
       run: |
-        kubectl logs -n kubeflow -l app=poddefaults --tail=100 | grep -i error || echo "No errors found in webhook logs"
+        if ! kubectl logs -n kubeflow -l app=poddefaults --tail=100 \
+          | egrep -i "^(E[0-9]{4})|unable to|traceback|error:" \
+          | egrep -vi "ErrorLog:\(|nextProtoErr:"; then
+          echo "No errors found in webhook logs"
+        fi
+      
+    # - name: Check for Errors in Webhook Logs  
+    #   run: |
+    #     kubectl logs -n kubeflow -l app=poddefaults --tail=100 | grep -i error || echo "No errors found in webhook logs"
 
     - name: Cleanup Test Resources
       run: |

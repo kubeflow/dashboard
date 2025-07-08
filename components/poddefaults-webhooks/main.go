@@ -26,9 +26,9 @@ import (
 	"reflect"
 	"strings"
 
-	settingsapi "github.com/kubeflow/kubeflow/components/admission-webhook/pkg/apis/settings/v1alpha1"
+	settingsapi "github.com/kubeflow/kubeflow/components/poddefaults-webhooks/pkg/apis/settings/v1alpha1"
 	"github.com/mattbaird/jsonpatch"
-	"k8s.io/api/admission/v1"
+	v1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -577,7 +577,7 @@ func applyPodDefaultsOnContainer(ctr *corev1.Container, podDefaults []*settingsa
 	setCommandAndArgs(ctr, podDefaults)
 }
 
-//setCommandAndArgs adds command and args to the provided container. If the container already has a command or arguments set,
+// setCommandAndArgs adds command and args to the provided container. If the container already has a command or arguments set,
 // they won't be overwritten by PodDefault.
 func setCommandAndArgs(ctr *corev1.Container, podDefaults []*settingsapi.PodDefault) {
 	// ignore istio sidecar container

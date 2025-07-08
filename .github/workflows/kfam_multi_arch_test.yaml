@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  IMG: ghcr.io/kubeflow/kubeflow/kfam
+  IMG: ghcr.io/kubeflow/dashboard/access-management
 
 jobs:
   build:

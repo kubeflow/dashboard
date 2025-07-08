@@ -2,7 +2,7 @@ import * as k8s from '@kubernetes/client-node';
 
 /** Retrieve Dashboard configmap Name */
 const {
-  DASHBOARD_CONFIGMAP = "centraldashboard-config",
+  DASHBOARD_CONFIGMAP = "dashboard-config",
   LOGOUT_URL = '/logout'
 } = process.env;
 

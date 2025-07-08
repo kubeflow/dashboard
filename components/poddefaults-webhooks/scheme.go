@@ -1,4 +1,5 @@
 /*
+Copyright 2017 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,13 +14,25 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package apis
+package main
 
 import (
-	"github.com/kubeflow/kubeflow/components/admission-webhook/pkg/apis/settings/v1alpha1"
+	"github.com/kubeflow/kubeflow/components/poddefaults-webhooks/pkg/apis"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 )
 
+var scheme = runtime.NewScheme()
+var codecs = serializer.NewCodecFactory(scheme)
+
 func init() {
-	// Register the types with the Scheme so the components can map objects to GroupVersionKinds and back
-	AddToSchemes = append(AddToSchemes, v1alpha1.SchemeBuilder.AddToScheme)
+	addToScheme(scheme)
+}
+
+func addToScheme(scheme *runtime.Scheme) {
+	corev1.AddToScheme(scheme)
+	admissionregistrationv1.AddToScheme(scheme)
+	apis.AddToScheme(scheme)
 }

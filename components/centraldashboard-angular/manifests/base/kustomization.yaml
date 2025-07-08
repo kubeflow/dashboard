@@ -11,72 +11,72 @@ resources:
 - service.yaml
 - configmap.yaml
 images:
-- name: ghcr.io/kubeflow/kubeflow/centraldashboard-angular
-  newName: ghcr.io/kubeflow/kubeflow/centraldashboard-angular
+- name: ghcr.io/kubeflow/dashboard/dashboard-angular
+  newName: ghcr.io/kubeflow/dashboard/dashboard-angular
   newTag: latest
 configMapGenerator:
 - envs:
   - params.env
-  name: centraldashboard-angular-parameters
+  name: dashboard-angular-parameters
 generatorOptions:
   disableNameSuffixHash: true
 labels:
 - includeSelectors: true
   pairs:
-    app: centraldashboard-angular
-    app.kubernetes.io/component: centraldashboard-angular
-    app.kubernetes.io/name: centraldashboard-angular
-    kustomize.component: centraldashboard-angular
+    app: dashboard-angular
+    app.kubernetes.io/component: dashboard-angular
+    app.kubernetes.io/name: dashboard-angular
+    kustomize.component: dashboard-angular
 replacements:
 - source:
     fieldPath: data.CD_USERID_HEADER
     kind: ConfigMap
-    name: centraldashboard-angular-parameters
+    name: dashboard-angular-parameters
     version: v1
   targets:
   - fieldPaths:
-    - spec.template.spec.containers.[name=centraldashboard-angular].env.[name=USERID_HEADER].value
+    - spec.template.spec.containers.[name=dashboard-angular].env.[name=USERID_HEADER].value
     select:
       group: apps
       kind: Deployment
-      name: centraldashboard-angular
+      name: dashboard-angular
       version: v1
 - source:
     fieldPath: data.CD_USERID_PREFIX
     kind: ConfigMap
-    name: centraldashboard-angular-parameters
+    name: dashboard-angular-parameters
     version: v1
   targets:
   - fieldPaths:
-    - spec.template.spec.containers.[name=centraldashboard-angular].env.[name=USERID_PREFIX].value
+    - spec.template.spec.containers.[name=dashboard-angular].env.[name=USERID_PREFIX].value
     select:
       group: apps
       kind: Deployment
-      name: centraldashboard-angular
+      name: dashboard-angular
       version: v1
 - source:
     fieldPath: data.CD_REGISTRATION_FLOW
     kind: ConfigMap
-    name: centraldashboard-angular-parameters
+    name: dashboard-angular-parameters
     version: v1
   targets:
   - fieldPaths:
-    - spec.template.spec.containers.[name=centraldashboard-angular].env.[name=REGISTRATION_FLOW].value
+    - spec.template.spec.containers.[name=dashboard-angular].env.[name=REGISTRATION_FLOW].value
     select:
       group: apps
       kind: Deployment
-      name: centraldashboard-angular
+      name: dashboard-angular
       version: v1
 - source:
     fieldPath: metadata.name
     kind: ConfigMap
-    name: centraldashboard-angular-config
+    name: dashboard-angular-config
     version: v1
   targets:
   - fieldPaths:
-    - spec.template.spec.containers.[name=centraldashboard-angular].env.[name=DASHBOARD_CONFIGMAP].value
+    - spec.template.spec.containers.[name=dashboard-angular].env.[name=DASHBOARD_CONFIGMAP].value
     select:
       group: apps
       kind: Deployment
-      name: centraldashboard-angular
+      name: dashboard-angular
       version: v1

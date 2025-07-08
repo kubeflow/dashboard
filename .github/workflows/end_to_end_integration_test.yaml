@@ -18,10 +18,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  CENTRALDASHBOARD_IMG: ghcr.io/kubeflow/dashboard/centraldashboard
-  CENTRALDASHBOARD_ANGULAR_IMG: ghcr.io/kubeflow/dashboard/centraldashboard-angular
+  CENTRALDASHBOARD_IMG: ghcr.io/kubeflow/dashboard/dashboard
+  CENTRALDASHBOARD_ANGULAR_IMG: ghcr.io/kubeflow/dashboard/dashboard-angular
   PROFILE_CONTROLLER_IMG: ghcr.io/kubeflow/dashboard/profile-controller
-  KFAM_IMG: ghcr.io/kubeflow/dashboard/kfam
+  ACCESS_MANAGEMENT_IMG: ghcr.io/kubeflow/dashboard/access-management
   ADMISSION_WEBHOOK_IMG: ghcr.io/kubeflow/dashboard/poddefaults-webhook
   TAG: e2e-test
 
@@ -56,8 +56,8 @@ jobs:
     - name: Build KFAM Image
       run: |
         cd components/access-management
-        make docker-build-multi-arch IMG="${KFAM_IMG}" TAG="${TAG}"
-        kind load docker-image "${KFAM_IMG}:${TAG}"
+        make docker-build-multi-arch IMG="${ACCESS_MANAGEMENT_IMG}" TAG="${TAG}"
+        kind load docker-image "${ACCESS_MANAGEMENT_IMG}:${TAG}"
         cd ../..
 
     - name: Deploy Profile Controller with KFAM
@@ -67,8 +67,8 @@ jobs:
         kind load docker-image "${PROFILE_CONTROLLER_IMG}:${TAG}"
         cd config
         kustomize build overlays/kubeflow \
-          | sed "s|ghcr.io/kubeflow/kubeflow/profile-controller:[a-zA-Z0-9_.-]*|${PROFILE_CONTROLLER_IMG}:${TAG}|g" \
-          | sed "s|ghcr.io/kubeflow/kubeflow/kfam:[a-zA-Z0-9_.-]*|${KFAM_IMG}:${TAG}|g" \
+          | sed "s|ghcr.io/kubeflow/dashboard/profile-controller:[a-zA-Z0-9_.-]*|${PROFILE_CONTROLLER_IMG}:${TAG}|g" \
+          | sed "s|ghcr.io/kubeflow/dashboard/access-management:[a-zA-Z0-9_.-]*|${ACCESS_MANAGEMENT_IMG}:${TAG}|g" \
           | kubectl apply -f -
         kubectl wait --for=condition=Ready pods -n kubeflow -l kustomize.component=profiles --timeout=300s
         kubectl wait --for=condition=Available deployment -n kubeflow profiles-deployment --timeout=300s
@@ -89,19 +89,18 @@ jobs:
 
     - name: Wait for KFAM to be Ready
       run: |
-        kubectl wait --for=condition=Ready pods -n kubeflow -l app=kfam --timeout=300s || {
-          echo "KFAM pods not found with label app=kfam, checking for profiles-kfam service..."
-          kubectl get service profiles-kfam -n kubeflow || {
-            echo "KFAM service not found, KFAM might be deployed as part of profiles deployment"
-            kubectl wait --for=condition=Ready pods -n kubeflow -l kustomize.component=profiles --timeout=300s
-          }
-        }
+        # Verify KFAM container is running in the profiles deployment
+        POD_NAME=$(kubectl get pods -n kubeflow -l kustomize.component=profiles -o jsonpath="{.items[0].metadata.name}")
+        if [ -n "$POD_NAME" ]; then
+          kubectl wait --for=condition=Ready pod/$POD_NAME -n kubeflow --timeout=300s
+          kubectl describe pod/$POD_NAME -n kubeflow
+          echo "KFAM/access-management container is part of profiles deployment"
+        fi
 
     - name: Deploy Admission Webhook Component
       run: |
         ./testing/gh-actions/deploy_component.sh \
-          "admission-webhook" \
-          "components/admission-webhook" \
+          "components/poddefaults-webhooks" \
           "${ADMISSION_WEBHOOK_IMG}" \
           "${TAG}" \
           "manifests" \
@@ -109,7 +108,7 @@ jobs:
 
     - name: Wait for Admission Webhook to be Ready
       run: |
-        kubectl wait --for=condition=Available deployment -n kubeflow admission-webhook-deployment --timeout=300s
+        kubectl wait --for=condition=Available deployment -n kubeflow poddefaults-webhook-deployment --timeout=300s
 
     - name: Deploy CentralDashboard Angular Component
       run: |
@@ -118,7 +117,6 @@ jobs:
         export CD_CLUSTER_DOMAIN=cluster.local
         
         ./testing/gh-actions/deploy_component.sh \
-          "centraldashboard-angular" \
           "components/centraldashboard-angular" \
           "${CENTRALDASHBOARD_ANGULAR_IMG}" \
           "${TAG}" \
@@ -127,7 +125,7 @@ jobs:
 
     - name: Wait for CentralDashboard Angular to be Ready
       run: |
-        kubectl wait --for=condition=Available deployment -n kubeflow centraldashboard-angular --timeout=300s
+        kubectl wait --for=condition=Available deployment -n kubeflow dashboard-angular --timeout=300s
 
     - name: Deploy CentralDashboard Component
       run: |
@@ -137,7 +135,6 @@ jobs:
         export CD_CLUSTER_DOMAIN_PLACEHOLDER=cluster.local
         
         ./testing/gh-actions/deploy_component.sh \
-          "centraldashboard" \
           "components/centraldashboard" \
           "${CENTRALDASHBOARD_IMG}" \
           "${TAG}" \
@@ -146,7 +143,7 @@ jobs:
 
     - name: Wait for CentralDashboard to be Ready
       run: |
-        kubectl wait --for=condition=Available deployment -n kubeflow centraldashboard --timeout=300s
+        kubectl wait --for=condition=Available deployment -n kubeflow dashboard --timeout=300s
 
     - name: Create Test Profiles
       run: |
@@ -191,7 +188,7 @@ jobs:
 
     - name: Test CentralDashboard Angular Integration
       run: |
-        POD_NAME=$(kubectl get pods -n kubeflow -l app=centraldashboard-angular -o jsonpath="{.items[0].metadata.name}")
+        POD_NAME=$(kubectl get pods -n kubeflow -l app=dashboard-angular -o jsonpath="{.items[0].metadata.name}")
         if [ -z "$POD_NAME" ]; then exit 1; fi
         
         kubectl port-forward -n kubeflow pod/$POD_NAME 8082:8082 &
@@ -208,7 +205,7 @@ jobs:
 
     - name: Test CentralDashboard Integration
       run: |
-        POD_NAME=$(kubectl get pods -n kubeflow -l app=centraldashboard -o jsonpath="{.items[0].metadata.name}")
+        POD_NAME=$(kubectl get pods -n kubeflow -l app=dashboard -o jsonpath="{.items[0].metadata.name}")
         if [ -z "$POD_NAME" ]; then exit 1; fi
         
         kubectl port-forward -n kubeflow pod/$POD_NAME 8083:8082 &
@@ -231,15 +228,17 @@ jobs:
       run: |
         ./testing/gh-actions/test_profile.sh update e2e-admin
         
-        POD_NAME=$(kubectl get pods -n kubeflow -l app=centraldashboard -o jsonpath="{.items[0].metadata.name}")
+        kubectl wait --for=condition=available deployment -n kubeflow dashboard --timeout=300s
+        
+        POD_NAME=$(kubectl get pods -n kubeflow -l app=dashboard -o jsonpath="{.items[0].metadata.name}")
         if [ -z "$POD_NAME" ]; then exit 1; fi
         
-        kubectl port-forward -n kubeflow pod/$POD_NAME 8084:8082 &
+        kubectl port-forward -n kubeflow pod/$POD_NAME 8085:8082 &
         PF_PID=$!
         echo $PF_PID > /tmp/dashboard_update_pf.pid
         sleep 5
         
-        curl -v --max-time 10 http://localhost:8084/
+        curl -v -H "kubeflow-userid: e2e-admin" --max-time 10 http://localhost:8085/
         
         if [ -f "/tmp/dashboard_update_pf.pid" ]; then
           kill $(cat /tmp/dashboard_update_pf.pid)
@@ -250,21 +249,21 @@ jobs:
       run: |
         ./testing/gh-actions/test_service.sh check-logs profiles-deployment kubeflow 30
         
-        kubectl logs -n kubeflow -l kustomize.component=profiles -c kfam --tail=30 || kubectl logs -n kubeflow -l app=kfam --tail=30
+        kubectl logs -n kubeflow -l kustomize.component=profiles -c access-management --tail=30 || kubectl logs -n kubeflow -l app=profiles-kfam --tail=30
         
-        ./testing/gh-actions/test_service.sh check-logs admission-webhook-deployment kubeflow 30
+        ./testing/gh-actions/test_service.sh check-logs poddefaults-webhook-deployment kubeflow 30
         
-        ./testing/gh-actions/test_service.sh check-logs centraldashboard-angular kubeflow 30
+        ./testing/gh-actions/test_service.sh check-logs dashboard-angular kubeflow 30
         
-        ./testing/gh-actions/test_service.sh check-logs centraldashboard kubeflow 30
+        ./testing/gh-actions/test_service.sh check-logs dashboard kubeflow 30
 
     - name: Check for Component Errors
       run: |
         ./testing/gh-actions/test_service.sh check-errors profiles-deployment kubeflow
-        kubectl logs -n kubeflow -l kustomize.component=profiles -c kfam --tail=100 | grep -i error || true
-        ./testing/gh-actions/test_service.sh check-errors admission-webhook-deployment kubeflow
-        ./testing/gh-actions/test_service.sh check-errors centraldashboard-angular kubeflow
-        ./testing/gh-actions/test_service.sh check-errors centraldashboard kubeflow
+        kubectl logs -n kubeflow -l kustomize.component=profiles -c access-management --tail=100 | grep -i error || true
+        ./testing/gh-actions/test_service.sh check-errors poddefaults-webhook-deployment kubeflow
+        ./testing/gh-actions/test_service.sh check-errors dashboard-angular kubeflow
+        ./testing/gh-actions/test_service.sh check-errors dashboard kubeflow
 
     - name: Final Integration Validation
       run: |

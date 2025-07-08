@@ -12,7 +12,7 @@ iex ([System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("
 }
 AP-Require "dep:sha256sum" {Write-AP "!Please install cygwin/sha256sum to run this";exit}
 
-$IMG = "gcr.io/kubeflow-images-public/centraldashboard"
+$IMG = "ghcr.io/kubeflow/dashboard/dashboard"
 
 # List any changed  files. We only include files in the notebooks directory.
 # because that is the code in the docker image.

@@ -9,7 +9,7 @@ on:
       - releasing/version/VERSION
 
 env:
-  IMG: ghcr.io/kubeflow/kubeflow/kfam
+  IMG: ghcr.io/kubeflow/dashboard/access-management
   ARCH: linux/amd64,linux/ppc64le,linux/arm64/v8
 
 jobs:

@@ -1,4 +1,4 @@
-module github.com/kubeflow/kubeflow/components/admission-webhook
+module github.com/kubeflow/kubeflow/components/poddefaults-webhooks
 
 go 1.20
 

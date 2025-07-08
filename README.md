@@ -24,7 +24,7 @@ Key features of Kubeflow Dashboard include:
 In this repository, there are multiple components which are versioned and released together:
 
 - `access-management` - Kubeflow Access Management
-- `admission-webhook` - Kubeflow Admission Webhook (PodDefaults)
+- `poddefaults-webhooks` - Kubeflow Admission Webhook (PodDefaults)
 - `centraldashboard` - Central Dashboard
 - `profile-controller` - Kubeflow Profile Controller
 

@@ -132,4 +132,4 @@ data:
     }
 kind: ConfigMap
 metadata:
-  name: centraldashboard-angular-config
+  name: dashboard-angular-config

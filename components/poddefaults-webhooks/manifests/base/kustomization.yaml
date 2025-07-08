@@ -9,8 +9,8 @@ resources:
 - service.yaml
 - crd.yaml
 images:
-- name: ghcr.io/kubeflow/kubeflow/poddefaults-webhook
-  newName: ghcr.io/kubeflow/kubeflow/poddefaults-webhook
+- name: ghcr.io/kubeflow/dashboard/poddefaults-webhook
+  newName: ghcr.io/kubeflow/dashboard/poddefaults-webhook
   newTag: latest
 namespace: kubeflow
 generatorOptions:
