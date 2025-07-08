@@ -1,4 +1,4 @@
-IMG ?= ghcr.io/kubeflow/kubeflow/central-dashboard
+IMG ?= ghcr.io/kubeflow/dashboard/central-dashboard
 TAG ?= $(shell git describe --tags --always --dirty)
 COMMIT = $(shell git rev-parse HEAD)
 DOCKERFILE ?= Dockerfile
