@@ -6,7 +6,7 @@ spec:
   template:
     spec:
       containers:
-      - name: admission-webhook
+      - name: poddefaults-webhook
         args:
         - --tlsCertFile=/etc/webhook/certs/tls.crt
         - --tlsKeyFile=/etc/webhook/certs/tls.key

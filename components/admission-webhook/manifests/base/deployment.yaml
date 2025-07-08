@@ -9,8 +9,8 @@ spec:
         sidecar.istio.io/inject: "false"
     spec:
       containers:
-      - image: ghcr.io/kubeflow/kubeflow/poddefaults-webhook
-        name: admission-webhook
+      - image: ghcr.io/kubeflow/dashboard/poddefaults-webhook
+        name: poddefaults-webhook
         volumeMounts:
         - mountPath: /etc/webhook/certs
           name: webhook-cert

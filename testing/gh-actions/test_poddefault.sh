@@ -69,8 +69,8 @@ case "$OPERATION" in
     "validate-webhook")
         kubectl get crd poddefaults.kubeflow.org
         kubectl describe crd poddefaults.kubeflow.org
-        kubectl get mutatingwebhookconfiguration admission-webhook-mutating-webhook-configuration
-        kubectl describe mutatingwebhookconfiguration admission-webhook-mutating-webhook-configuration
+        kubectl get mutatingwebhookconfiguration poddefaults-webhook-mutating-webhook-configuration
+        kubectl describe mutatingwebhookconfiguration poddefaults-webhook-mutating-webhook-configuration
         ;;
 
     "cleanup")

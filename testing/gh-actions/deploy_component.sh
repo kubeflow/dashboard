@@ -44,7 +44,7 @@ for overlay_path in "${OVERLAY}" "overlays/kserve" "overlays/cert-manager"; do
         if [ "$overlay_path" = "overlays/cert-manager" ]; then
             kustomize build "$overlay_path" \
               | sed "s|${CURRENT_IMAGE_ESCAPED}:[a-zA-Z0-9_.-]*|${PR_IMAGE_ESCAPED}|g" \
-              | sed 's/$(podDefaultsServiceName)/admission-webhook-service/g' \
+              | sed 's/$(podDefaultsServiceName)/poddefaults-webhook-service/g' \
               | sed 's/$(podDefaultsNamespace)/kubeflow/g' \
               | sed "s|\$(CD_NAMESPACE)|${CD_NAMESPACE:-kubeflow}|g" \
               | sed "s|\$(CD_CLUSTER_DOMAIN)|${CD_CLUSTER_DOMAIN:-cluster.local}|g" \
