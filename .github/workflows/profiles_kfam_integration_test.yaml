@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  PROFILE_IMG: ghcr.io/kubeflow/kubeflow/profile-controller
+  PROFILE_IMG: ghcr.io/kubeflow/dashboard/profile-controller
   KFAM_IMG: ghcr.io/kubeflow/kubeflow/kfam
   TAG: integration-test
 

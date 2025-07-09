@@ -20,7 +20,7 @@ concurrency:
 env:
   CENTRALDASHBOARD_IMG: ghcr.io/kubeflow/kubeflow/centraldashboard
   CENTRALDASHBOARD_ANGULAR_IMG: ghcr.io/kubeflow/kubeflow/centraldashboard-angular
-  PROFILE_CONTROLLER_IMG: ghcr.io/kubeflow/kubeflow/profile-controller
+  PROFILE_CONTROLLER_IMG: ghcr.io/kubeflow/dashboard/profile-controller
   KFAM_IMG: ghcr.io/kubeflow/kubeflow/kfam
   ADMISSION_WEBHOOK_IMG: ghcr.io/kubeflow/kubeflow/poddefaults-webhook
   TAG: e2e-test
