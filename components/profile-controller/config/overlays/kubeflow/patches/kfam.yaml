@@ -23,7 +23,7 @@ spec:
         envFrom:
           - configMapRef:
               name: config
-        image: ghcr.io/kubeflow/kubeflow/kfam
+        image: ghcr.io/kubeflow/dashboard/kfam
         imagePullPolicy: IfNotPresent
         name: kfam
         livenessProbe:
