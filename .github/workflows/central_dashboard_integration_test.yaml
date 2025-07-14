@@ -44,9 +44,6 @@ jobs:
     - name: Create Kubeflow Namespace
       run: kubectl create namespace kubeflow
 
-    - name: Make Scripts Executable
-      run: chmod +x testing/gh-actions/*.sh
-
     - name: Install Profile Controller (prerequisite)
       run: |
         cd components/profile-controller
@@ -70,16 +67,7 @@ jobs:
 
     - name: Create Test Profile for Dashboard Testing
       run: |
-        cat <<EOF | kubectl apply -f -
-        apiVersion: kubeflow.org/v1
-        kind: Profile
-        metadata:
-          name: test-dashboard-profile
-        spec:
-          owner:
-            kind: User
-            name: dashboard-user@example.com
-        EOF
+        kubectl apply -f testing/gh-actions/resources/test-dashboard-profile.yaml
         
         for i in {1..60}; do
           if kubectl get namespace test-dashboard-profile >/dev/null 2>&1; then

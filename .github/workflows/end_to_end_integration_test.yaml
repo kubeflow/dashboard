@@ -53,9 +53,6 @@ jobs:
     - name: Create Kubeflow Namespace
       run: kubectl create namespace kubeflow
 
-    - name: Make Scripts Executable
-      run: chmod +x testing/gh-actions/*.sh
-
     - name: Deploy Profile Controller Component
       run: |
         ./testing/gh-actions/deploy_component.sh \
@@ -274,7 +271,6 @@ jobs:
         kubectl get nodes
         kubectl get pods -A
 
-    # Cleanup
     - name: Cleanup Test Resources
       run: |
         ./testing/gh-actions/test_poddefault.sh cleanup e2e-test

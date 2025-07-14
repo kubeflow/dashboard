@@ -1,0 +1,13 @@
+apiVersion: kubeflow.org/v1alpha1
+kind: PodDefault
+metadata:
+  name: ${PODDEFAULT_NAME}-2
+  namespace: ${NAMESPACE}
+spec:
+  selector:
+    matchLabels:
+      test-multi: "true"
+  desc: "Second test PodDefault"
+  env:
+  - name: SECOND_ENV_VAR
+    value: "second-value" 
