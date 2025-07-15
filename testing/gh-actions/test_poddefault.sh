@@ -19,17 +19,17 @@ case "$OPERATION" in
 
     "create-poddefault")
         export PODDEFAULT_NAME NAMESPACE
-        envsubst < "$(dirname "$0")/resources/poddefault.yaml" | kubectl apply -f -
+        envsubst < "$(dirname "$0")/resources/poddefault-basic.yaml" | kubectl apply -f -
         ;;
 
     "create-multi-poddefault")
         export PODDEFAULT_NAME NAMESPACE
-        envsubst < "$(dirname "$0")/resources/poddefault-multi.yaml" | kubectl apply -f -
+        envsubst < "$(dirname "$0")/resources/poddefault-multi-selector.yaml" | kubectl apply -f -
         ;;
 
     "test-mutation")
         export TEST_POD_NAME NAMESPACE PODDEFAULT_NAME
-        envsubst < "$(dirname "$0")/resources/test-pod.yaml" | kubectl apply -f -
+        envsubst < "$(dirname "$0")/resources/poddefault-test-pod.yaml" | kubectl apply -f -
                 
         kubectl get pod "${TEST_POD_NAME}" -n "${NAMESPACE}" -o yaml | grep -q "TEST_ENV_VAR" || {
             echo "ERROR: TEST_ENV_VAR not found in pod spec"
@@ -46,7 +46,7 @@ case "$OPERATION" in
 
     "test-multi-mutation")
         export TEST_POD_NAME NAMESPACE PODDEFAULT_NAME
-        envsubst < "$(dirname "$0")/resources/test-pod-multi.yaml" | kubectl apply -f -
+        envsubst < "$(dirname "$0")/resources/poddefault-test-pod-multi.yaml" | kubectl apply -f -
 
         kubectl get pod "${TEST_POD_NAME}-multi" -n "${NAMESPACE}" -o yaml | grep -q "TEST_ENV_VAR" || {
             echo "ERROR: TEST_ENV_VAR not found in pod spec"
@@ -63,7 +63,7 @@ case "$OPERATION" in
 
     "test-error-handling")
         export NAMESPACE
-        envsubst < "$(dirname "$0")/resources/invalid-poddefault.yaml" | kubectl apply -f -
+        envsubst < "$(dirname "$0")/resources/poddefault-invalid.yaml" | kubectl apply -f -
         ;;
 
     "validate-webhook")

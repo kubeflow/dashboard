@@ -67,7 +67,7 @@ jobs:
 
     - name: Create Test Profile for Dashboard Testing
       run: |
-        kubectl apply -f testing/gh-actions/resources/test-dashboard-profile.yaml
+        kubectl apply -f testing/gh-actions/resources/profile-dashboard-test.yaml
         
         for i in {1..60}; do
           if kubectl get namespace test-dashboard-profile >/dev/null 2>&1; then
