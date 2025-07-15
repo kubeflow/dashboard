@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+resources:
+- service.yaml
+- authorizationpolicy.yaml
+
+patchesStrategicMerge:
+- patches/kfam.yaml
+
+images:
+- name: ghcr.io/kubeflow/dashboard/access-management
+  newName: ghcr.io/kubeflow/dashboard/access-management
+  newTag: latest
