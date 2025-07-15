@@ -25,6 +25,12 @@ spec:
         - $(USERID_PREFIX)
         - "-workload-identity"
         - $(WORKLOAD_IDENTITY)
+        - "-service-mesh-mode"
+        - $(SERVICE_MESH_MODE)
+        - "-gateway-name"
+        - $(GATEWAY_NAME)
+        - "-gateway-namespace"
+        - $(GATEWAY_NAMESPACE)
         envFrom:
           - configMapRef:
               name: config
