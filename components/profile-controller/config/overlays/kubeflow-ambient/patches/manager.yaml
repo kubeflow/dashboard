@@ -1,0 +1,16 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment
+spec:
+  template:
+    spec:
+      containers:
+      - name: manager
+        env:
+        - name: SERVICE_MESH_MODE
+          value: ambient
+        - name: GATEWAY_NAME
+          value: kubeflow-gateway
+        - name: GATEWAY_NAMESPACE
+          value: istio-system
