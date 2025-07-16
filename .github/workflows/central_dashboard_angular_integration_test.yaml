@@ -41,9 +41,6 @@ jobs:
     - name: Create Kubeflow Namespace
       run: kubectl create namespace kubeflow
 
-    - name: Make Scripts Executable
-      run: chmod +x testing/gh-actions/*.sh
-
     - name: Deploy CentralDashboard-Angular Component
       run: |
         cd components/centraldashboard-angular
