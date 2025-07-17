@@ -271,7 +271,6 @@ jobs:
         kubectl get nodes
         kubectl get pods -A
 
-    # Cleanup
     - name: Cleanup Test Resources
       run: |
         ./testing/gh-actions/test_poddefault.sh cleanup e2e-test
