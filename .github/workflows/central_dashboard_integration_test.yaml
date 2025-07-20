@@ -70,7 +70,7 @@ jobs:
 
     - name: Build and Deploy Central Dashboard
       run: |
-        ./testing/gh-actions/deploy_component.sh \
+        ./testing/shared/deploy_component.sh \
           "centraldashboard" \
           "components/centraldashboard" \
           "${DASHBOARD_IMG}" \
