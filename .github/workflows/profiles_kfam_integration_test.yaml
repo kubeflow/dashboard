@@ -48,7 +48,7 @@ jobs:
 
     - name: Deploy Profile Controller Component
       run: |
-        ./testing/gh-actions/deploy_component.sh \
+        ./testing/shared/deploy_component.sh \
           "profile-controller" \
           "components/profile-controller" \
           "${PROFILE_IMG}" \
@@ -92,23 +92,23 @@ jobs:
 
     - name: Create Test Profile with Resource Quotas
       run: |
-        ./testing/gh-actions/test_profile.sh create test-profile-user test-user@example.com
+        ./components/profile-controller/integration/test_profile.sh create test-profile-user test-user@example.com
 
     - name: Validate Test Profile Resources
       run: |
-        ./testing/gh-actions/test_profile.sh validate test-profile-user
+        ./components/profile-controller/integration/test_profile.sh validate test-profile-user
 
     - name: Test Profile Update
       run: |
-        ./testing/gh-actions/test_profile.sh update test-profile-user
+        ./components/profile-controller/integration/test_profile.sh update test-profile-user
 
     - name: Create Simple Test Profile
       run: |
-        ./testing/gh-actions/test_profile.sh create-simple simple-profile simple-user@example.com
+        ./components/profile-controller/integration/test_profile.sh create-simple simple-profile simple-user@example.com
 
     - name: Validate Simple Profile Resources
       run: |
-        ./testing/gh-actions/test_profile.sh validate simple-profile
+        ./components/profile-controller/integration/test_profile.sh validate simple-profile
 
     - name: Test KFAM Service Health
       run: |
@@ -154,7 +154,7 @@ jobs:
 
     - name: List All Profiles
       run: |
-        ./testing/gh-actions/test_profile.sh list
+        ./components/profile-controller/integration/test_profile.sh list
 
     - name: Check KFAM Logs
       run: |
@@ -171,5 +171,5 @@ jobs:
 
     - name: Cleanup Test Resources
       run: |
-        ./testing/gh-actions/test_profile.sh delete test-profile-user
-        ./testing/gh-actions/test_profile.sh delete simple-profile
+        ./components/profile-controller/integration/test_profile.sh delete test-profile-user
+        ./components/profile-controller/integration/test_profile.sh delete simple-profile

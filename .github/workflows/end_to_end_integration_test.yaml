@@ -55,7 +55,7 @@ jobs:
 
     - name: Deploy Profile Controller Component
       run: |
-        ./testing/gh-actions/deploy_component.sh \
+        ./testing/shared/deploy_component.sh \
           "profile-controller" \
           "components/profile-controller" \
           "${PROFILE_CONTROLLER_IMG}" \
@@ -93,7 +93,7 @@ jobs:
 
     - name: Deploy Admission Webhook Component
       run: |
-        ./testing/gh-actions/deploy_component.sh \
+        ./testing/shared/deploy_component.sh \
           "admission-webhook" \
           "components/admission-webhook" \
           "${ADMISSION_WEBHOOK_IMG}" \
@@ -111,7 +111,7 @@ jobs:
         export CD_NAMESPACE=kubeflow
         export CD_CLUSTER_DOMAIN=cluster.local
         
-        ./testing/gh-actions/deploy_component.sh \
+        ./testing/shared/deploy_component.sh \
           "centraldashboard-angular" \
           "components/centraldashboard-angular" \
           "${CENTRALDASHBOARD_ANGULAR_IMG}" \
@@ -130,7 +130,7 @@ jobs:
         export CD_NAMESPACE_PLACEHOLDER=kubeflow
         export CD_CLUSTER_DOMAIN_PLACEHOLDER=cluster.local
         
-        ./testing/gh-actions/deploy_component.sh \
+        ./testing/shared/deploy_component.sh \
           "centraldashboard" \
           "components/centraldashboard" \
           "${CENTRALDASHBOARD_IMG}" \
@@ -144,19 +144,19 @@ jobs:
 
     - name: Create Test Profiles
       run: |
-        ./testing/gh-actions/test_profile.sh create e2e-admin admin@example.com
-        ./testing/gh-actions/test_profile.sh create-simple e2e-user user@example.com
+        ./components/profile-controller/integration/test_profile.sh create e2e-admin admin@example.com
+        ./components/profile-controller/integration/test_profile.sh create-simple e2e-user user@example.com
 
     - name: Validate Profile Integration
       run: |
-        ./testing/gh-actions/test_profile.sh validate e2e-admin
-        ./testing/gh-actions/test_profile.sh validate e2e-user
+        ./components/profile-controller/integration/test_profile.sh validate e2e-admin
+        ./components/profile-controller/integration/test_profile.sh validate e2e-user
 
     - name: Test PodDefault Integration
       run: |
-        ./testing/gh-actions/test_poddefault.sh create-namespace e2e-test
-        ./testing/gh-actions/test_poddefault.sh create-poddefault e2e-test e2e-poddefault
-        ./testing/gh-actions/test_poddefault.sh test-mutation e2e-test e2e-poddefault e2e-test-pod
+        ./components/admission-webhook/integration/test_poddefault.sh create-namespace e2e-test
+        ./components/admission-webhook/integration/test_poddefault.sh create-poddefault e2e-test e2e-poddefault
+        ./components/admission-webhook/integration/test_poddefault.sh test-mutation e2e-test e2e-poddefault e2e-test-pod
 
     - name: Test KFAM Service Integration
       run: |
@@ -223,7 +223,7 @@ jobs:
 
     - name: Test Profile Update with Dashboard Access
       run: |
-        ./testing/gh-actions/test_profile.sh update e2e-admin
+        ./components/profile-controller/integration/test_profile.sh update e2e-admin
         
         POD_NAME=$(kubectl get pods -n kubeflow -l app=centraldashboard -o jsonpath="{.items[0].metadata.name}")
         if [ -z "$POD_NAME" ]; then exit 1; fi
@@ -242,27 +242,27 @@ jobs:
 
     - name: Check Component Health and Logs
       run: |
-        ./testing/gh-actions/test_service.sh check-logs profiles-deployment kubeflow 30
+        ./testing/shared/test_service.sh check-logs profiles-deployment kubeflow 30
         
         kubectl logs -n kubeflow -l kustomize.component=profiles -c kfam --tail=30 || kubectl logs -n kubeflow -l app=kfam --tail=30
         
-        ./testing/gh-actions/test_service.sh check-logs admission-webhook-deployment kubeflow 30
+        ./testing/shared/test_service.sh check-logs admission-webhook-deployment kubeflow 30
         
-        ./testing/gh-actions/test_service.sh check-logs centraldashboard-angular kubeflow 30
+        ./testing/shared/test_service.sh check-logs centraldashboard-angular kubeflow 30
         
-        ./testing/gh-actions/test_service.sh check-logs centraldashboard kubeflow 30
+        ./testing/shared/test_service.sh check-logs centraldashboard kubeflow 30
 
     - name: Check for Component Errors
       run: |
-        ./testing/gh-actions/test_service.sh check-errors profiles-deployment kubeflow
+        ./testing/shared/test_service.sh check-errors profiles-deployment kubeflow
         kubectl logs -n kubeflow -l kustomize.component=profiles -c kfam --tail=100 | grep -i error || true
-        ./testing/gh-actions/test_service.sh check-errors admission-webhook-deployment kubeflow
-        ./testing/gh-actions/test_service.sh check-errors centraldashboard-angular kubeflow
-        ./testing/gh-actions/test_service.sh check-errors centraldashboard kubeflow
+        ./testing/shared/test_service.sh check-errors admission-webhook-deployment kubeflow
+        ./testing/shared/test_service.sh check-errors centraldashboard-angular kubeflow
+        ./testing/shared/test_service.sh check-errors centraldashboard kubeflow
 
     - name: Final Integration Validation
       run: |
-        ./testing/gh-actions/test_profile.sh list
+        ./components/profile-controller/integration/test_profile.sh list
         
         kubectl get services -n kubeflow
         
@@ -273,6 +273,6 @@ jobs:
 
     - name: Cleanup Test Resources
       run: |
-        ./testing/gh-actions/test_poddefault.sh cleanup e2e-test
-        ./testing/gh-actions/test_profile.sh delete e2e-admin
-        ./testing/gh-actions/test_profile.sh delete e2e-user 
+        ./components/admission-webhook/integration/test_poddefault.sh cleanup e2e-test
+        ./components/profile-controller/integration/test_profile.sh delete e2e-admin
+        ./components/profile-controller/integration/test_profile.sh delete e2e-user 

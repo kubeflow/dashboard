@@ -52,7 +52,7 @@ jobs:
 
     - name: Deploy CentralDashboard Component
       run: |
-        ./testing/gh-actions/deploy_component.sh \
+        ./testing/shared/deploy_component.sh \
           "centraldashboard" \
           "components/centraldashboard" \
           "${IMG}" \
