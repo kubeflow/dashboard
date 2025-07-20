@@ -108,10 +108,9 @@ jobs:
       - name: Apply necessary CRs
         run: |
           kustomize build https://github.com/kubeflow/manifests//common/kubeflow-roles/base?ref=master | kubectl apply -f -
-          cd testing/gh-actions/resources
-          kubectl apply -f user-profile.yaml
+          kubectl apply -f components/profile-controller/integration/resources/user-profile.yaml
           while ! kubectl get ns kubeflow-user; do sleep 1; done
-          kubectl apply -f test-notebook.yaml
+          kubectl apply -f components/notebook-controller/integration/resources/test-notebook.yaml
           kubectl wait notebooks -n kubeflow-user -l app=test-notebook --for=condition=Ready --timeout=300s
 
       - name: Test proxied apps
