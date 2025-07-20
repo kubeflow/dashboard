@@ -16,7 +16,7 @@
     "format:write": "prettier --write 'src/**/*.{js,ts,html,scss,css}'",
     "ui-test": "cypress open . --e2e",
     "ui-test-ci": "cypress run . --e2e",
-    "ui-test-ci-all": "cypress run . --e2e --browser=chrome && cypress run . --e2e --browser=firefox"
+    "ui-test-ci-all": "cypress run . --e2e --browser=chrome && cypress run . --e2e --browser=electron"
   },
   "private": true,
   "dependencies": {

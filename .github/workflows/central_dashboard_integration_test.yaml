@@ -70,7 +70,7 @@ jobs:
 
     - name: Build and Deploy Central Dashboard
       run: |
-        ./testing/gh-actions/deploy_component.sh \
+        ./testing/shared/deploy_component.sh \
           "components/centraldashboard" \
           "${DASHBOARD_IMG}" \
           "${TAG}" \
@@ -81,7 +81,7 @@ jobs:
 
     - name: Create Test Profile for Dashboard Testing
       run: |
-        kubectl apply -f testing/gh-actions/resources/profile-dashboard-test.yaml
+        kubectl apply -f components/profile-controller/integration/resources/profile-dashboard-test.yaml
         
         for i in {1..60}; do
           if kubectl get namespace test-dashboard-profile >/dev/null 2>&1; then
@@ -100,15 +100,15 @@ jobs:
 
     - name: Validate Service
       run: |
-        ./testing/gh-actions/test_service.sh validate-service dashboard kubeflow
+        ./testing/shared/test_service.sh validate-service dashboard kubeflow
 
     - name: Start Port Forward for Dashboard Testing
       run: |
-        ./testing/gh-actions/test_service.sh port-forward dashboard kubeflow 8082 80
+        ./testing/shared/test_service.sh port-forward dashboard kubeflow 8082 80
 
     - name: Test Dashboard Health
       run: |
-        ./testing/gh-actions/test_service.sh test-health dashboard kubeflow 8082
+        ./testing/shared/test_service.sh test-health dashboard kubeflow 8082
 
     - name: Test Dashboard Web Interface
       run: |
@@ -128,19 +128,19 @@ jobs:
 
     - name: Test Dashboard Performance
       run: |
-        ./testing/gh-actions/test_service.sh performance-test dashboard kubeflow 8082 80 10
+        ./testing/shared/test_service.sh performance-test dashboard kubeflow 8082 80 10
 
     - name: Test Dashboard Metrics
       run: |
-        ./testing/gh-actions/test_service.sh test-metrics dashboard kubeflow 8082
+        ./testing/shared/test_service.sh test-metrics dashboard kubeflow 8082
 
     - name: Check Dashboard Logs
       run: |
-        ./testing/gh-actions/test_service.sh check-logs dashboard kubeflow 50
+        ./testing/shared/test_service.sh check-logs dashboard kubeflow 50
 
     - name: Check for Errors in Logs
       run: |
-        ./testing/gh-actions/test_service.sh check-errors dashboard kubeflow
+        ./testing/shared/test_service.sh check-errors dashboard kubeflow
 
     - name: Test Dashboard Configuration
       run: |
@@ -153,7 +153,7 @@ jobs:
 
     - name: Stop Port Forward
       run: |
-        ./testing/gh-actions/test_service.sh stop-port-forward dashboard kubeflow 8082
+        ./testing/shared/test_service.sh stop-port-forward dashboard kubeflow 8082
 
     - name: Cleanup Test Resources
       run: |
