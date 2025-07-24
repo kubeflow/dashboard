@@ -75,6 +75,25 @@ jobs:
         done
         kubectl wait --for condition=established --timeout=60s crd/profiles.kubeflow.org
 
+    - name: Build KFAM Image
+      run: |
+        cd components/access-management
+        make docker-build-multi-arch IMG="${KFAM_IMG}" TAG="${TAG}"
+        kind load docker-image "${KFAM_IMG}:${TAG}"
+        cd ../..
+
+    - name: Deploy Profile Controller with KFAM
+      run: |
+        ./testing/gh-actions/deploy_component.sh \
+          "profile-controller" \
+          "components/profile-controller" \
+          "${PROFILE_IMG}" \
+          "${TAG}" \
+          "config" \
+          "overlays/kubeflow"
+        kubectl wait --for=condition=Ready pods -n kubeflow -l kustomize.component=profiles --timeout=300s
+        kubectl wait --for=condition=Available deployment -n kubeflow profiles-deployment --timeout=300s
+
     - name: Wait for KFAM to be Ready
       run: |
         kubectl wait --for=condition=Ready pods -n kubeflow -l app=kfam --timeout=300s || {
