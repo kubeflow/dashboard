@@ -53,7 +53,14 @@ jobs:
     - name: Create Kubeflow Namespace
       run: kubectl create namespace kubeflow
 
-    - name: Deploy Profile Controller Component
+    - name: Build KFAM Image
+      run: |
+        cd components/access-management
+        make docker-build-multi-arch IMG="${KFAM_IMG}" TAG="${TAG}"
+        kind load docker-image "${KFAM_IMG}:${TAG}"
+        cd ../..
+
+    - name: Deploy Profile Controller with KFAM
       run: |
         ./testing/gh-actions/deploy_component.sh \
           "profile-controller" \
@@ -62,9 +69,7 @@ jobs:
           "${TAG}" \
           "config" \
           "overlays/kubeflow"
-
-    - name: Wait for Profile Controller to be Ready
-      run: |
+        kubectl wait --for=condition=Ready pods -n kubeflow -l kustomize.component=profiles --timeout=300s
         kubectl wait --for=condition=Available deployment -n kubeflow profiles-deployment --timeout=300s
 
     - name: Wait for Profile CRD to be Available
