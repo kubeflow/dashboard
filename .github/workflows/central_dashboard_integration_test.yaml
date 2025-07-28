@@ -14,8 +14,10 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  IMG: ghcr.io/kubeflow/kubeflow/central-dashboard
+  IMG: ghcr.io/kubeflow/dashboard/central-dashboard
   TAG: integration-test
+  PROFILE_IMG: ghcr.io/kubeflow/kubeflow/profile-controller
+  KFAM_IMG: ghcr.io/kubeflow/dashboard/kfam
 
 jobs:
   integration-test:
@@ -44,11 +46,36 @@ jobs:
     - name: Create Kubeflow Namespace
       run: kubectl create namespace kubeflow
 
-    - name: Install Profile Controller (prerequisite)
+    - name: Build KFAM Image (prerequisite)
+      run: |
+        cd components/access-management
+        make docker-build-multi-arch IMG="${KFAM_IMG}" TAG="${TAG}"
+        kind load docker-image "${KFAM_IMG}:${TAG}"
+
+    - name: Build Profile Controller Image (prerequisite)
       run: |
         cd components/profile-controller
-        kustomize build config/overlays/kubeflow | kubectl apply -f -
+        make docker-build-multi-arch IMG="${PROFILE_IMG}" TAG="${TAG}"
+        kind load docker-image "${PROFILE_IMG}:${TAG}"
+
+    - name: Deploy Profile Controller (prerequisite)
+      run: |
+        cd components/profile-controller/config
+        kustomize build overlays/kubeflow \
+          | sed "s|ghcr.io/kubeflow/kubeflow/profile-controller:[a-zA-Z0-9_.-]*|${PROFILE_IMG}:${TAG}|g" \
+          | sed "s|ghcr.io/kubeflow/dashboard/kfam:[a-zA-Z0-9_.-]*|${KFAM_IMG}:${TAG}|g" \
+          | kubectl apply -f -
+
+    - name: Wait for Profile Controller to be Ready
+      run: |
+        kubectl wait --for=condition=Ready pods -n kubeflow -l kustomize.component=profiles --timeout=300s
         kubectl wait --for=condition=Available deployment -n kubeflow profiles-deployment --timeout=300s
+
+    - name: Build CentralDashboard Image
+      run: |
+        cd components/centraldashboard
+        make docker-build-multi-arch IMG="${IMG}" TAG="${TAG}"
+        kind load docker-image "${IMG}:${TAG}"
 
     - name: Deploy CentralDashboard Component
       run: |
@@ -59,6 +86,26 @@ jobs:
           "${TAG}" \
           "manifests" \
           "overlays/kserve"
+
+    - name: Debug CentralDashboard Deployment
+      run: |
+        echo "=== Checking if CentralDashboard image was built and loaded ==="
+        docker images | grep central-dashboard || echo "No central-dashboard images found in local Docker"
+        
+        echo "=== Checking images in KinD cluster ==="
+        docker exec kind-control-plane crictl images | grep central-dashboard || echo "No central-dashboard images found in KinD"
+        
+        echo "=== Checking CentralDashboard pod status ==="
+        kubectl get pods -n kubeflow -l app=centraldashboard -o wide
+        
+        echo "=== Checking CentralDashboard deployment ==="
+        kubectl get deployment centraldashboard -n kubeflow -o yaml | grep -A5 -B5 image: || echo "No deployment found"
+        
+        echo "=== Checking recent events ==="
+        kubectl get events -n kubeflow --sort-by=.metadata.creationTimestamp | tail -10
+        
+        echo "=== Checking pod details ==="
+        kubectl describe pods -n kubeflow -l app=centraldashboard || echo "No pods to describe"
 
     - name: Wait for CentralDashboard to be Ready
       run: |
