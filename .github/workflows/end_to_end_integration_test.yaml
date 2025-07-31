@@ -18,11 +18,11 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  CENTRALDASHBOARD_IMG: ghcr.io/kubeflow/kubeflow/centraldashboard
-  CENTRALDASHBOARD_ANGULAR_IMG: ghcr.io/kubeflow/kubeflow/centraldashboard-angular
-  PROFILE_CONTROLLER_IMG: ghcr.io/kubeflow/kubeflow/profile-controller
-  KFAM_IMG: ghcr.io/kubeflow/kubeflow/kfam
-  ADMISSION_WEBHOOK_IMG: ghcr.io/kubeflow/kubeflow/poddefaults-webhook
+  CENTRALDASHBOARD_IMG: ghcr.io/kubeflow/dashboard/centraldashboard
+  CENTRALDASHBOARD_ANGULAR_IMG: ghcr.io/kubeflow/dashboard/centraldashboard-angular
+  PROFILE_CONTROLLER_IMG: ghcr.io/kubeflow/dashboard/profile-controller
+  KFAM_IMG: ghcr.io/kubeflow/dashboard/kfam
+  ADMISSION_WEBHOOK_IMG: ghcr.io/kubeflow/dashboard/poddefaults-webhook
   TAG: e2e-test
 
 jobs:
@@ -53,18 +53,24 @@ jobs:
     - name: Create Kubeflow Namespace
       run: kubectl create namespace kubeflow
 
-    - name: Deploy Profile Controller Component
+    - name: Build KFAM Image
       run: |
-        ./testing/gh-actions/deploy_component.sh \
-          "profile-controller" \
-          "components/profile-controller" \
-          "${PROFILE_CONTROLLER_IMG}" \
-          "${TAG}" \
-          "config" \
-          "overlays/kubeflow"
+        cd components/access-management
+        make docker-build-multi-arch IMG="${KFAM_IMG}" TAG="${TAG}"
+        kind load docker-image "${KFAM_IMG}:${TAG}"
+        cd ../..
 
-    - name: Wait for Profile Controller to be Ready
+    - name: Deploy Profile Controller with KFAM
       run: |
+        cd components/profile-controller
+        make docker-build-multi-arch IMG="${PROFILE_CONTROLLER_IMG}" TAG="${TAG}"
+        kind load docker-image "${PROFILE_CONTROLLER_IMG}:${TAG}"
+        cd config
+        kustomize build overlays/kubeflow \
+          | sed "s|ghcr.io/kubeflow/kubeflow/profile-controller:[a-zA-Z0-9_.-]*|${PROFILE_CONTROLLER_IMG}:${TAG}|g" \
+          | sed "s|ghcr.io/kubeflow/kubeflow/kfam:[a-zA-Z0-9_.-]*|${KFAM_IMG}:${TAG}|g" \
+          | kubectl apply -f -
+        kubectl wait --for=condition=Ready pods -n kubeflow -l kustomize.component=profiles --timeout=300s
         kubectl wait --for=condition=Available deployment -n kubeflow profiles-deployment --timeout=300s
 
     - name: Wait for Profile CRD to be Available

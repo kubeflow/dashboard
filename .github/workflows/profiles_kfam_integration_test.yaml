@@ -15,8 +15,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  PROFILE_IMG: ghcr.io/kubeflow/kubeflow/profile-controller
-  KFAM_IMG: ghcr.io/kubeflow/kubeflow/kfam
+  PROFILE_IMG: ghcr.io/kubeflow/dashboard/profile-controller
+  KFAM_IMG: ghcr.io/kubeflow/dashboard/kfam
   TAG: integration-test
 
 jobs:
@@ -48,13 +48,14 @@ jobs:
 
     - name: Deploy Profile Controller Component
       run: |
-        ./testing/gh-actions/deploy_component.sh \
-          "profile-controller" \
-          "components/profile-controller" \
-          "${PROFILE_IMG}" \
-          "${TAG}" \
-          "config" \
-          "overlays/kubeflow"
+        cd components/profile-controller
+        make docker-build-multi-arch IMG="${PROFILE_IMG}" TAG="${TAG}"
+        kind load docker-image "${PROFILE_IMG}:${TAG}"
+        cd config
+        kustomize build overlays/kubeflow \
+          | sed "s|ghcr.io/kubeflow/kubeflow/profile-controller:[a-zA-Z0-9_.-]*|${PROFILE_IMG}:${TAG}|g" \
+          | sed "s|ghcr.io/kubeflow/kubeflow/kfam:[a-zA-Z0-9_.-]*|ghcr.io/kubeflow/kubeflow/kfam:latest|g" \
+          | kubectl apply -f -
 
     - name: Wait for Profile Controller to be Ready
       run: |
@@ -74,6 +75,23 @@ jobs:
           elapsed=$((elapsed + interval))
         done
         kubectl wait --for condition=established --timeout=60s crd/profiles.kubeflow.org
+
+    - name: Build KFAM Image
+      run: |
+        cd components/access-management
+        make docker-build-multi-arch IMG="${KFAM_IMG}" TAG="${TAG}"
+        kind load docker-image "${KFAM_IMG}:${TAG}"
+        cd ../..
+
+    - name: Deploy Profile Controller with KFAM
+      run: |
+        cd components/profile-controller/config
+        kustomize build overlays/kubeflow \
+          | sed "s|ghcr.io/kubeflow/kubeflow/profile-controller:[a-zA-Z0-9_.-]*|${PROFILE_IMG}:${TAG}|g" \
+          | sed "s|ghcr.io/kubeflow/kubeflow/kfam:[a-zA-Z0-9_.-]*|${KFAM_IMG}:${TAG}|g" \
+          | kubectl apply -f -
+        kubectl wait --for=condition=Ready pods -n kubeflow -l kustomize.component=profiles --timeout=300s
+        kubectl wait --for=condition=Available deployment -n kubeflow profiles-deployment --timeout=300s
 
     - name: Wait for KFAM to be Ready
       run: |

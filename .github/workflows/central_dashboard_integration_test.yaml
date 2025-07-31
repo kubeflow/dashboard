@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - components/centraldashboard/**
+      - components/access-management/**  
+      - components/profile-controller/** 
       - releasing/version/VERSION
       - .github/workflows/central_dashboard_integration_test.yaml
     branches:
@@ -14,7 +16,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  IMG: ghcr.io/kubeflow/kubeflow/central-dashboard
+  DASHBOARD_IMG: ghcr.io/kubeflow/dashboard/central-dashboard
+  KFAM_IMG: ghcr.io/kubeflow/dashboard/kfam
+  PROFILE_CONTROLLER_IMG: ghcr.io/kubeflow/dashboard/profile-controller
   TAG: integration-test
 
 jobs:
@@ -44,24 +48,35 @@ jobs:
     - name: Create Kubeflow Namespace
       run: kubectl create namespace kubeflow
 
-    - name: Install Profile Controller (prerequisite)
+    - name: Build KFAM Image
+      run: |
+        cd components/access-management
+        make docker-build-multi-arch IMG="${KFAM_IMG}" TAG="${TAG}"
+        kind load docker-image "${KFAM_IMG}:${TAG}"
+        cd ../..
+
+    - name: Build and Deploy Profile Controller with KFAM
       run: |
         cd components/profile-controller
-        kustomize build config/overlays/kubeflow | kubectl apply -f -
+        make docker-build-multi-arch IMG="${PROFILE_CONTROLLER_IMG}" TAG="${TAG}"
+        kind load docker-image "${PROFILE_CONTROLLER_IMG}:${TAG}"
+        cd config
+        kustomize build overlays/kubeflow \
+          | sed "s|ghcr.io/kubeflow/kubeflow/profile-controller:[a-zA-Z0-9_.-]*|${PROFILE_CONTROLLER_IMG}:${TAG}|g" \
+          | sed "s|ghcr.io/kubeflow/kubeflow/kfam:[a-zA-Z0-9_.-]*|${KFAM_IMG}:${TAG}|g" \
+          | kubectl apply -f -
         kubectl wait --for=condition=Available deployment -n kubeflow profiles-deployment --timeout=300s
+        kubectl wait --for=condition=Ready pods -n kubeflow -l kustomize.component=profiles --timeout=300s
 
-    - name: Deploy CentralDashboard Component
+    - name: Build and Deploy Central Dashboard
       run: |
         ./testing/gh-actions/deploy_component.sh \
           "centraldashboard" \
           "components/centraldashboard" \
-          "${IMG}" \
+          "${DASHBOARD_IMG}" \
           "${TAG}" \
           "manifests" \
           "overlays/kserve"
-
-    - name: Wait for CentralDashboard to be Ready
-      run: |
         kubectl wait --for=condition=Ready pods -n kubeflow -l app=centraldashboard --timeout=300s
         kubectl wait --for=condition=Available deployment -n kubeflow centraldashboard --timeout=300s
 
