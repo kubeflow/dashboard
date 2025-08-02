@@ -110,15 +110,15 @@ jobs:
 
     - name: Validate Service
       run: |
-        ./testing/gh-actions/test_service.sh validate-service centraldashboard-angular kubeflow
+        ./testing/shared/test_service.sh validate-service centraldashboard-angular kubeflow
 
     - name: Start Port Forward for Dashboard Testing
       run: |
-        ./testing/gh-actions/test_service.sh port-forward centraldashboard-angular kubeflow 8080 80
+        ./testing/shared/test_service.sh port-forward centraldashboard-angular kubeflow 8080 80
 
     - name: Test Dashboard Health
       run: |
-        ./testing/gh-actions/test_service.sh test-health centraldashboard-angular kubeflow 8080
+        ./testing/shared/test_service.sh test-health centraldashboard-angular kubeflow 8080
 
     - name: Test Dashboard Web Interface
       run: |
@@ -138,23 +138,23 @@ jobs:
 
     - name: Test Dashboard Performance
       run: |
-        ./testing/gh-actions/test_service.sh performance-test centraldashboard-angular kubeflow 8080 80 8
+        ./testing/shared/test_service.sh performance-test centraldashboard-angular kubeflow 8080 80 8
 
     - name: Test Dashboard Metrics
       run: |
-        ./testing/gh-actions/test_service.sh test-metrics centraldashboard-angular kubeflow 8080
+        ./testing/shared/test_service.sh test-metrics centraldashboard-angular kubeflow 8080
 
     - name: Check Dashboard Logs
       run: |
-        ./testing/gh-actions/test_service.sh check-logs centraldashboard-angular kubeflow 50
+        ./testing/shared/test_service.sh check-logs centraldashboard-angular kubeflow 50
 
     - name: Check for Errors in Logs
       run: |
-        ./testing/gh-actions/test_service.sh check-errors centraldashboard-angular kubeflow
+        ./testing/shared/test_service.sh check-errors centraldashboard-angular kubeflow
 
     - name: Stop Port Forward
       run: |
-        ./testing/gh-actions/test_service.sh stop-port-forward centraldashboard-angular kubeflow 8080
+        ./testing/shared/test_service.sh stop-port-forward centraldashboard-angular kubeflow 8080
 
     - name: Cleanup Test Resources
       run: |
