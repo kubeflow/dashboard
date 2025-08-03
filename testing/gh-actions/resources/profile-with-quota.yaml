@@ -1,0 +1,13 @@
+apiVersion: kubeflow.org/v1
+kind: Profile
+metadata:
+  name: ${PROFILE_NAME}
+spec:
+  owner:
+    kind: User
+    name: ${USER_EMAIL}
+  resourceQuotaSpec:
+    hard:
+      cpu: "2"
+      memory: 2Gi
+      requests.nvidia.com/gpu: "1" 

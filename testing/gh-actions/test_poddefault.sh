@@ -18,62 +18,18 @@ case "$OPERATION" in
         ;;
 
     "create-poddefault")
-        cat <<EOF | kubectl apply -f -
-apiVersion: kubeflow.org/v1alpha1
-kind: PodDefault
-metadata:
-  name: ${PODDEFAULT_NAME}
-  namespace: ${NAMESPACE}
-spec:
-  selector:
-    matchLabels:
-      ${PODDEFAULT_NAME}: "true"
-  desc: "Test PodDefault for integration testing"
-  env:
-  - name: TEST_ENV_VAR
-    value: "test-value"
-  volumes:
-  - name: test-volume
-    emptyDir: {}
-  volumeMounts:
-  - name: test-volume
-    mountPath: /test-mount
-EOF
+        export PODDEFAULT_NAME NAMESPACE
+        envsubst < "$(dirname "$0")/resources/poddefault-basic.yaml" | kubectl apply -f -
         ;;
 
     "create-multi-poddefault")
-        cat <<EOF | kubectl apply -f -
-apiVersion: kubeflow.org/v1alpha1
-kind: PodDefault
-metadata:
-  name: ${PODDEFAULT_NAME}-2
-  namespace: ${NAMESPACE}
-spec:
-  selector:
-    matchLabels:
-      test-multi: "true"
-  desc: "Second test PodDefault"
-  env:
-  - name: SECOND_ENV_VAR
-    value: "second-value"
-EOF
+        export PODDEFAULT_NAME NAMESPACE
+        envsubst < "$(dirname "$0")/resources/poddefault-multi-selector.yaml" | kubectl apply -f -
         ;;
 
     "test-mutation")
-        cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: Pod
-metadata:
-  name: ${TEST_POD_NAME}
-  namespace: ${NAMESPACE}
-  labels:
-    ${PODDEFAULT_NAME}: "true"
-spec:
-  containers:
-  - name: test-container
-    image: busybox:latest
-    command: ["sleep", "3600"]
-EOF
+        export TEST_POD_NAME NAMESPACE PODDEFAULT_NAME
+        envsubst < "$(dirname "$0")/resources/poddefault-test-pod.yaml" | kubectl apply -f -
                 
         kubectl get pod "${TEST_POD_NAME}" -n "${NAMESPACE}" -o yaml | grep -q "TEST_ENV_VAR" || {
             echo "ERROR: TEST_ENV_VAR not found in pod spec"
@@ -89,21 +45,8 @@ EOF
         ;;
 
     "test-multi-mutation")
-        cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: Pod
-metadata:
-  name: ${TEST_POD_NAME}-multi
-  namespace: ${NAMESPACE}
-  labels:
-    ${PODDEFAULT_NAME}: "true"
-    test-multi: "true"
-spec:
-  containers:
-  - name: test-container
-    image: busybox:latest
-    command: ["sleep", "300"]
-EOF
+        export TEST_POD_NAME NAMESPACE PODDEFAULT_NAME
+        envsubst < "$(dirname "$0")/resources/poddefault-test-pod-multi.yaml" | kubectl apply -f -
 
         kubectl get pod "${TEST_POD_NAME}-multi" -n "${NAMESPACE}" -o yaml | grep -q "TEST_ENV_VAR" || {
             echo "ERROR: TEST_ENV_VAR not found in pod spec"
@@ -119,20 +62,8 @@ EOF
         ;;
 
     "test-error-handling")
-        cat <<EOF | kubectl apply -f - 
-apiVersion: kubeflow.org/v1alpha1
-kind: PodDefault
-metadata:
-  name: invalid-poddefault
-  namespace: ${NAMESPACE}
-spec:
-  selector:
-    matchLabels:
-      invalid: "true"
-  volumeMounts:
-  - name: non-existent-volume
-    mountPath: /invalid
-EOF
+        export NAMESPACE
+        envsubst < "$(dirname "$0")/resources/poddefault-invalid.yaml" | kubectl apply -f -
         ;;
 
     "validate-webhook")

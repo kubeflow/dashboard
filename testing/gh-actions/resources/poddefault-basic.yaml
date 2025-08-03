@@ -1,0 +1,19 @@
+apiVersion: kubeflow.org/v1alpha1
+kind: PodDefault
+metadata:
+  name: ${PODDEFAULT_NAME}
+  namespace: ${NAMESPACE}
+spec:
+  selector:
+    matchLabels:
+      ${PODDEFAULT_NAME}: "true"
+  desc: "Test PodDefault for integration testing"
+  env:
+  - name: TEST_ENV_VAR
+    value: "test-value"
+  volumes:
+  - name: test-volume
+    emptyDir: {}
+  volumeMounts:
+  - name: test-volume
+    mountPath: /test-mount 
