@@ -1,0 +1,12 @@
+apiVersion: kubeflow.org/v1alpha1
+kind: PodDefault
+metadata:
+  name: invalid-poddefault
+  namespace: ${NAMESPACE}
+spec:
+  selector:
+    matchLabels:
+      invalid: "true"
+  volumeMounts:
+  - name: non-existent-volume
+    mountPath: /invalid 

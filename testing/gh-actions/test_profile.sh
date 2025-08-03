@@ -23,21 +23,8 @@ fi
 
 case "$OPERATION" in
     "create")
-        cat <<EOF | kubectl apply -f -
-apiVersion: kubeflow.org/v1
-kind: Profile
-metadata:
-  name: ${PROFILE_NAME}
-spec:
-  owner:
-    kind: User
-    name: ${USER_EMAIL}
-  resourceQuotaSpec:
-    hard:
-      cpu: "2"
-      memory: 2Gi
-      requests.nvidia.com/gpu: "1"
-EOF
+        export PROFILE_NAME USER_EMAIL
+        envsubst < "$(dirname "$0")/resources/profile-with-quota.yaml" | kubectl apply -f -
         kubectl wait --for=jsonpath='{.metadata.name}'=${PROFILE_NAME} profile "${PROFILE_NAME}" --timeout=60s
         timeout=120
         interval=5
@@ -59,16 +46,8 @@ EOF
         ;;
 
     "create-simple")
-        cat <<EOF | kubectl apply -f -
-apiVersion: kubeflow.org/v1
-kind: Profile
-metadata:
-  name: ${PROFILE_NAME}
-spec:
-  owner:
-    kind: User
-    name: ${USER_EMAIL}
-EOF
+        export PROFILE_NAME USER_EMAIL
+        envsubst < "$(dirname "$0")/resources/profile-simple.yaml" | kubectl apply -f -
         kubectl wait --for=jsonpath='{.metadata.name}'=${PROFILE_NAME} profile "${PROFILE_NAME}" --timeout=60s
         timeout=120
         interval=5

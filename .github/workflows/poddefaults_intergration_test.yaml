@@ -47,9 +47,6 @@ jobs:
     - name: Create Kubeflow Namespace
       run: kubectl create namespace kubeflow
 
-    - name: Make Scripts Executable
-      run: chmod +x testing/gh-actions/*.sh
-
     - name: Deploy PodDefaults Webhook Component
       run: |
         ./testing/gh-actions/deploy_component.sh \
