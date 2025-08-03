@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  IMG: ghcr.io/kubeflow/kubeflow/profile-controller
+  IMG: ghcr.io/kubeflow/dashboard/profile-controller
 
 jobs:
   build:
