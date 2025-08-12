@@ -1,15 +1,15 @@
-name: Build & Publish CentralDashboard-Angular Docker image
+name: Build & Publish dashboard-Angular Docker image
 on:
   push:
     branches:
       - main
       - v*-branch
     paths:
-      - components/centraldashboard-angular/**
+      - components/dashboard-angular/**
       - releasing/version/VERSION
 
 env:
-  IMG: ghcr.io/kubeflow/dashboard/centraldashboard-angular
+  IMG: ghcr.io/kubeflow/dashboard/dashboard-angular
 
 jobs:
   push_to_registry:
@@ -36,22 +36,22 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Run CentralDashboard-Angular build/push
+    - name: Run dashboard-Angular build/push
       run: |
-        cd components/centraldashboard-angular
+        cd components/dashboard-angular
         make docker-build docker-push
     
-    - name: Run CentralDashboard-Angular build/push latest
+    - name: Run dashboard-Angular build/push latest
       if: github.ref == 'refs/heads/main'
       run: |
         export TAG=latest
-        cd components/centraldashboard-angular
+        cd components/dashboard-angular
         make docker-build docker-push
 
-    - name: Run CentralDashboard-Angular build/push on Version change
+    - name: Run dashboard-Angular build/push on Version change
       id: version
       if: steps.filter.outputs.version == 'true'
       run: |
         export TAG=$(cat releasing/version/VERSION)
-        cd components/centraldashboard-angular
+        cd components/dashboard-angular
         make docker-build docker-push
