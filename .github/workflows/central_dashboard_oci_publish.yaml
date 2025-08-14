@@ -10,7 +10,7 @@ on:
       - .github/workflows/central_dashboard_oci_publish.yaml
 
 env:
-  IMG: ghcr.io/kubeflow/kubeflow/central-dashboard
+  IMG: ghcr.io/kubeflow/dashboard/dashboard
   ARCH: linux/amd64,linux/ppc64le,linux/arm64/v8
 
 jobs:

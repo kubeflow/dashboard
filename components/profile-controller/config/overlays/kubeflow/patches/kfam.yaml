@@ -23,9 +23,9 @@ spec:
         envFrom:
           - configMapRef:
               name: config
-        image: ghcr.io/kubeflow/kubeflow/kfam
+        image: ghcr.io/kubeflow/dashboard/access-management
         imagePullPolicy: IfNotPresent
-        name: kfam
+        name: access-management
         livenessProbe:
           httpGet:
             path: /metrics

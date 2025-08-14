@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  IMG: ghcr.io/kubeflow/kubeflow/poddefaults-webhook
+  IMG: ghcr.io/kubeflow/dashboard/poddefaults-webhook
   TAG: integration-test
 
 jobs:
@@ -50,7 +50,7 @@ jobs:
     - name: Deploy PodDefaults Webhook Component
       run: |
         ./testing/gh-actions/deploy_component.sh \
-          "admission-webhook" \
+          "poddefaults-webhook" \
           "components/admission-webhook" \
           "${IMG}" \
           "${TAG}" \
@@ -60,7 +60,7 @@ jobs:
     - name: Wait for Admission Webhook to be Ready
       run: |
         kubectl wait --for=condition=Ready pods -n kubeflow -l app=poddefaults --timeout=300s
-        kubectl wait --for=condition=Available deployment -n kubeflow admission-webhook-deployment --timeout=300s
+        kubectl wait --for=condition=Available deployment -n kubeflow poddefaults-webhook-deployment --timeout=300s
 
     - name: Validate Webhook Configuration
       run: |

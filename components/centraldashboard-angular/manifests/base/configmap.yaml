@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: centraldashboard-angular-config
+  name: dashboard-angular-config
 data:
   settings: |-
     {
