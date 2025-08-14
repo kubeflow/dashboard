@@ -1,6 +1,7 @@
 # Kubeflow Dashboard
 
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10673/badge)](https://www.bestpractices.dev/projects/10673)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fkubeflow%2Fdashboard.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fkubeflow%2Fdashboard?ref=badge_shield)
 
 [Kubeflow Dashboard](https://www.kubeflow.org/docs/components/central-dash/overview/) is the web-based hub of a Kubeflow Platform.
 It exposes the access controlled web interfaces for Kubeflow components and more.
@@ -50,3 +51,7 @@ Connect with _other users_ and the [Notebooks Working Group](https://github.com/
 ## Contributing
 
 Please see the [`CONTRIBUTING.md`](CONTRIBUTING.md) file for more information.
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fkubeflow%2Fdashboard.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fkubeflow%2Fdashboard?ref=badge_large)
