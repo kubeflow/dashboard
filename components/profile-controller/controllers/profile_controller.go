@@ -91,6 +91,9 @@ type ProfileReconciler struct {
 	UserIdPrefix               string
 	WorkloadIdentity           string
 	DefaultNamespaceLabelsPath string
+	ServiceMeshMode            string
+	GatewayName                string
+	GatewayNamespace           string
 }
 
 // +kubebuilder:rbac:groups=core,resources=namespaces,verbs="*"
@@ -127,12 +130,19 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, request ctrl.Request)
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{"owner": instance.Spec.Owner.Name},
-			// inject istio sidecar to all pods in target namespace by default.
-			Labels: map[string]string{
-				istioInjectionLabel: "enabled",
-			},
-			Name: instance.Name,
+			Labels:      map[string]string{},
+			Name:        instance.Name,
 		},
+	}
+	
+	// Set istio-injection label based on service mesh mode
+	if r.ServiceMeshMode == "ambient" {
+		// In ambient mode, disable sidecar injection but enable ambient mesh
+		ns.Labels[istioInjectionLabel] = "disabled"
+		ns.Labels["istio.io/dataplane-mode"] = "ambient"
+	} else {
+		// In sidecar mode (default), inject istio sidecar to all pods in target namespace
+		ns.Labels[istioInjectionLabel] = "enabled"
 	}
 	setNamespaceLabels(ns, defaultKubeflowNamespaceLabels)
 	logger.Info("List of labels to be added to namespace", "labels", ns.Labels)
@@ -178,8 +188,21 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, request ctrl.Request)
 			for k, v := range foundNs.Labels {
 				oldLabels[k] = v
 			}
+			
+			// Apply service mesh mode labels to existing namespace
+			if r.ServiceMeshMode == "ambient" {
+				// In ambient mode, disable sidecar injection but enable ambient mesh
+				foundNs.Labels[istioInjectionLabel] = "disabled"
+				foundNs.Labels["istio.io/dataplane-mode"] = "ambient"
+			} else {
+				// In sidecar mode (default), inject istio sidecar to all pods in target namespace
+				foundNs.Labels[istioInjectionLabel] = "enabled"
+				// Remove ambient mode label if it exists
+				delete(foundNs.Labels, "istio.io/dataplane-mode")
+			}
+			
 			setNamespaceLabels(foundNs, defaultKubeflowNamespaceLabels)
-			logger.Info("List of labels to be added to found namespace", "labels", ns.Labels)
+			logger.Info("List of labels to be added to found namespace", "labels", foundNs.Labels)
 			if !reflect.DeepEqual(oldLabels, foundNs.Labels) {
 				err = r.Update(ctx, foundNs)
 				if err != nil {
