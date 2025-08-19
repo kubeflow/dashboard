@@ -44,8 +44,9 @@ const USERIDPREFIX = "userid-prefix"
 const WORKLOADIDENTITY = "workload-identity"
 const DEFAULTNAMESPACELABELSPATH = "namespace-labels-path"
 const SERVICEMESHMODE = "service-mesh-mode"
-const GATEWAYNAME = "gateway-name"
-const GATEWAYNAMESPACE = "gateway-namespace"
+const WAYPOINTNAME = "waypoint-name"
+const WAYPOINTNAMESPACE = "waypoint-namespace"
+const CREATEWAYPOINT = "create-waypoint"
 
 var (
 	scheme   = runtime.NewScheme()
@@ -71,8 +72,9 @@ func main() {
 	var workloadIdentity string
 	var defaultNamespaceLabelsPath string
 	var serviceMeshMode string
-	var gatewayName string
-	var gatewayNamespace string
+	var waypointName string
+	var waypointNamespace string
+	var createWaypoint bool
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":9876", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
@@ -84,9 +86,10 @@ func main() {
 	flag.StringVar(&userIdPrefix, USERIDPREFIX, "accounts.google.com:", "Request header user id common prefix")
 	flag.StringVar(&workloadIdentity, WORKLOADIDENTITY, "", "Default identity (GCP service account) for workload_identity plugin")
 	flag.StringVar(&defaultNamespaceLabelsPath, DEFAULTNAMESPACELABELSPATH, "/etc/profile-controller/namespace-labels.yaml", "A YAML file with a map of labels to be set on every Profile namespace")
-	flag.StringVar(&serviceMeshMode, SERVICEMESHMODE, "sidecar", "Service mesh mode: 'sidecar' or 'ambient' (default: sidecar)")
-	flag.StringVar(&gatewayName, GATEWAYNAME, "kubeflow-gateway", "Name of the gateway to use for HTTPRoute in ambient mode")
-	flag.StringVar(&gatewayNamespace, GATEWAYNAMESPACE, "", "Namespace of the gateway (optional, defaults to HTTPRoute namespace)")
+	flag.StringVar(&serviceMeshMode, SERVICEMESHMODE, "istio-sidecar", "Service mesh mode: 'istio-sidecar' or 'istio-ambient' (default: istio-sidecar)")
+	flag.StringVar(&waypointName, WAYPOINTNAME, "waypoint", "Name of the waypoint proxy to use in ambient mode")
+	flag.StringVar(&waypointNamespace, WAYPOINTNAMESPACE, "", "Namespace of the waypoint (optional, defaults to profile namespace)")
+	flag.BoolVar(&createWaypoint, CREATEWAYPOINT, false, "Create waypoint proxy in profile namespace if it doesn't exist")
 	opts := zap.Options{
 		Development: true,
 	}
@@ -116,8 +119,9 @@ func main() {
 		WorkloadIdentity:           workloadIdentity,
 		DefaultNamespaceLabelsPath: defaultNamespaceLabelsPath,
 		ServiceMeshMode:            serviceMeshMode,
-		GatewayName:                gatewayName,
-		GatewayNamespace:           gatewayNamespace,
+		WaypointName:               waypointName,
+		WaypointNamespace:          waypointNamespace,
+		CreateWaypoint:             createWaypoint,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Profile")
 		os.Exit(1)

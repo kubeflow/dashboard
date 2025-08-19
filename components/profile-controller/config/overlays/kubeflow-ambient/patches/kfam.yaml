@@ -20,6 +20,8 @@ spec:
         - $(USERID_HEADER)
         - "-userid-prefix"
         - $(USERID_PREFIX)
+        - "-service-mesh-mode"
+        - $(SERVICE_MESH_MODE)
         envFrom:
           - configMapRef:
               name: config
