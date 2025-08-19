@@ -9,8 +9,10 @@ spec:
       - name: manager
         env:
         - name: SERVICE_MESH_MODE
-          value: ambient
-        - name: GATEWAY_NAME
-          value: kubeflow-gateway
-        - name: GATEWAY_NAMESPACE
-          value: istio-system
+          value: istio-ambient
+        - name: WAYPOINT_NAME
+          value: waypoint
+        - name: WAYPOINT_NAMESPACE
+          value: ""
+        - name: CREATE_WAYPOINT
+          value: "true"
