@@ -137,9 +137,8 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, request ctrl.Request)
 		},
 	}
 
-	// Set service mesh labels based on mode
-	r.setServiceMeshLabels(ns, instance)
-	setNamespaceLabels(ns, defaultKubeflowNamespaceLabels)
+	// Set namespace labels and service mesh labels in one call
+	r.setNamespaceLabelsAndServiceMesh(ns, instance, defaultKubeflowNamespaceLabels)
 	logger.Info("List of labels to be added to namespace", "labels", ns.Labels)
 	if err := controllerutil.SetControllerReference(instance, ns, r.Scheme); err != nil {
 		IncRequestErrorCounter("error setting ControllerReference", SEVERITY_MAJOR)
@@ -184,10 +183,8 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, request ctrl.Request)
 				oldLabels[k] = v
 			}
 
-			// Apply service mesh mode labels to existing namespace
-			r.setServiceMeshLabels(foundNs, instance)
-
-			setNamespaceLabels(foundNs, defaultKubeflowNamespaceLabels)
+			// Apply namespace labels and service mesh mode labels to existing namespace
+			r.setNamespaceLabelsAndServiceMesh(foundNs, instance, defaultKubeflowNamespaceLabels)
 			logger.Info("List of labels to be added to found namespace", "labels", foundNs.Labels)
 			if !reflect.DeepEqual(oldLabels, foundNs.Labels) {
 				err = r.Update(ctx, foundNs)
@@ -455,7 +452,7 @@ func (r *ProfileReconciler) getAuthorizationPolicy(profileIns *profilev1.Profile
 		"KFP_UI_PRINCIPAL",
 		"cluster.local/ns/kubeflow/sa/ml-pipeline-ui")
 
-	policy := istioSecurity.AuthorizationPolicy{
+	return &istioSecurity.AuthorizationPolicy{
 		Action: istioSecurity.AuthorizationPolicy_ALLOW,
 		// Empty selector == match all workloads in namespace
 		Selector: nil,
@@ -527,15 +524,6 @@ func (r *ProfileReconciler) getAuthorizationPolicy(profileIns *profilev1.Profile
 			},
 		},
 	}
-
-	// In ambient mode, we still use selector but target the waypoint workload
-	// TODO: Once Istio supports targetRef in AuthorizationPolicy, update this
-	if r.ServiceMeshMode == "istio-ambient" {
-		// For now, keep the selector-based approach for ambient mode
-		// The waypoint will be created separately and policies will apply to namespace workloads
-	}
-
-	return &policy
 }
 
 // updateIstioAuthorizationPolicy create or update Istio AuthorizationPolicy
@@ -787,11 +775,28 @@ func removeString(slice []string, s string) (result []string) {
 }
 
 // setServiceMeshLabels sets the appropriate service mesh labels based on the mode
-func (r *ProfileReconciler) setServiceMeshLabels(ns *corev1.Namespace, profileIns *profilev1.Profile) {
+func (r *ProfileReconciler) setNamespaceLabelsAndServiceMesh(ns *corev1.Namespace, profileIns *profilev1.Profile, defaultLabels map[string]string) {
 	if ns.Labels == nil {
 		ns.Labels = make(map[string]string)
 	}
 
+	// Apply default Kubeflow namespace labels first
+	for k, v := range defaultLabels {
+		_, ok := ns.Labels[k]
+		if len(v) == 0 {
+			// When there is an empty value, k should be removed.
+			if ok {
+				delete(ns.Labels, k)
+			}
+		} else {
+			if !ok {
+				// Add label if not exist, otherwise skipping update.
+				ns.Labels[k] = v
+			}
+		}
+	}
+
+	// Apply service mesh specific labels
 	if r.ServiceMeshMode == "istio-ambient" {
 		// In ambient mode, disable sidecar injection but enable ambient mesh
 		ns.Labels[istioInjectionLabel] = "disabled"
@@ -815,26 +820,6 @@ func (r *ProfileReconciler) setServiceMeshLabels(ns *corev1.Namespace, profileIn
 	}
 }
 
-func setNamespaceLabels(ns *corev1.Namespace, newLabels map[string]string) {
-	if ns.Labels == nil {
-		ns.Labels = make(map[string]string)
-	}
-
-	for k, v := range newLabels {
-		_, ok := ns.Labels[k]
-		if len(v) == 0 {
-			// When there is an empty value, k should be removed.
-			if ok {
-				delete(ns.Labels, k)
-			}
-		} else {
-			if !ok {
-				// Add label if not exist, otherwise skipping update.
-				ns.Labels[k] = v
-			}
-		}
-	}
-}
 
 func (r *ProfileReconciler) readDefaultLabelsFromFile(path string) map[string]string {
 	logger := r.Log.WithName("read-config-file").WithValues("path", path)
