@@ -9,6 +9,7 @@ import (
 	profilev1 "github.com/kubeflow/kubeflow/components/profile-controller/api/v1"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -22,6 +23,25 @@ type namespaceLabelSuite struct {
 
 func TestEnforceNamespaceLabelsFromConfig(t *testing.T) {
 	name := "test-namespace"
+
+	// Create a minimal ProfileReconciler for testing
+	reconciler := &ProfileReconciler{
+		ServiceMeshMode: "istio-sidecar", // Test sidecar mode
+	}
+
+	// Create a minimal profile for testing
+	profile := &profilev1.Profile{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		Spec: profilev1.ProfileSpec{
+			Owner: rbacv1.Subject{
+				Kind: "User",
+				Name: "test-user",
+			},
+		},
+	}
+
 	tests := []namespaceLabelSuite{
 		namespaceLabelSuite{
 			corev1.Namespace{
@@ -42,6 +62,7 @@ func TestEnforceNamespaceLabelsFromConfig(t *testing.T) {
 						"serving.kubeflow.org/inferenceservice":          "enabled",
 						"pipelines.kubeflow.org/enabled":                 "true",
 						"app.kubernetes.io/part-of":                      "kubeflow-profile",
+						"istio-injection":                                "enabled", // Added by service mesh logic
 					},
 					Name: name,
 				},
@@ -68,9 +89,10 @@ func TestEnforceNamespaceLabelsFromConfig(t *testing.T) {
 					Labels: map[string]string{
 						"user-name": "Jim",
 						"katib.kubeflow.org/metrics-collector-injection": "enabled",
-						"serving.kubeflow.org/inferenceservice":          "disabled",
+						"serving.kubeflow.org/inferenceservice":          "disabled", // Existing label preserved
 						"pipelines.kubeflow.org/enabled":                 "true",
 						"app.kubernetes.io/part-of":                      "kubeflow-profile",
+						"istio-injection":                                "enabled", // Added by service mesh logic
 					},
 					Name: name,
 				},
@@ -101,6 +123,8 @@ func TestEnforceNamespaceLabelsFromConfig(t *testing.T) {
 						"serving.kubeflow.org/inferenceservice":          "enabled",
 						"pipelines.kubeflow.org/enabled":                 "true",
 						"app.kubernetes.io/part-of":                      "kubeflow-profile",
+						"istio-injection":                                "enabled", // Added by service mesh logic
+						// "removal-label" should be removed due to empty value
 					},
 					Name: name,
 				},
@@ -108,7 +132,7 @@ func TestEnforceNamespaceLabelsFromConfig(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		setNamespaceLabels(&test.current, test.labels)
+		reconciler.setNamespaceLabelsAndServiceMesh(&test.current, profile, test.labels)
 		if !reflect.DeepEqual(&test.expected, &test.current) {
 			t.Errorf("Expect:\n%v; Output:\n%v", &test.expected, &test.current)
 		}
