@@ -10,9 +10,3 @@ spec:
         env:
         - name: SERVICE_MESH_MODE
           value: istio-ambient
-        - name: WAYPOINT_NAME
-          value: waypoint
-        - name: WAYPOINT_NAMESPACE
-          value: ""
-        - name: CREATE_WAYPOINT
-          value: "true"
