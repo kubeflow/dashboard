@@ -26,5 +26,5 @@ spec:
           replacePrefixMatch: /kfam/
     backendRefs:
     - name: profiles-kfam
-      namespace: kubeflow
+      namespace: $(PROFILES_NAMESPACE)
       port: 8081
