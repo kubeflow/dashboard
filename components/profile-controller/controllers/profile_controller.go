@@ -838,6 +838,29 @@ func (r *ProfileReconciler) readDefaultLabelsFromFile(path string) map[string]st
 	return labels
 }
 
+// setNamespaceLabels applies the provided labels to a namespace, preserving existing labels
+// This function is kept separate for testing purposes
+func setNamespaceLabels(ns *corev1.Namespace, newLabels map[string]string) {
+	if ns.Labels == nil {
+		ns.Labels = make(map[string]string)
+	}
+
+	for k, v := range newLabels {
+		_, ok := ns.Labels[k]
+		if len(v) == 0 {
+			// When there is an empty value, k should be removed.
+			if ok {
+				delete(ns.Labels, k)
+			}
+		} else {
+			if !ok {
+				// Add label if not exist, otherwise skipping update.
+				ns.Labels[k] = v
+			}
+		}
+	}
+}
+
 // createWaypoint creates a waypoint proxy in the profile namespace for ambient mode
 func (r *ProfileReconciler) createWaypoint(profileIns *profilev1.Profile) error {
 	logger := r.Log.WithValues("profile", profileIns.Name)
