@@ -16,6 +16,7 @@ import (
 	"net/url"
 	"path"
 	"strconv"
+	"strings"
 	"time"
 
 	profileRegister "github.com/kubeflow/kubeflow/components/access-management/pkg/apis/kubeflow/v1beta1"
@@ -83,10 +84,21 @@ func NewKfamClient(userIdHeader string, userIdPrefix string, clusterAdmins []str
 			kubeClient:        kubeClient,
 			roleBindingLister: roleBindingLister,
 		},
-		clusterAdmins: clusterAdmins,
+		clusterAdmins: sanitizeClusterAdmins(clusterAdmins),
 		userIdHeader:  userIdHeader,
 		userIdPrefix:  userIdPrefix,
 	}, nil
+}
+
+func sanitizeClusterAdmins(clusterAdmins []string) []string {
+	var sanitized []string
+	for _, admin := range clusterAdmins {
+		trimmed := strings.TrimSpace(admin)
+		if trimmed != "" {
+			sanitized = append(sanitized, trimmed)
+		}
+	}
+	return sanitized
 }
 
 func getRESTClient(group string, version string) (*rest.RESTClient, error) {
