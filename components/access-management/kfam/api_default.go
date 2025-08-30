@@ -291,6 +291,10 @@ func (c *KfamV1Alpha1Client) getUserEmail(header http.Header) string {
 }
 
 func (c *KfamV1Alpha1Client) isClusterAdmin(queryUser string) bool {
+	if queryUser == "" {
+		return false
+	}
+
 	for _, val := range c.clusterAdmins {
 		if val == queryUser {
 			return true
