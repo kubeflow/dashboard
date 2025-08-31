@@ -128,7 +128,7 @@ jobs:
           cd "$BASE/frontend"
           npm link kubeflow
 
-      - name: Serve UI & run Cypress tests in Chrome and Firefox
+      - name: Serve UI & run Cypress tests in Chrome and Electron
         run: |
           cd components/centraldashboard-angular/frontend
           npm run serve & npx wait-on http://localhost:4200
