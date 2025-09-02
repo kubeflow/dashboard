@@ -2,11 +2,7 @@
 
 This directory contains integration tests for the Kubeflow Central Dashboard Angular component.
 
-## Prerequisites
-
-Before running these tests locally, you need:
-
-### 1. Required Tools
+## 1. Required Tools
 
 - Docker
 - kubectl
@@ -18,9 +14,9 @@ Before running these tests locally, you need:
 - curl
 - Xvfb (for headless browser testing)
 
-### 2. Install Prerequisites
+## 2. Install Prerequisites
 
-#### Install KinD
+### Install KinD
 
 ```bash
 #!/bin/bash
@@ -33,7 +29,7 @@ chmod +x ./kind
 sudo mv kind /usr/local/bin
 ```
 
-#### Install kustomize
+### Install kustomize
 
 ```bash
 #!/bin/bash
@@ -47,7 +43,7 @@ chmod +x kustomize
 sudo mv kustomize /usr/local/bin
 ```
 
-#### Install Istio
+### Install Istio
 
 ```bash
 #!/bin/bash
@@ -64,7 +60,7 @@ pushd istio_tmp >/dev/null
 popd
 ```
 
-#### Install Node.js and npm
+### Install Node.js and npm
 
 ```bash
 # Install Node.js 18+ (using NodeSource repository)
@@ -76,14 +72,14 @@ node --version
 npm --version
 ```
 
-#### Install Xvfb (for headless browser testing)
+### Install Xvfb (for headless browser testing)
 
 ```bash
 sudo apt-get update
 sudo apt-get install -y xvfb
 ```
 
-### 3. Set up KinD Cluster
+## 3. Set up KinD Cluster
 
 ```bash
 # Setup kind environment
@@ -99,9 +95,9 @@ kind create cluster --config testing/gh-actions/kind-1-33.yaml
 kubectl create namespace kubeflow
 ```
 
-### 4. Deploy Dependencies
+## 4. Deploy Dependencies
 
-#### Deploy Profile Controller and KFAM
+### Deploy Profile Controller and KFAM
 
 ```bash
 # Set environment variables
@@ -132,7 +128,7 @@ kubectl wait --for=condition=Ready pods -n kubeflow -l kustomize.component=profi
 kubectl wait --for=condition=Available deployment -n kubeflow profiles-deployment --timeout=300s
 ```
 
-#### Apply Kubeflow Roles and CRDs
+### Apply Kubeflow Roles and CRDs
 
 ```bash
 kustomize build https://github.com/kubeflow/manifests//common/kubeflow-roles/base?ref=master | kubectl apply -f -

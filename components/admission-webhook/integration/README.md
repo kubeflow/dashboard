@@ -2,20 +2,7 @@
 
 This directory contains integration tests for the Kubeflow PodDefaults Admission Webhook component.
 
-## Overview
-
-The admission webhook integration tests validate:
-
-- PodDefault mutation functionality
-- Multi-selector PodDefault behavior
-- Error handling for invalid configurations
-- Webhook configuration validation
-
-## Prerequisites
-
-Before running these tests locally, you need:
-
-### 1. Required Tools
+## 1. Required Tools
 
 - Docker
 - kubectl
@@ -23,9 +10,9 @@ Before running these tests locally, you need:
 - kustomize
 - Istio CLI (istioctl)
 
-### 2. Install Prerequisites
+## 2. Install Prerequisites
 
-#### Install KinD
+### Install KinD
 
 ```bash
 #!/bin/bash
@@ -38,7 +25,7 @@ chmod +x ./kind
 sudo mv kind /usr/local/bin
 ```
 
-#### Install kustomize
+### Install kustomize
 
 ```bash
 #!/bin/bash
@@ -52,7 +39,7 @@ chmod +x kustomize
 sudo mv kustomize /usr/local/bin
 ```
 
-#### Install Istio
+### Install Istio
 
 ```bash
 #!/bin/bash
@@ -69,7 +56,7 @@ pushd istio_tmp >/dev/null
 popd
 ```
 
-### 3. Set up KinD Cluster
+## 3. Set up KinD Cluster
 
 ```bash
 # Create KinD cluster
@@ -79,7 +66,7 @@ kind create cluster --config testing/gh-actions/kind-1-33.yaml
 kubectl create namespace kubeflow
 ```
 
-### 4. Install Cert Manager
+## 4. Install Cert Manager
 
 ```bash
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.8.0/cert-manager.yaml
