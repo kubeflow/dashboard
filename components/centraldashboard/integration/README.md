@@ -2,11 +2,7 @@
 
 This directory contains integration tests for the Kubeflow Central Dashboard component.
 
-## Prerequisites
-
-Before running these tests locally, you need:
-
-### 1. Required Tools
+## 1. Required Tools
 
 - Docker
 - kubectl
@@ -15,9 +11,9 @@ Before running these tests locally, you need:
 - Istio CLI (istioctl)
 - curl
 
-### 2. Install Prerequisites
+## 2. Install Prerequisites
 
-#### Install KinD
+### Install KinD
 
 ```bash
 #!/bin/bash
@@ -30,7 +26,7 @@ chmod +x ./kind
 sudo mv kind /usr/local/bin
 ```
 
-#### Install kustomize
+### Install kustomize
 
 ```bash
 #!/bin/bash
@@ -44,7 +40,7 @@ chmod +x kustomize
 sudo mv kustomize /usr/local/bin
 ```
 
-#### Install Istio
+### Install Istio
 
 ```bash
 #!/bin/bash
@@ -61,7 +57,7 @@ pushd istio_tmp >/dev/null
 popd
 ```
 
-### 3. Set up KinD Cluster
+## 3. Set up KinD Cluster
 
 ```bash
 # Setup kind environment
