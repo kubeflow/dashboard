@@ -91,11 +91,17 @@ func NewKfamClient(userIdHeader string, userIdPrefix string, clusterAdmins []str
 }
 
 func sanitizeClusterAdmins(clusterAdmins []string) []string {
+	if len(clusterAdmins) == 0 {
+		return nil
+	}
+
+	seen := make(map[string]bool)
 	var sanitized []string
 	for _, admin := range clusterAdmins {
 		trimmed := strings.TrimSpace(admin)
-		if trimmed != "" {
+		if trimmed != "" && !seen[trimmed] {
 			sanitized = append(sanitized, trimmed)
+			seen[trimmed] = true
 		}
 	}
 	return sanitized

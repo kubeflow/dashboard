@@ -56,6 +56,11 @@ func TestSanitizeClusterAdmins(t *testing.T) {
 			in:   []string{"", "user1@example.com", "   ", "user2@example.com  "},
 			out:  []string{"user1@example.com", "user2@example.com"},
 		},
+		{
+			name: "duplicate admins",
+			in:   []string{"user1@example.com", "user1@example.com"},
+			out:  []string{"user1@example.com"},
+		},
 	}
 
 	for _, tt := range tests {
