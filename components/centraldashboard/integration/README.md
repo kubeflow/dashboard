@@ -73,9 +73,9 @@ kind create cluster --config testing/gh-actions/kind-1-33.yaml
 kubectl create namespace kubeflow
 ```
 
-### 4. Deploy Dependencies
+## 4. Deploy Dependencies
 
-#### Deploy Profile Controller and KFAM
+### Deploy Profile Controller and KFAM
 
 ```bash
 # Set environment variables
@@ -98,15 +98,12 @@ kustomize build overlays/kubeflow \
   | sed "s|ghcr.io/kubeflow/kubeflow/kfam:[a-zA-Z0-9_.-]*|ghcr.io/kubeflow/kubeflow/kfam:latest|g" \
   | kubectl apply -f -
 
-# Return to root directory
-cd ../../..
-
 # Wait for profile controller
 kubectl wait --for=condition=Ready pods -n kubeflow -l kustomize.component=profiles --timeout=300s
 kubectl wait --for=condition=Available deployment -n kubeflow profiles-deployment --timeout=300s
 ```
 
-#### Apply Kubeflow Roles
+### Apply Kubeflow Roles
 
 ```bash
 kustomize build https://github.com/kubeflow/manifests//common/kubeflow-roles/base?ref=master | kubectl apply -f -

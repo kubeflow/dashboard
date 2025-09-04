@@ -120,9 +120,6 @@ kustomize build overlays/kubeflow \
   | sed "s|ghcr.io/kubeflow/kubeflow/kfam:[a-zA-Z0-9_.-]*|ghcr.io/kubeflow/kubeflow/kfam:latest|g" \
   | kubectl apply -f -
 
-# Return to root directory
-cd ../../..
-
 # Wait for profile controller
 kubectl wait --for=condition=Ready pods -n kubeflow -l kustomize.component=profiles --timeout=300s
 kubectl wait --for=condition=Available deployment -n kubeflow profiles-deployment --timeout=300s
