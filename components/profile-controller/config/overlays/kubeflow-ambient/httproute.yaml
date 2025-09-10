@@ -7,7 +7,7 @@ spec:
   - name: kubeflow-gateway
     namespace: istio-system
   hostnames:
-  - "*.kubeflow.local"
+  - "kubeflow.local"
   rules:
   - matches:
     - path:
@@ -26,5 +26,5 @@ spec:
           replacePrefixMatch: /kfam/
     backendRefs:
     - name: profiles-kfam
-      namespace: $(PROFILES_NAMESPACE)
+      namespace: kubeflow
       port: 8081
