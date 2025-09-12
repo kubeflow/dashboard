@@ -9,7 +9,7 @@ replacements:
 - source:
     fieldPath: metadata.namespace
     kind: Service
-    name: centraldashboard
+    name: dashboard
     version: v1
   targets:
   - fieldPaths:
@@ -20,12 +20,12 @@ replacements:
     select:
       group: networking.istio.io
       kind: VirtualService
-      name: centraldashboard
+      name: dashboard
       version: v1alpha3
 - source:
     fieldPath: data.CD_CLUSTER_DOMAIN
     kind: ConfigMap
-    name: centraldashboard-parameters
+    name: dashboard-parameters
     version: v1
   targets:
   - fieldPaths:
@@ -36,14 +36,14 @@ replacements:
     select:
       group: networking.istio.io
       kind: VirtualService
-      name: centraldashboard
+      name: dashboard
       version: v1alpha3
 configurations:
 - params.yaml
 labels:
 - includeSelectors: true
   pairs:
-    app: centraldashboard
-    app.kubernetes.io/component: centraldashboard
-    app.kubernetes.io/name: centraldashboard
-    kustomize.component: centraldashboard
+    app: dashboard
+    app.kubernetes.io/component: dashboard
+    app.kubernetes.io/name: dashboard
+    kustomize.component: dashboard

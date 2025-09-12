@@ -5,12 +5,11 @@ set -euo pipefail
 # Script to build and deploy a Kubeflow dashboard component
 # Usage: ./deploy_component.sh COMPONENT_NAME COMPONENT_PATH IMAGE_NAME TAG [MANIFESTS_PATH] [OVERLAY]
 
-COMPONENT_NAME="$1"
-COMPONENT_PATH="$2"
-IMAGE_NAME="$3"
-TAG="$4"
-MANIFESTS_PATH="${5:-manifests}"
-OVERLAY="${6:-overlays/kubeflow}"
+COMPONENT_PATH="$1"
+IMAGE_NAME="$2"
+TAG="$3"
+MANIFESTS_PATH="${4:-manifests}"
+OVERLAY="${5:-overlays/kubeflow}"
 
 cd "${COMPONENT_PATH}"
 if [ -f "Makefile" ]; then
@@ -44,7 +43,7 @@ for overlay_path in "${OVERLAY}" "overlays/kserve" "overlays/cert-manager"; do
         if [ "$overlay_path" = "overlays/cert-manager" ]; then
             kustomize build "$overlay_path" \
               | sed "s|${CURRENT_IMAGE_ESCAPED}:[a-zA-Z0-9_.-]*|${PR_IMAGE_ESCAPED}|g" \
-              | sed 's/$(podDefaultsServiceName)/admission-webhook-service/g' \
+              | sed 's/$(podDefaultsServiceName)/poddefaults-webhook-service/g' \
               | sed 's/$(podDefaultsNamespace)/kubeflow/g' \
               | sed "s|\$(CD_NAMESPACE)|${CD_NAMESPACE:-kubeflow}|g" \
               | sed "s|\$(CD_CLUSTER_DOMAIN)|${CD_CLUSTER_DOMAIN:-cluster.local}|g" \

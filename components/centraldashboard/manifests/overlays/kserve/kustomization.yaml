@@ -5,9 +5,9 @@ resources:
 labels:
 - includeSelectors: true
   pairs:
-    app: centraldashboard
-    app.kubernetes.io/component: centraldashboard
-    app.kubernetes.io/name: centraldashboard
-    kustomize.component: centraldashboard
+    app: dashboard
+    app.kubernetes.io/component: dashboard
+    app.kubernetes.io/name: dashboard
+    kustomize.component: dashboard
 patches:
 - path: patches/configmap.yaml

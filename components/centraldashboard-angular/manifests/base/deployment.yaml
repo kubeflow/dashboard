@@ -2,23 +2,23 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: centraldashboard-angular
-  name: centraldashboard-angular
+    app: dashboard-angular
+  name: dashboard-angular
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: centraldashboard-angular
+      app: dashboard-angular
   template:
     metadata:
       labels:
-        app: centraldashboard-angular
+        app: dashboard-angular
       annotations:
         sidecar.istio.io/inject: "true"
     spec:
       containers:
-      - name: centraldashboard-angular
-        image: ghcr.io/kubeflow/kubeflow/centraldashboard-angular
+      - name: dashboard-angular
+        image: ghcr.io/kubeflow/dashboard/dashboard-angular
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
@@ -40,4 +40,4 @@ spec:
           value: CD_REGISTRATION_FLOW_PLACEHOLDER
         - name: DASHBOARD_CONFIGMAP
           value: CD_CONFIGMAP_NAME_PLACEHOLDER
-      serviceAccountName: centraldashboard-angular
+      serviceAccountName: dashboard-angular

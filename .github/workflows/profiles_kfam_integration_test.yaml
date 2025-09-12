@@ -16,7 +16,7 @@ concurrency:
 
 env:
   PROFILE_IMG: ghcr.io/kubeflow/dashboard/profile-controller
-  KFAM_IMG: ghcr.io/kubeflow/dashboard/kfam
+  ACCESS_MANAGEMENT_IMG: ghcr.io/kubeflow/dashboard/access-management
   TAG: integration-test
 
 jobs:
@@ -46,6 +46,13 @@ jobs:
     - name: Create Kubeflow Namespace
       run: kubectl create namespace kubeflow
 
+    - name: Build KFAM Image
+      run: |
+        cd components/access-management
+        make docker-build-multi-arch IMG="${ACCESS_MANAGEMENT_IMG}" TAG="${TAG}"
+        kind load docker-image "${ACCESS_MANAGEMENT_IMG}:${TAG}"
+        cd ../..
+
     - name: Deploy Profile Controller Component
       run: |
         cd components/profile-controller
@@ -53,12 +60,9 @@ jobs:
         kind load docker-image "${PROFILE_IMG}:${TAG}"
         cd config
         kustomize build overlays/kubeflow \
-          | sed "s|ghcr.io/kubeflow/kubeflow/profile-controller:[a-zA-Z0-9_.-]*|${PROFILE_IMG}:${TAG}|g" \
-          | sed "s|ghcr.io/kubeflow/kubeflow/kfam:[a-zA-Z0-9_.-]*|ghcr.io/kubeflow/kubeflow/kfam:latest|g" \
+          | sed "s|ghcr.io/kubeflow/dashboard/profile-controller:[a-zA-Z0-9_.-]*|${PROFILE_IMG}:${TAG}|g" \
+          | sed "s|ghcr.io/kubeflow/dashboard/access-management:[a-zA-Z0-9_.-]*|${ACCESS_MANAGEMENT_IMG}:${TAG}|g" \
           | kubectl apply -f -
-
-    - name: Wait for Profile Controller to be Ready
-      run: |
         kubectl wait --for=condition=Ready pods -n kubeflow -l kustomize.component=profiles --timeout=300s
         kubectl wait --for=condition=Available deployment -n kubeflow profiles-deployment --timeout=300s
 
@@ -76,31 +80,12 @@ jobs:
         done
         kubectl wait --for condition=established --timeout=60s crd/profiles.kubeflow.org
 
-    - name: Build KFAM Image
-      run: |
-        cd components/access-management
-        make docker-build-multi-arch IMG="${KFAM_IMG}" TAG="${TAG}"
-        kind load docker-image "${KFAM_IMG}:${TAG}"
-        cd ../..
-
-    - name: Deploy Profile Controller with KFAM
-      run: |
-        cd components/profile-controller/config
-        kustomize build overlays/kubeflow \
-          | sed "s|ghcr.io/kubeflow/kubeflow/profile-controller:[a-zA-Z0-9_.-]*|${PROFILE_IMG}:${TAG}|g" \
-          | sed "s|ghcr.io/kubeflow/kubeflow/kfam:[a-zA-Z0-9_.-]*|${KFAM_IMG}:${TAG}|g" \
-          | kubectl apply -f -
-        kubectl wait --for=condition=Ready pods -n kubeflow -l kustomize.component=profiles --timeout=300s
-        kubectl wait --for=condition=Available deployment -n kubeflow profiles-deployment --timeout=300s
 
     - name: Wait for KFAM to be Ready
       run: |
-        kubectl wait --for=condition=Ready pods -n kubeflow -l app=kfam --timeout=300s || {
-          echo "KFAM pods not found with label app=kfam, checking for profiles-kfam service..."
-          kubectl get service profiles-kfam -n kubeflow || {
-            echo "KFAM service not found, KFAM might be deployed as part of profiles deployment"
-            kubectl wait --for=condition=Ready pods -n kubeflow -l kustomize.component=profiles --timeout=300s
-          }
+        kubectl get service profiles-kfam -n kubeflow || {
+          echo "KFAM service not found, KFAM might be deployed as part of profiles deployment"
+          kubectl wait --for=condition=Ready pods -n kubeflow -l kustomize.component=profiles --timeout=300s
         }
 
     - name: Test Profile CRD Installation
@@ -176,7 +161,7 @@ jobs:
 
     - name: Check KFAM Logs
       run: |
-        kubectl logs -n kubeflow -l kustomize.component=profiles -c kfam --tail=50 || kubectl logs -n kubeflow -l app=kfam --tail=50
+        kubectl logs -n kubeflow -l kustomize.component=profiles -c access-management --tail=50 || kubectl logs -n kubeflow -l app=kfam --tail=50
 
     - name: Check Profile Controller Logs
       run: |
@@ -184,7 +169,7 @@ jobs:
 
     - name: Check for Errors in Logs
       run: |
-        kubectl logs -n kubeflow -l kustomize.component=profiles -c kfam --tail=100 | grep -i error  || echo "No errors found in KFAM logs"
+        kubectl logs -n kubeflow -l kustomize.component=profiles -c access-management --tail=100 | grep -i error  || echo "No errors found in KFAM logs"
         kubectl logs -n kubeflow -l kustomize.component=profiles --tail=100 | grep -i error  || echo "No errors found in Profile Controller logs"
 
     - name: Cleanup Test Resources

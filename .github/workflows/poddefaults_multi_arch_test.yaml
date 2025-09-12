@@ -2,7 +2,7 @@ name: PodDefaults Multi-Arch Build Test
 on:
   pull_request:
     paths:
-      - components/admission-webhook/**
+      - components/poddefaults-webhooks/**
       - releasing/version/VERSION
       - .github/workflows/poddefaults_multi_arch_test.yaml
     branches:
@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  IMG: ghcr.io/kubeflow/kubeflow/poddefaults-webhook
+  IMG: ghcr.io/kubeflow/dashboard/poddefaults-webhook
 
 jobs:
   build:
@@ -31,7 +31,7 @@ jobs:
 
     - name: Build multi-arch Image
       run: |
-        cd components/admission-webhook
+        cd components/poddefaults-webhooks
         ARCH=linux/amd64 make docker-build-multi-arch
         ARCH=linux/ppc64le make docker-build-multi-arch
         ARCH=linux/arm64/v8 make docker-build-multi-arch

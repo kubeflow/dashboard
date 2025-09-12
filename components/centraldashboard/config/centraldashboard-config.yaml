@@ -117,5 +117,5 @@ data:
     }
 kind: ConfigMap
 metadata:
-  name: centraldashboard-config
+  name: dashboard-config
   namespace: kubeflow

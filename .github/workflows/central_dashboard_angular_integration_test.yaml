@@ -16,8 +16,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  DASHBOARD_IMG: ghcr.io/kubeflow/dashboard/centraldashboard-angular
-  KFAM_IMG: ghcr.io/kubeflow/dashboard/kfam
+  DASHBOARD_IMG: ghcr.io/kubeflow/dashboard/dashboard-angular
+  ACCESS_MANAGEMENT_IMG: ghcr.io/kubeflow/dashboard/access-management
   PROFILE_CONTROLLER_IMG: ghcr.io/kubeflow/dashboard/profile-controller
   TAG: integration-test
 
@@ -48,11 +48,11 @@ jobs:
     - name: Create Kubeflow Namespace
       run: kubectl create namespace kubeflow
 
-    - name: Build KFAM Image
+    - name: Build Access Management Image
       run: |
         cd components/access-management
-        make docker-build-multi-arch IMG="${KFAM_IMG}" TAG="${TAG}"
-        kind load docker-image "${KFAM_IMG}:${TAG}"
+        make docker-build-multi-arch IMG="${ACCESS_MANAGEMENT_IMG}" TAG="${TAG}"
+        kind load docker-image "${ACCESS_MANAGEMENT_IMG}:${TAG}"
         cd ../..
 
     - name: Build and Deploy Profile Controller with KFAM
@@ -62,8 +62,8 @@ jobs:
         kind load docker-image "${PROFILE_CONTROLLER_IMG}:${TAG}"
         cd config
         kustomize build overlays/kubeflow \
-          | sed "s|ghcr.io/kubeflow/kubeflow/profile-controller:[a-zA-Z0-9_.-]*|${PROFILE_CONTROLLER_IMG}:${TAG}|g" \
-          | sed "s|ghcr.io/kubeflow/kubeflow/kfam:[a-zA-Z0-9_.-]*|${KFAM_IMG}:${TAG}|g" \
+          | sed "s|ghcr.io/kubeflow/dashboard/profile-controller:[a-zA-Z0-9_.-]*|${PROFILE_CONTROLLER_IMG}:${TAG}|g" \
+          | sed "s|ghcr.io/kubeflow/dashboard/access-management:[a-zA-Z0-9_.-]*|${ACCESS_MANAGEMENT_IMG}:${TAG}|g" \
           | kubectl apply -f -
         kubectl wait --for=condition=Available deployment -n kubeflow profiles-deployment --timeout=300s
         kubectl wait --for=condition=Ready pods -n kubeflow -l kustomize.component=profiles --timeout=300s
@@ -71,14 +71,13 @@ jobs:
     - name: Deploy CentralDashboard-Angular Component
       run: |
         ./testing/gh-actions/deploy_component.sh \
-          "centraldashboard-angular" \
           "components/centraldashboard-angular" \
           "${DASHBOARD_IMG}" \
           "${TAG}" \
           "manifests" \
           "overlays/kserve"
-        kubectl wait --for=condition=Ready pods -n kubeflow -l app=centraldashboard-angular --timeout=300s
-        kubectl wait --for=condition=Available deployment -n kubeflow centraldashboard-angular --timeout=300s
+        kubectl wait --for=condition=Ready pods -n kubeflow -l app=dashboard-angular --timeout=300s
+        kubectl wait --for=condition=Available deployment -n kubeflow dashboard-angular --timeout=300s
 
     - name: Create Test Profile for Dashboard Testing
       run: |
@@ -110,15 +109,15 @@ jobs:
 
     - name: Validate Service
       run: |
-        ./testing/gh-actions/test_service.sh validate-service centraldashboard-angular kubeflow
+        ./testing/gh-actions/test_service.sh validate-service dashboard-angular kubeflow
 
     - name: Start Port Forward for Dashboard Testing
       run: |
-        ./testing/gh-actions/test_service.sh port-forward centraldashboard-angular kubeflow 8080 80
+        ./testing/gh-actions/test_service.sh port-forward dashboard-angular kubeflow 8080 80
 
     - name: Test Dashboard Health
       run: |
-        ./testing/gh-actions/test_service.sh test-health centraldashboard-angular kubeflow 8080
+        ./testing/gh-actions/test_service.sh test-health dashboard-angular kubeflow 8080
 
     - name: Test Dashboard Web Interface
       run: |
@@ -133,28 +132,28 @@ jobs:
           exit 1
         fi
         
-        kubectl get service centraldashboard-angular -n kubeflow
-        kubectl get pods -n kubeflow -l app=centraldashboard-angular
+        kubectl get service dashboard-angular -n kubeflow
+        kubectl get pods -n kubeflow -l app=dashboard-angular
 
     - name: Test Dashboard Performance
       run: |
-        ./testing/gh-actions/test_service.sh performance-test centraldashboard-angular kubeflow 8080 80 8
+        ./testing/gh-actions/test_service.sh performance-test dashboard-angular kubeflow 8080 80 8
 
     - name: Test Dashboard Metrics
       run: |
-        ./testing/gh-actions/test_service.sh test-metrics centraldashboard-angular kubeflow 8080
+        ./testing/gh-actions/test_service.sh test-metrics dashboard-angular kubeflow 8080
 
     - name: Check Dashboard Logs
       run: |
-        ./testing/gh-actions/test_service.sh check-logs centraldashboard-angular kubeflow 50
+        ./testing/gh-actions/test_service.sh check-logs dashboard-angular kubeflow 50
 
     - name: Check for Errors in Logs
       run: |
-        ./testing/gh-actions/test_service.sh check-errors centraldashboard-angular kubeflow
+        ./testing/gh-actions/test_service.sh check-errors dashboard-angular kubeflow
 
     - name: Stop Port Forward
       run: |
-        ./testing/gh-actions/test_service.sh stop-port-forward centraldashboard-angular kubeflow 8080
+        ./testing/gh-actions/test_service.sh stop-port-forward dashboard-angular kubeflow 8080
 
     - name: Cleanup Test Resources
       run: |

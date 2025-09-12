@@ -72,23 +72,21 @@ case "$OPERATION" in
 
     "check-logs")
         LINES="${6:-50}"
-        case "${SERVICE_NAME}" in
-            "centraldashboard") kubectl logs -n "${NAMESPACE}" -l app=centraldashboard --tail="${LINES}" ;;
-            "centraldashboard-angular") kubectl logs -n "${NAMESPACE}" -l app=centraldashboard-angular --tail="${LINES}" ;;
-            "kfam") kubectl logs -n "${NAMESPACE}" -l app=kfam --tail="${LINES}" ;;
-            "poddefaults-webhook") kubectl logs -n "${NAMESPACE}" -l app=poddefaults-webhook --tail="${LINES}" ;;
-            *) kubectl logs -n "${NAMESPACE}" -l app="${SERVICE_NAME}" --tail="${LINES}" ;;
-        esac
+        # Handle special case for profiles-deployment which uses kustomize.component=profiles label
+        if [ "${SERVICE_NAME}" = "profiles-deployment" ]; then
+            kubectl logs -n "${NAMESPACE}" -l kustomize.component=profiles --tail="${LINES}"
+        else
+            kubectl logs -n "${NAMESPACE}" -l app="${SERVICE_NAME}" --tail="${LINES}"
+        fi
         ;;
 
     "check-errors")
-        case "${SERVICE_NAME}" in
-            "centraldashboard") kubectl logs -n "${NAMESPACE}" -l app=centraldashboard --tail=100 | grep -i error || echo "No errors found" ;;
-            "centraldashboard-angular") kubectl logs -n "${NAMESPACE}" -l app=centraldashboard-angular --tail=100 | grep -i error || echo "No errors found" ;;
-            "kfam") kubectl logs -n "${NAMESPACE}" -l app=kfam --tail=100 | grep -i error || echo "No errors found" ;;
-            "poddefaults-webhook") kubectl logs -n "${NAMESPACE}" -l app=poddefaults-webhook --tail=100 | grep -i error || echo "No errors found" ;;
-            *) kubectl logs -n "${NAMESPACE}" -l app="${SERVICE_NAME}" --tail=100 | grep -i error || echo "No errors found" ;;
-        esac
+        # Handle special case for profiles-deployment which uses kustomize.component=profiles label
+        if [ "${SERVICE_NAME}" = "profiles-deployment" ]; then
+            kubectl logs -n "${NAMESPACE}" -l kustomize.component=profiles --tail=100 | grep -i error || echo "No errors found"
+        else
+            kubectl logs -n "${NAMESPACE}" -l app="${SERVICE_NAME}" --tail=100 | grep -i error || echo "No errors found"
+        fi
         ;;
 
     *)

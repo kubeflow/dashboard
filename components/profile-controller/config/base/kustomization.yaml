@@ -10,8 +10,8 @@ patchesStrategicMerge:
 - patches/manager.yaml
 
 images:
-- name: ghcr.io/kubeflow/kubeflow/profile-controller
-  newName: ghcr.io/kubeflow/kubeflow/profile-controller
+- name: ghcr.io/kubeflow/dashboard/profile-controller
+  newName: ghcr.io/kubeflow/dashboard/profile-controller
   newTag: latest
 
 configMapGenerator:

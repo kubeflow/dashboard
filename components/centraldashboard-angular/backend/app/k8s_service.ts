@@ -2,7 +2,7 @@ import * as k8s from '@kubernetes/client-node';
 
 /** Retrieve Dashboard configmap Name */
 const {
-  DASHBOARD_CONFIGMAP = "centraldashboard-config",
+  DASHBOARD_CONFIGMAP = "dashboard-angular-config",
   KF_DASHBOARD_BUILD_LABEL = "Build",
   KF_DASHBOARD_VERSION = null,
   KF_DASHBOARD_BUILD_ID = null,

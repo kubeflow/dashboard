@@ -2,7 +2,7 @@ name: PodDefaults Unit Tests
 on:
   pull_request:
     paths:
-      - components/admission-webhook/**
+      - components/poddefaults-webhooks/**
       - releasing/version/VERSION
       - .github/workflows/poddefaults_unit_test.yaml
     branches:
@@ -24,5 +24,5 @@ jobs:
 
     - name: Run unit tests
       run: |
-        cd components/admission-webhook
+        cd components/poddefaults-webhooks
         make test

@@ -2,22 +2,22 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: centraldashboard
-  name: centraldashboard
+    app: dashboard
+  name: dashboard
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: centraldashboard
+      app: dashboard
   template:
     metadata:
       labels:
-        app: centraldashboard
+        app: dashboard
         sidecar.istio.io/inject: "true"
     spec:
       containers:
-      - name: centraldashboard
-        image: ghcr.io/kubeflow/kubeflow/central-dashboard
+      - name: dashboard
+        image: ghcr.io/kubeflow/dashboard/dashboard
         imagePullPolicy: IfNotPresent
         livenessProbe:
           httpGet:
@@ -56,4 +56,4 @@ spec:
           capabilities:
             drop:
               - ALL
-      serviceAccountName: centraldashboard
+      serviceAccountName: dashboard

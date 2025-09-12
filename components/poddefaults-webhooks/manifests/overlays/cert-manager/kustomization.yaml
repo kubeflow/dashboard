@@ -12,7 +12,7 @@ resources:
 
 namespace: kubeflow
 
-namePrefix: admission-webhook-
+namePrefix: poddefaults-webhook-
 
 commonLabels:
   app: poddefaults

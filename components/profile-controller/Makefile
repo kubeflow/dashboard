@@ -1,5 +1,5 @@
 # Image URL to use all building/pushing image targets
-IMG ?= ghcr.io/kubeflow/kubeflow/profile-controller
+IMG ?= ghcr.io/kubeflow/dashboard/profile-controller
 TAG ?= $(shell git describe --tags --always --dirty)
 ARCH ?= linux/amd64
 

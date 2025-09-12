@@ -2,8 +2,8 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   labels:
-    app: centraldashboard
-  name: centraldashboard
+    app: dashboard
+  name: dashboard
 rules:
 - apiGroups:
   - ""

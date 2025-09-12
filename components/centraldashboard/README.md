@@ -9,23 +9,23 @@ The build artifact of this folder is a Docker container image that hosts the
 Express webserver that serves the API endpoints and front-end application code.
 
 To build a new container image, run `make` from within this directory. To push
-it to the kubeflow-images-public repository, run `make push`.
+it to the GitHub Container Registry, run `make push`.
 
 ### Testing a build in an existing Kubeflow deployment
 
 After running `make push`, make note of the tag created.
 
 ```
-Pushed gcr.io/kubeflow-images-public/centraldashboard with :v20190328-v0.4.0-rc.1-280-g8563142d-dirty-319cfe tags
+Pushed ghcr.io/kubeflow/dashboard/dashboard with :v20190328-v0.4.0-rc.1-280-g8563142d-dirty-319cfe tags
 ```
 
 Then, use **kubectl** to update the image on the existing Central Dashboard
 deployment, specifying the image name and tag that was output in the step above.
 
 ```
-kubectl --record deployment.apps/centraldashboard \
-    set image deployment.v1.apps/centraldashboard \
-    centraldashboard=gcr.io/kubeflow-images-public/centraldashboard:v20190328-v0.4.0-rc.1-280-g8563142d-dirty-319cfe
+kubectl --record deployment.apps/dashboard \
+    set image deployment.v1.apps/dashboard \
+    dashboard=ghcr.io/kubeflow/dashboard/dashboard:v20190328-v0.4.0-rc.1-280-g8563142d-dirty-319cfe
 ```
 
 ## Development
