@@ -12,6 +12,10 @@ env:
   IMG: ghcr.io/kubeflow/dashboard/profile-controller
   ARCH: linux/amd64,linux/ppc64le,linux/arm64/v8
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   push_to_registry:
     name: Build & Push OCI image to GHCR
@@ -63,4 +67,4 @@ jobs:
         run: |
           export TAG=$(cat releasing/version/VERSION)
           cd components/profile-controller
-          make docker-build-push-multi-arch 
+          make docker-build-push-multi-arch
