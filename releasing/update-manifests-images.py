@@ -34,8 +34,8 @@ yaml = YAML()
 
 apps = [
     {
-        "name": "Admission Webhook",
-        "kustomization": "components/admission-webhook/manifests/base/kustomization.yaml",
+        "name": "Pod Defaults Webhook",
+        "kustomization": "components/poddefaults-webhooks/manifests/base/kustomization.yaml",
         "images": [
             {
                 "name": "ghcr.io/kubeflow/dashboard/poddefaults-webhook",
