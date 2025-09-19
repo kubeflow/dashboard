@@ -145,15 +145,15 @@ jobs:
 
     - name: Check Dashboard Logs
       run: |
-        ./testing/gh-actions/test_service.sh check-logs dashboard-angular kubeflow 50
+        ./testing/shared/test_service.sh check-logs dashboard-angular kubeflow 50
 
     - name: Check for Errors in Logs
       run: |
-        ./testing/gh-actions/test_service.sh check-errors dashboard-angular kubeflow
+        ./testing/shared/test_service.sh check-errors dashboard-angular kubeflow
 
     - name: Stop Port Forward
       run: |
-        ./testing/gh-actions/test_service.sh stop-port-forward dashboard-angular kubeflow 8080
+        ./testing/shared/test_service.sh stop-port-forward dashboard-angular kubeflow 8080
 
     - name: Cleanup Test Resources
       run: |

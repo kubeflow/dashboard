@@ -280,4 +280,4 @@ jobs:
       run: |
         ./components/admission-webhook/integration/test_poddefault.sh cleanup e2e-test
         ./components/profile-controller/integration/test_profile.sh delete e2e-admin
-        ./components/profile-controller/integration/test_profile.sh delete e2e-user 
+        ./components/profile-controller/integration/test_profile.sh delete e2e-user
