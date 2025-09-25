@@ -86,7 +86,7 @@ applications = [
 ]
 
 
-def update_manifests_images(apps, tag):
+def update_manifests_images(applications, tag):
     for application in applications:
         log.info("Updating manifests for application `%s`", application["name"])
         with open(application["kustomization"], "r") as file:
@@ -121,7 +121,7 @@ def parse_args():
 def main():
     logging.basicConfig(level=logging.INFO)
     args = parse_args()
-    update_manifests_images(apps, args.tag)
+    update_manifests_images(applications, args.tag)
 
 
 if __name__ == "__main__":
