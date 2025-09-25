@@ -32,7 +32,7 @@ class YAML(ruamel.yaml.YAML):
 
 yaml = YAML()
 
-apps = [
+applications = [
     {
         "name": "Pod Defaults Webhook",
         "kustomization": "components/poddefaults-webhooks/manifests/base/kustomization.yaml",
@@ -87,13 +87,13 @@ apps = [
 
 
 def update_manifests_images(apps, tag):
-    for app in apps:
-        log.info("Updating manifests for app `%s`", app["name"])
-        with open(app["kustomization"], "r") as f:
-            kust = yaml.load(f)
+    for application in applications:
+        log.info("Updating manifests for application `%s`", application["name"])
+        with open(application["kustomization"], "r") as file:
+            kustomize = yaml.load(file)
 
-        images = kust.get("images", [])
-        for target_image in app["images"]:
+        images = kustomize.get("images", [])
+        for target_image in application["images"]:
             found = False
             for image in images:
                 if image["name"] == target_image["name"]:
@@ -106,10 +106,10 @@ def update_manifests_images(apps, tag):
                     "name": target_image["name"],
                     "newName": target_image["newName"],
                     "newTag": tag})
-        kust["images"] = images
+        kustomize["images"] = images
 
-        with open(app["kustomization"], "w") as f:
-            yaml.dump(kust, f)
+        with open(application["kustomization"], "w") as file:
+            yaml.dump(kustomize, file)
 
 
 def parse_args():
