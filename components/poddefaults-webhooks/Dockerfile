@@ -3,7 +3,7 @@ ARG GOLANG_VERSION=1.21
 FROM golang:${GOLANG_VERSION} as builder
 
 # Copy in the go src
-WORKDIR /go/src/github.com/kubeflow/kubeflow/components/poddefaults-webhooks
+WORKDIR /go/src/github.com/kubeflow/dashboard/components/poddefaults-webhooks
 COPY pkg/  pkg/
 COPY . .
 
@@ -17,7 +17,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o webhook -a . ;
 FROM gcr.io/distroless/static:nonroot
 
 WORKDIR /
-COPY --from=builder /go/src/github.com/kubeflow/kubeflow/components/poddefaults-webhooks/webhook .
+COPY --from=builder /go/src/github.com/kubeflow/dashboard/components/poddefaults-webhooks/webhook .
 
 USER 65532:65532
 
