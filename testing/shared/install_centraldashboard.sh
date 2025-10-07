@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+IMG="${IMG:-centraldashboard}"
+TAG="${TAG:-integration-test}"
+
+./testing/shared/deploy_component.sh components/centraldashboard "${IMG}" "${TAG}" manifests overlays/istio
+
+kubectl wait --for=condition=Ready pods -n kubeflow -l app=centraldashboard --timeout=300s
+kubectl wait --for=condition=Available deployment -n kubeflow centraldashboard --timeout=300s
