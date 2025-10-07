@@ -12,7 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/go-logr/logr"
-	profilev1 "github.com/kubeflow/kubeflow/components/profile-controller/api/v1"
+	profilev1 "github.com/kubeflow/dashboard/components/profile-controller/api/v1"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"

@@ -1,4 +1,4 @@
-github.com/kubeflow/kubeflow/components/profile-controller
+github.com/kubeflow/dashboard/components/profile-controller
 cloud.google.com/go
 github.com/BurntSushi/toml
 github.com/alecthomas/template

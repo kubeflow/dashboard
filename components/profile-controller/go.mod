@@ -1,4 +1,4 @@
-module github.com/kubeflow/kubeflow/components/profile-controller
+module github.com/kubeflow/dashboard/components/profile-controller
 
 go 1.17
 

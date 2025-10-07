@@ -2,7 +2,7 @@ domain: kubeflow.org
 layout:
 - go.kubebuilder.io/v3
 projectName: profile-controller
-repo: github.com/kubeflow/kubeflow/components/profile-controller
+repo: github.com/kubeflow/dashboard/components/profile-controller
 resources:
 - api:
     crdVersion: v1
@@ -10,13 +10,13 @@ resources:
   controller: true
   domain: kubeflow.org
   kind: Profile
-  path: github.com/kubeflow/kubeflow/components/profile-controller/api/v1
+  path: github.com/kubeflow/dashboard/components/profile-controller/api/v1
   version: v1
 - api:
     crdVersion: v1
     namespaced: true
   domain: kubeflow.org
   kind: Profile
-  path: github.com/kubeflow/kubeflow/components/profile-controller/api/v1beta1
+  path: github.com/kubeflow/dashboard/components/profile-controller/api/v1beta1
   version: v1beta1
 version: "3"
