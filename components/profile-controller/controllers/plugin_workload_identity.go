@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-logr/logr"
-	profilev1 "github.com/kubeflow/kubeflow/components/profile-controller/api/v1"
+	profilev1 "github.com/kubeflow/dashboard/components/profile-controller/api/v1"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/iam/v1"
 	corev1 "k8s.io/api/core/v1"

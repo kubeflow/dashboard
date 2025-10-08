@@ -32,9 +32,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	profilev1 "github.com/kubeflow/kubeflow/components/profile-controller/api/v1"
-	kubefloworgv1beta1 "github.com/kubeflow/kubeflow/components/profile-controller/api/v1beta1"
-	"github.com/kubeflow/kubeflow/components/profile-controller/controllers"
+	profilev1 "github.com/kubeflow/dashboard/components/profile-controller/api/v1"
+	kubefloworgv1beta1 "github.com/kubeflow/dashboard/components/profile-controller/api/v1beta1"
+	"github.com/kubeflow/dashboard/components/profile-controller/controllers"
 	//+kubebuilder:scaffold:imports
 )
 

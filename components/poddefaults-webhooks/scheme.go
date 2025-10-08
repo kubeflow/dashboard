@@ -17,7 +17,7 @@ limitations under the License.
 package main
 
 import (
-	"github.com/kubeflow/kubeflow/components/poddefaults-webhooks/pkg/apis"
+	"github.com/kubeflow/dashboard/components/poddefaults-webhooks/pkg/apis"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"

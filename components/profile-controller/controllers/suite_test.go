@@ -30,7 +30,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	kubefloworgv1 "github.com/kubeflow/kubeflow/components/profile-controller/api/v1"
+	kubefloworgv1 "github.com/kubeflow/dashboard/components/profile-controller/api/v1"
 	//+kubebuilder:scaffold:imports
 )
 

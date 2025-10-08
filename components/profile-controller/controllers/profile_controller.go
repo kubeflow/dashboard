@@ -27,7 +27,7 @@ import (
 
 	"github.com/cenkalti/backoff"
 	"github.com/go-logr/logr"
-	profilev1 "github.com/kubeflow/kubeflow/components/profile-controller/api/v1"
+	profilev1 "github.com/kubeflow/dashboard/components/profile-controller/api/v1"
 	"github.com/pkg/errors"
 	"gopkg.in/fsnotify.v1"
 	"gopkg.in/yaml.v2"

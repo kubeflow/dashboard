@@ -16,7 +16,7 @@ limitations under the License.
 package apis
 
 import (
-	"github.com/kubeflow/kubeflow/components/poddefaults-webhooks/pkg/apis/settings/v1alpha1"
+	"github.com/kubeflow/dashboard/components/poddefaults-webhooks/pkg/apis/settings/v1alpha1"
 )
 
 func init() {

@@ -26,7 +26,7 @@ import (
 	"reflect"
 	"strings"
 
-	settingsapi "github.com/kubeflow/kubeflow/components/poddefaults-webhooks/pkg/apis/settings/v1alpha1"
+	settingsapi "github.com/kubeflow/dashboard/components/poddefaults-webhooks/pkg/apis/settings/v1alpha1"
 	"github.com/mattbaird/jsonpatch"
 	v1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
