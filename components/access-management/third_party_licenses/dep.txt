@@ -1,4 +1,4 @@
-github.com/kubeflow/kubeflow/components/access-management
+github.com/kubeflow/dashboard/components/access-management
 cloud.google.com/go
 dmitri.shuralyov.com/app/changes
 dmitri.shuralyov.com/html/belt
@@ -69,7 +69,7 @@ github.com/kr/logfmt
 github.com/kr/pretty
 github.com/kr/pty
 github.com/kr/text
-github.com/kubeflow/kubeflow/components/profile-controller
+github.com/kubeflow/dashboard/components/profile-controller
 github.com/markbates/inflect
 github.com/mattn/go-colorable
 github.com/mattn/go-isatty

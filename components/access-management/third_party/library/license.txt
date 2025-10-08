@@ -1,5 +1,5 @@
 --------------------------------------------------------------------------------
-kubeflow/kubeflow  Apache License 2.0  https://github.com/kubeflow/kubeflow/blob/master/LICENSE
+kubeflow/dashboard  Apache License 2.0  https://github.com/kubeflow/dashboard/blob/master/LICENSE
 --------------------------------------------------------------------------------
 
                                  Apache License

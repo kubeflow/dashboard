@@ -1,4 +1,4 @@
-kubeflow/kubeflow,https://github.com/kubeflow/kubeflow/blob/master/LICENSE,Apache License 2.0,https://raw.githubusercontent.com/kubeflow/kubeflow/master/LICENSE
+kubeflow/dashboard,https://github.com/kubeflow/dashboard/blob/master/LICENSE,Apache License 2.0,https://raw.githubusercontent.com/kubeflow/dashboard/master/LICENSE
 GoogleCloudPlatform/gcloud-golang,https://github.com/googleapis/google-cloud-go/blob/master/LICENSE,Apache License 2.0,https://raw.githubusercontent.com/googleapis/google-cloud-go/master/LICENSE
 apache/thrift,https://github.com/apache/thrift/blob/master/LICENSE,Apache License 2.0,https://raw.githubusercontent.com/apache/thrift/master/LICENSE
 BurntSushi/toml,https://github.com/BurntSushi/toml/blob/master/COPYING,MIT License,https://raw.githubusercontent.com/BurntSushi/toml/master/COPYING
