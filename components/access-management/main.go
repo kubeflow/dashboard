@@ -18,8 +18,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"k8s.io/client-go/kubernetes/scheme"
 
-	"github.com/kubeflow/kubeflow/components/access-management/kfam"
-	profile "github.com/kubeflow/kubeflow/components/access-management/pkg/apis/kubeflow/v1beta1"
+	"github.com/kubeflow/dashboard/components/access-management/kfam"
+	profile "github.com/kubeflow/dashboard/components/access-management/pkg/apis/kubeflow/v1beta1"
 
 	istioSecurityClient "istio.io/client-go/pkg/apis/security/v1beta1"
 )

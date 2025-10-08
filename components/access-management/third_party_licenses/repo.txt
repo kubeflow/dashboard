@@ -1,4 +1,4 @@
-kubeflow/kubeflow
+kubeflow/dashboard
 GoogleCloudPlatform/gcloud-golang
 apache/thrift
 BurntSushi/toml

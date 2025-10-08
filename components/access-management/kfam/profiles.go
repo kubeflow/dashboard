@@ -15,7 +15,7 @@
 package kfam
 
 import (
-	"github.com/kubeflow/kubeflow/components/profile-controller/api/v1beta1"
+	"github.com/kubeflow/dashboard/components/profile-controller/api/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
