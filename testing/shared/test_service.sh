@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -euo pipefail
+set -euxo pipefail
 
 # Script to test Kubeflow dashboard services
 # Usage: ./test_service.sh OPERATION SERVICE_NAME [NAMESPACE] [PORT] [TARGET_PORT]

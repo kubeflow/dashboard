@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -euxo pipefail
 
 IMG="${IMG:-admission-webhook}"
 TAG="${TAG:-integration-test}"

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -euo pipefail
+set -euxo pipefail
 
 # Script to build and deploy a Kubeflow dashboard component
 # Usage: ./deploy_component.sh COMPONENT_NAME COMPONENT_PATH IMAGE_NAME TAG [MANIFESTS_PATH] [OVERLAY]

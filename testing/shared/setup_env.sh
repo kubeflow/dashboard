@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -euxo pipefail
 
 KIND_VERSION="${KIND_VERSION:-0.29.0}"
 KUSTOMIZE_VERSION="${KUSTOMIZE_VERSION:-5.4.1}"
