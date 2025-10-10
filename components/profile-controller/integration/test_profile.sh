@@ -70,25 +70,56 @@ case "$OPERATION" in
 
     "validate")
         echo "Validating profile ${PROFILE_NAME}..."
-        kubectl get namespace "${PROFILE_NAME}"
         
-        if kubectl get serviceaccount default-editor -n "${PROFILE_NAME}" 2>/dev/null; then
-            echo "✓ default-editor service account found"
+        # Track validation failures
+        validation_failed=false
+
+        if ! kubectl get namespace "${PROFILE_NAME}" >/dev/null 2>&1; then
+            echo "Namespace ${PROFILE_NAME} not found"
+            validation_failed=true
         else
-            echo "⚠ default-editor service account not found - this may be expected in some setups"
+            echo "Namespace ${PROFILE_NAME} found"
+            kubectl get namespace "${PROFILE_NAME}"
+        fi
+
+        if kubectl get serviceaccount default-editor -n "${PROFILE_NAME}" >/dev/null 2>&1; then
+            echo "default-editor service account found"
+        else
+            echo "default-editor service account not found"
+            validation_failed=true
         fi
         
-        if kubectl get serviceaccount default-viewer -n "${PROFILE_NAME}" 2>/dev/null; then
-            echo "✓ default-viewer service account found"
+        if kubectl get serviceaccount default-viewer -n "${PROFILE_NAME}" >/dev/null 2>&1; then
+            echo "default-viewer service account found"
         else
-            echo "⚠ default-viewer service account not found - this may be expected in some setups"
+            echo "default-viewer service account not found"
+            validation_failed=true
         fi
         
-        kubectl get rolebinding -n "${PROFILE_NAME}" || echo "⚠ No role bindings found"
+        if kubectl get rolebinding -n "${PROFILE_NAME}" >/dev/null 2>&1; then
+            echo "Role bindings found"
+            kubectl get rolebinding -n "${PROFILE_NAME}"
+        else
+            echo "No role bindings found"
+            validation_failed=true
+        fi
         
-        kubectl get resourcequota -n "${PROFILE_NAME}" || echo "⚠ No resource quotas found"
+        if kubectl get resourcequota -n "${PROFILE_NAME}" >/dev/null 2>&1; then
+            echo "Resource quotas found"
+            kubectl get resourcequota -n "${PROFILE_NAME}"
+        else
+            echo "No resource quotas found"
+            validation_failed=true
+        fi
         
         kubectl get profile "${PROFILE_NAME}" -o yaml
+        
+        if [ "$validation_failed" = true ]; then
+            echo "\n Profile validation failed - expected resources are missing"
+            exit 1
+        else
+            echo "\n Profile validation passed - all expected resources are present"
+        fi
         ;;
 
     "update")
