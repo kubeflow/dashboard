@@ -157,9 +157,9 @@ jobs:
 
     - name: Test PodDefault Integration
       run: |
-        ./components/poddefaults-webhook/integration/test_poddefault.sh create-namespace e2e-test
-        ./components/poddefaults-webhook/integration/test_poddefault.sh create-poddefault e2e-test e2e-poddefault
-        ./components/poddefaults-webhook/integration/test_poddefault.sh test-mutation e2e-test e2e-poddefault e2e-test-pod
+        ./components/poddefaults-webhooks/integration/test_poddefault.sh create-namespace e2e-test
+        ./components/poddefaults-webhooks/integration/test_poddefault.sh create-poddefault e2e-test e2e-poddefault
+        ./components/poddefaults-webhooks/integration/test_poddefault.sh test-mutation e2e-test e2e-poddefault e2e-test-pod
 
     - name: Test KFAM Service Integration
       run: |

@@ -110,7 +110,7 @@ jobs:
           kustomize build https://github.com/kubeflow/manifests//common/kubeflow-roles/base?ref=master | kubectl apply -f -
           kubectl apply -f components/profile-controller/integration/resources/user-profile.yaml
           while ! kubectl get ns kubeflow-user; do sleep 1; done
-          kubectl apply -f components/centraldashborad-angular/integration/resources/test-notebook.yaml
+          kubectl apply -f components/centraldashboard-angular/integration/resources/test-notebook.yaml
           kubectl wait notebooks -n kubeflow-user -l app=test-notebook --for=condition=Ready --timeout=300s
 
       - name: Test proxied apps
