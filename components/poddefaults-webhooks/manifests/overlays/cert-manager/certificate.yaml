@@ -1,17 +1,17 @@
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: cert
+  name: poddefaults-webhook-cert
 spec:
   isCA: true
-  commonName: $(podDefaultsServiceName).$(podDefaultsNamespace).svc
+  commonName: REPLACEMENT-SVC-NAME.SVC-NAMESPACE.svc
   dnsNames:
-  - $(podDefaultsServiceName).$(podDefaultsNamespace).svc
-  - $(podDefaultsServiceName).$(podDefaultsNamespace).svc.cluster.local
+  - REPLACEMENT-SVC-NAME.REPLACEMENT-SVC-NAMESPACE.svc
+  - REPLACEMENT-SVC-NAME.SVC-NAMESPACE.svc.cluster.local
   issuerRef:
     kind: Issuer
     name: selfsigned-issuer
-  secretName: webhook-certs
+  secretName: poddefaults-webhook-certs
 
 ---
 

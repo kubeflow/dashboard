@@ -12,8 +12,6 @@ resources:
 
 namespace: kubeflow
 
-namePrefix: poddefaults-webhook-
-
 commonLabels:
   app: poddefaults
   kustomize.component: poddefaults
@@ -27,21 +25,74 @@ patchesStrategicMerge:
 generatorOptions:
   disableNameSuffixHash: true
 
-vars:
-# These vars are used to substitute in the namespace, service name and
-# deployment name into the mutating WebHookConfiguration.
-# Since its a CR kustomize isn't aware of those fields and won't
-# transform them.
-# We need the var names to be relatively unique so that when we
-# compose with other applications they won't conflict.
-- name: podDefaultsCertName
-  objref:
-      kind: Certificate
+replacements:
+# Replacements for the Certificate
+- source:
+    fieldPath: metadata.name
+    kind: Service
+    name: service
+    version: v1
+  targets:
+  - fieldPaths:
+    - spec.commonName
+    - spec.dnsNames.0
+    - spec.dnsNames.1
+    options:
+      delimiter: .
+      index: 0
+    select:
       group: cert-manager.io
+      kind: Certificate
       version: v1
-      name: cert
-  fieldref:
-    fieldpath: metadata.name
+- source:
+    fieldPath: metadata.namespace
+    kind: Service
+    name: service
+    version: v1
+  targets:
+  - fieldPaths:
+    - spec.commonName
+    - spec.dnsNames.0
+    - spec.dnsNames.1
+    options:
+      delimiter: .
+      index: 1
+    select:
+      group: cert-manager.io
+      kind: Certificate
+      version: v1
+
+# Replacements for the MutatingWebhookCOnfiguration
+- source:
+    fieldPath: metadata.namespace
+    group: cert-manager.io
+    kind: Certificate
+    version: v1
+  targets:
+  - fieldPaths:
+    - metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      delimiter: /
+      index: 0
+    select:
+      group: admissionregistration.k8s.io
+      kind: MutatingWebhookConfiguration
+      version: v1
+- source:
+    fieldPath: metadata.name
+    group: cert-manager.io
+    kind: Certificate
+    version: v1
+  targets:
+  - fieldPaths:
+    - metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      delimiter: /
+      index: 1
+    select:
+      group: admissionregistration.k8s.io
+      kind: MutatingWebhookConfiguration
+      version: v1
 
 configurations:
 - params.yaml
