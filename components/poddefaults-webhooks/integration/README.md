@@ -1,6 +1,6 @@
-# Admission Webhook Integration Tests
+# Poddefaults Webhook Integration Tests
 
-This directory contains integration tests for the Kubeflow PodDefaults Admission Webhook component.
+This directory contains integration tests for the Kubeflow PodDefaults Webhook component.
 
 ## Prerequisites
 
@@ -31,7 +31,7 @@ From the repository root:
 From the repository root:
 
 ```bash
-cd components/admission-webhook/integration
+cd components/poddefaults/integration
 # validate webhook setup
 ./test_poddefault.sh validate-webhook kubeflow
 # namespace and mutation tests
