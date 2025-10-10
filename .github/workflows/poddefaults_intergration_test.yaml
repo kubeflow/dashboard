@@ -63,31 +63,31 @@ jobs:
 
     - name: Validate Webhook Configuration
       run: |
-        ./components/poddefaults-webhook/integration/test_poddefault.sh validate-webhook kubeflow
+        ./components/poddefaults-webhooks/integration/test_poddefault.sh validate-webhook kubeflow
 
     - name: Create Test Namespace
       run: |
-        ./components/poddefaults-webhook/integration/test_poddefault.sh create-namespace test-poddefaults
+        ./components/poddefaults-webhooks/integration/test_poddefault.sh create-namespace test-poddefaults
 
     - name: Create Test PodDefault
       run: |
-        ./components/poddefaults-webhook/integration/test_poddefault.sh create-poddefault test-poddefaults test-poddefault
+        ./components/poddefaults-webhooks/integration/test_poddefault.sh create-poddefault test-poddefaults test-poddefault
 
     - name: Test PodDefault Mutation
       run: |
-        ./components/poddefaults-webhook/integration/test_poddefault.sh test-mutation test-poddefaults test-poddefault test-pod
+        ./components/poddefaults-webhooks/integration/test_poddefault.sh test-mutation test-poddefaults test-poddefault test-pod
 
     - name: Create Multiple PodDefaults for Testing
       run: |
-        ./components/poddefaults-webhook/integration/test_poddefault.sh create-multi-poddefault test-poddefaults test-poddefault
+        ./components/poddefaults-webhooks/integration/test_poddefault.sh create-multi-poddefault test-poddefaults test-poddefault
 
     - name: Test Multiple PodDefaults Mutation
       run: |
-        ./components/poddefaults-webhook/integration/test_poddefault.sh test-multi-mutation test-poddefaults test-poddefault test-pod
+        ./components/poddefaults-webhooks/integration/test_poddefault.sh test-multi-mutation test-poddefaults test-poddefault test-pod
 
     - name: Test Error Handling
       run: |
-        ./components/poddefaults-webhook/integration/test_poddefault.sh test-error-handling test-poddefaults
+        ./components/poddefaults-webhooks/integration/test_poddefault.sh test-error-handling test-poddefaults
 
     - name: Check Webhook Logs
       run: |
@@ -107,4 +107,4 @@ jobs:
 
     - name: Cleanup Test Resources
       run: |
-        ./components/poddefaults-webhook/integration/test_poddefault.sh cleanup test-poddefaults
+        ./components/poddefaults-webhooks/integration/test_poddefault.sh cleanup test-poddefaults
