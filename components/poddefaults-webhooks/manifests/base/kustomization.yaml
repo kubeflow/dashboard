@@ -13,6 +13,7 @@ images:
   newName: ghcr.io/kubeflow/dashboard/poddefaults-webhook
   newTag: latest
 namespace: kubeflow
+namePrefix: poddefaults-webhook-
 generatorOptions:
   disableNameSuffixHash: true
 configurations:
