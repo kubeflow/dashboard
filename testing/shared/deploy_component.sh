@@ -22,7 +22,7 @@ else
     exit 1
 fi
 
-kind load docker-image "${IMAGE_NAME}:${TAG}" --name dashboard
+kind load docker-image "${IMAGE_NAME}:${TAG}"
 
 if [ -d "${MANIFESTS_PATH}" ]; then
     cd "${MANIFESTS_PATH}"
