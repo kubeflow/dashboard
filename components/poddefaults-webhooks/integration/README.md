@@ -23,7 +23,7 @@ From the repository root:
 From the repository root:
 
 ```bash
-./testing/shared/install_admission_webhook.sh
+./testing/shared/install_poddefaults_webhook.sh
 ```
 
 ## Run Integration Tests
