@@ -1,10 +1,30 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
-IMG="${IMG:-profile-controller}"
-TAG="${TAG:-integration-test}"
+export TAG="integration-test"
+export PROFILE_IMG="ghcr.io/kubeflow/dashboard/profile-controller"
+export KFAM_IMG="ghcr.io/kubeflow/dashboard/access-management"
 
-./testing/shared/deploy_component.sh components/profile-controller "${IMG}" "${TAG}"
+make -C components/profile-controller docker-build-multi-arch IMG="${PROFILE_IMG}" TAG="${TAG}"
+make -C components/access-management docker-build-multi-arch IMG="${KFAM_IMG}" TAG="${TAG}"
 
-kubectl wait --for=condition=Ready pods -n kubeflow -l kustomize.component=profiles --timeout=300s
+kind load docker-image "${PROFILE_IMG}:${TAG}" --name dashboard
+kind load docker-image "${KFAM_IMG}:${TAG}" --name dashboard
+
+export NEW_PROFILE_IMAGE="${PROFILE_IMG}:${TAG}"
+export NEW_KFAM_IMAGE="${KFAM_IMG}:${TAG}"
+
+# Escape "." in the image names, as it is a special character in sed
+CURRENT_PROFILE_IMAGE_ESCAPED=$(echo "$PROFILE_IMG" | sed 's|\.|\\.|g')
+NEW_PROFILE_IMAGE_ESCAPED=$(echo "$NEW_PROFILE_IMAGE" | sed 's|\.|\\.|g')
+CURRENT_KFAM_IMAGE_ESCAPED=$(echo "$KFAM_IMG" | sed 's|\.|\\.|g')
+NEW_KFAM_IMAGE_ESCAPED=$(echo "$NEW_KFAM_IMAGE" | sed 's|\.|\\.|g')
+
+echo "Deploying Profile Controller and KFAM to kubeflow namespace"
+kustomize build components/profile-controller/config/overlays/kubeflow \
+    | sed "s|${CURRENT_PROFILE_IMAGE_ESCAPED}:[a-zA-Z0-9_.-]*|${NEW_PROFILE_IMAGE_ESCAPED}|g" \
+    | sed "s|${CURRENT_KFAM_IMAGE_ESCAPED}:[a-zA-Z0-9_.-]*|${NEW_KFAM_IMAGE_ESCAPED}|g" \
+    | kubectl apply -f -
+
 kubectl wait --for=condition=Available deployment -n kubeflow profiles-deployment --timeout=300s
+kubectl wait pods -n kubeflow -l kustomize.component=profiles --for=condition=Ready --timeout=300s
