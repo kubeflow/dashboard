@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
-export TAG="integration-test"
-export PROFILE_IMG="ghcr.io/kubeflow/dashboard/profile-controller"
-export KFAM_IMG="ghcr.io/kubeflow/dashboard/access-management"
+TAG="integration-test"
+PROFILE_IMG="ghcr.io/kubeflow/dashboard/profile-controller"
+KFAM_IMG="ghcr.io/kubeflow/dashboard/access-management"
 
 make -C components/profile-controller docker-build-multi-arch IMG="${PROFILE_IMG}" TAG="${TAG}"
 make -C components/access-management docker-build-multi-arch IMG="${KFAM_IMG}" TAG="${TAG}"
 
-kind load docker-image "${PROFILE_IMG}:${TAG}" --name dashboard
-kind load docker-image "${KFAM_IMG}:${TAG}" --name dashboard
+kind load docker-image "${PROFILE_IMG}:${TAG}"
+kind load docker-image "${KFAM_IMG}:${TAG}"
 
-export NEW_PROFILE_IMAGE="${PROFILE_IMG}:${TAG}"
-export NEW_KFAM_IMAGE="${KFAM_IMG}:${TAG}"
+NEW_PROFILE_IMAGE="${PROFILE_IMG}:${TAG}"
+NEW_KFAM_IMAGE="${KFAM_IMG}:${TAG}"
 
 # Escape "." in the image names, as it is a special character in sed
 CURRENT_PROFILE_IMAGE_ESCAPED=$(echo "$PROFILE_IMG" | sed 's|\.|\\.|g')
