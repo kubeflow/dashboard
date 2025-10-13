@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
-IMG="${IMG:-dashboard}"
+IMG="${IMG:-ghcr.io/kubeflow/dashboard/dashboard}"
 TAG="${TAG:-integration-test}"
 
 ./testing/shared/deploy_component.sh components/centraldashboard "${IMG}" "${TAG}" manifests overlays/istio

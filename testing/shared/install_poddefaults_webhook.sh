@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
-IMG="${IMG:-poddefaults-webhook}"
+IMG="${IMG:-ghcr.io/kubeflow/dashboard/poddefaults-webhook}"
 TAG="${TAG:-integration-test}"
 
 ./testing/shared/deploy_component.sh components/poddefaults-webhooks "${IMG}" "${TAG}" manifests overlays/cert-manager
