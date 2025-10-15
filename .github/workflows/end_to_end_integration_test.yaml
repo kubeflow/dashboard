@@ -70,22 +70,8 @@ jobs:
         done
         kubectl wait --for condition=established --timeout=60s crd/profiles.kubeflow.org
 
-    - name: Wait for KFAM to be Ready
-      run: |
-        # Verify KFAM container is running in the profiles deployment
-        POD_NAME=$(kubectl get pods -n kubeflow -l kustomize.component=profiles -o jsonpath="{.items[0].metadata.name}")
-        if [ -n "$POD_NAME" ]; then
-          kubectl wait --for=condition=Ready pod/$POD_NAME -n kubeflow --timeout=300s
-          kubectl describe pod/$POD_NAME -n kubeflow
-          echo "KFAM/access-management container is part of profiles deployment"
-        fi
-
     - name: Deploy Poddefault Webhook Component
-      run: ./testing/shared/install_poddefault_webhook.sh
-
-    - name: Wait for Poddefault Webhook to be Ready
-      run: |
-        kubectl wait --for=condition=Available deployment -n kubeflow poddefaults-webhook-deployment --timeout=300s
+      run: ./testing/shared/install_poddefaults_webhook.sh
 
     - name: Deploy CentralDashboard Angular Component
       run: |
@@ -95,10 +81,6 @@ jobs:
         
         ./testing/shared/install_centraldashboard_angular.sh
 
-    - name: Wait for CentralDashboard Angular to be Ready
-      run: |
-        kubectl wait --for=condition=Available deployment -n kubeflow dashboard-angular --timeout=300s
-
     - name: Deploy CentralDashboard Component
       run: |
         export CD_NAMESPACE=kubeflow
@@ -107,10 +89,6 @@ jobs:
         export CD_CLUSTER_DOMAIN_PLACEHOLDER=cluster.local
         
         ./testing/shared/install_centraldashboard.sh
-
-    - name: Wait for CentralDashboard to be Ready
-      run: |
-        kubectl wait --for=condition=Available deployment -n kubeflow dashboard --timeout=300s
 
     - name: Create Test Profiles
       run: |
