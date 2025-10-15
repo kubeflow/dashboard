@@ -108,10 +108,9 @@ jobs:
       - name: Apply necessary CRs
         run: |
           kustomize build https://github.com/kubeflow/manifests//common/kubeflow-roles/base?ref=master | kubectl apply -f -
-          cd testing/gh-actions/resources
-          kubectl apply -f user-profile.yaml
+          kubectl apply -f components/profile-controller/integration/resources/user-profile.yaml
           while ! kubectl get ns kubeflow-user; do sleep 1; done
-          kubectl apply -f test-notebook.yaml
+          kubectl apply -f components/centraldashboard-angular/integration/resources/test-notebook.yaml
           kubectl wait notebooks -n kubeflow-user -l app=test-notebook --for=condition=Ready --timeout=300s
 
       - name: Test proxied apps
@@ -129,7 +128,7 @@ jobs:
           cd "$BASE/frontend"
           npm link kubeflow
 
-      - name: Serve UI & run Cypress tests in Chrome and Firefox
+      - name: Serve UI & run Cypress tests in Chrome and Electron
         run: |
           cd components/centraldashboard-angular/frontend
           npm run serve & npx wait-on http://localhost:4200
