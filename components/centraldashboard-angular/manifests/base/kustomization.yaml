@@ -10,6 +10,7 @@ resources:
 - service-account.yaml
 - service.yaml
 - configmap.yaml
+- network-policy.yaml
 images:
 - name: ghcr.io/kubeflow/dashboard/dashboard-angular
   newName: ghcr.io/kubeflow/dashboard/dashboard-angular
