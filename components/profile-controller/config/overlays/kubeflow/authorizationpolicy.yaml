@@ -8,7 +8,7 @@ spec:
     - from:
         - source:
             principals:
-              - cluster.local/ns/kubeflow/sa/centraldashboard
+              - cluster.local/ns/kubeflow/sa/dashboard
   selector:
     matchLabels:
       kustomize.component: profiles
