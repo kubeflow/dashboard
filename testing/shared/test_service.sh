@@ -39,6 +39,15 @@ case "$OPERATION" in
             -H "kubeflow-userid: test-user" \
             "http://localhost:${PORT}/api/workgroup/exists" \
             >/dev/null 2>&1
+
+        # test the NetworkPolicy, by ensuring other Pods timeout talking to the dashboard
+        OUTPUT=$(kubectl run \
+                    netshoot-test --rm -i \
+                    --restart=Never \
+                    --image nicolaka/netshoot \
+                    -- curl dashboard.kubeflow.svc --connect-timeout 5 \
+                    2>&1 || true)
+        echo $OUTPUT | grep "Connection timed out after"
         ;;
 
     "test-kfam")
