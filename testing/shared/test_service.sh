@@ -22,7 +22,7 @@ case "$OPERATION" in
     "stop-port-forward")
         if [ -f "/tmp/portforward_${SERVICE_NAME}_${PORT}.pid" ]; then
             PF_PID=$(cat /tmp/portforward_${SERVICE_NAME}_${PORT}.pid)
-            kill "${PF_PID}" 
+            kill "${PF_PID}"
             rm -f /tmp/portforward_${SERVICE_NAME}_${PORT}.pid
         fi
         ;;
@@ -33,16 +33,17 @@ case "$OPERATION" in
 
     "test-dashboard")
         curl -f "http://localhost:${PORT}/" >/dev/null 2>&1
-        curl -f "http://localhost:${PORT}/assets/dashboard.js" >/dev/null 2>&1 
-        curl -f "http://localhost:${PORT}/api/v1/namespaces" >/dev/null 2>&1 
-        curl -L "http://localhost:${PORT}/jupyter" >/dev/null 2>&1 
-        curl -L "http://localhost:${PORT}/pipeline" >/dev/null 2>&1 
-        curl -L "http://localhost:${PORT}/katib" >/dev/null 2>&1 
+        curl -f "http://localhost:${PORT}/assets/dashboard.js" >/dev/null 2>&1
+        # test communication between dashboard and access-management
+        curl -f \
+            -H "kubeflow-userid: test-user" \
+            "http://localhost:${PORT}/api/workgroup/exists" \
+            >/dev/null 2>&1
         ;;
 
     "test-kfam")
         curl -f "http://localhost:${PORT}/healthz" >/dev/null 2>&1
-        curl "http://localhost:${PORT}/version" 2>/dev/null 
+        curl "http://localhost:${PORT}/version" 2>/dev/null
         ;;
 
     "test-api-with-user")
@@ -50,7 +51,7 @@ case "$OPERATION" in
         PROFILE_NAMESPACE="${7:-test-profile}"
         curl -H "kubeflow-userid: ${USER_EMAIL}" \
              "http://localhost:${PORT}/kfam/v1/bindings?namespace=${PROFILE_NAMESPACE}" \
-             2>/dev/null 
+             2>/dev/null
         ;;
 
     "performance-test")
@@ -62,7 +63,7 @@ case "$OPERATION" in
         ;;
 
     "test-metrics")
-        curl "http://localhost:${PORT}/metrics" 2>/dev/null 
+        curl "http://localhost:${PORT}/metrics" 2>/dev/null
         ;;
 
     "validate-service")
@@ -94,4 +95,4 @@ case "$OPERATION" in
         echo "Valid operations: port-forward, stop-port-forward, test-health, test-dashboard, test-kfam, test-api-with-user, performance-test, test-metrics, validate-service, check-logs, check-errors"
         exit 1
         ;;
-esac 
+esac
