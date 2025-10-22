@@ -15,12 +15,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.number }}
   cancel-in-progress: true
 
-env:
-  DASHBOARD_IMG: ghcr.io/kubeflow/dashboard/dashboard
-  ACCESS_MANAGEMENT_IMG: ghcr.io/kubeflow/dashboard/access-management
-  PROFILE_CONTROLLER_IMG: ghcr.io/kubeflow/dashboard/profile-controller
-  TAG: integration-test
-
 jobs:
   integration-test:
     runs-on: ubuntu-22.04
@@ -48,36 +42,11 @@ jobs:
     - name: Create Kubeflow Namespace
       run: kubectl create namespace kubeflow
 
-    - name: Build KFAM Image
-      run: |
-        cd components/access-management
-        make docker-build-multi-arch IMG="${ACCESS_MANAGEMENT_IMG}" TAG="${TAG}"
-        kind load docker-image "${ACCESS_MANAGEMENT_IMG}:${TAG}"
-        cd ../..
+    - name: Deploy Profile Controller with KFAM
+      run: ./testing/shared/install_profile_controller.sh
 
-    - name: Build and Deploy Profile Controller with KFAM
-      run: |
-        cd components/profile-controller
-        make docker-build-multi-arch IMG="${PROFILE_CONTROLLER_IMG}" TAG="${TAG}"
-        kind load docker-image "${PROFILE_CONTROLLER_IMG}:${TAG}"
-        cd config
-        kustomize build overlays/kubeflow \
-          | sed "s|ghcr.io/kubeflow/dashboard/profile-controller:[a-zA-Z0-9_.-]*|${PROFILE_CONTROLLER_IMG}:${TAG}|g" \
-          | sed "s|ghcr.io/kubeflow/dashboard/access-management:[a-zA-Z0-9_.-]*|${ACCESS_MANAGEMENT_IMG}:${TAG}|g" \
-          | kubectl apply -f -
-        kubectl wait --for=condition=Available deployment -n kubeflow profiles-deployment --timeout=300s
-        kubectl wait --for=condition=Ready pods -n kubeflow -l kustomize.component=profiles --timeout=300s
-
-    - name: Build and Deploy Central Dashboard
-      run: |
-        ./testing/shared/deploy_component.sh \
-          "components/centraldashboard" \
-          "${DASHBOARD_IMG}" \
-          "${TAG}" \
-          "manifests" \
-          "overlays/kserve"
-        kubectl wait --for=condition=Ready pods -n kubeflow -l app=dashboard --timeout=300s
-        kubectl wait --for=condition=Available deployment -n kubeflow dashboard --timeout=300s
+    - name: Deploy CentralDashboard Component
+      run: ./testing/shared/install_centraldashboard.sh
 
     - name: Create Test Profile for Dashboard Testing
       run: |
