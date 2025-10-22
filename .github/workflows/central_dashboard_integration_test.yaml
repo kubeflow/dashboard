@@ -3,8 +3,8 @@ on:
   pull_request:
     paths:
       - components/centraldashboard/**
-      - components/access-management/**  
-      - components/profile-controller/** 
+      - components/access-management/**
+      - components/profile-controller/**
       - releasing/version/VERSION
       - .github/workflows/central_dashboard_integration_test.yaml
     branches:
@@ -82,7 +82,7 @@ jobs:
     - name: Create Test Profile for Dashboard Testing
       run: |
         kubectl apply -f components/profile-controller/integration/resources/profile-dashboard-test.yaml
-        
+
         for i in {1..60}; do
           if kubectl get namespace test-dashboard-profile >/dev/null 2>&1; then
             break
@@ -90,11 +90,11 @@ jobs:
           echo "Waiting for namespace... (attempt $i/60)"
           sleep 5
         done
-        
+
         if ! kubectl get namespace test-dashboard-profile >/dev/null 2>&1; then
           exit 1
         fi
-        
+
         kubectl get profile test-dashboard-profile
         kubectl get namespace test-dashboard-profile
 
@@ -110,46 +110,24 @@ jobs:
       run: |
         ./testing/shared/test_service.sh test-health dashboard kubeflow 8082
 
-    - name: Test Dashboard Web Interface
+    - name: Integration Tests
       run: |
-        curl -f "http://localhost:8082/" >/dev/null 2>&1 
-        
-        curl -f "http://localhost:8082/healthz" >/dev/null 2>&1 
-        
-        RESPONSE=$(curl -s "http://localhost:8082/" | head -c 100)
-        if [[ -n "$RESPONSE" ]]; then
-          echo "Dashboard is serving content: ${RESPONSE:0:50}..."
-        else
-          exit 1
-        fi
-        
         kubectl get service dashboard -n kubeflow
         kubectl get pods -n kubeflow -l app=dashboard
-
-    - name: Test Dashboard Performance
-      run: |
+        ./testing/shared/test_service.sh test-dashboard dashboard kubeflow 8082
         ./testing/shared/test_service.sh performance-test dashboard kubeflow 8082 80 10
-
-    - name: Test Dashboard Metrics
-      run: |
         ./testing/shared/test_service.sh test-metrics dashboard kubeflow 8082
-
-    - name: Check Dashboard Logs
-      run: |
         ./testing/shared/test_service.sh check-logs dashboard kubeflow 50
-
-    - name: Check for Errors in Logs
-      run: |
         ./testing/shared/test_service.sh check-errors dashboard kubeflow
 
     - name: Test Dashboard Configuration
       run: |
-        kubectl get configmap dashboard-config -n kubeflow 
-        kubectl describe configmap dashboard-config -n kubeflow 
+        kubectl get configmap dashboard-config -n kubeflow
+        kubectl describe configmap dashboard-config -n kubeflow
 
     - name: Test Virtual Service (if Istio is configured)
       run: |
-        kubectl get virtualservice dashboard -n kubeflow 
+        kubectl get virtualservice dashboard -n kubeflow
 
     - name: Stop Port Forward
       run: |

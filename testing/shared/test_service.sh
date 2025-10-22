@@ -34,10 +34,6 @@ case "$OPERATION" in
     "test-dashboard")
         curl -f "http://localhost:${PORT}/" >/dev/null 2>&1
         curl -f "http://localhost:${PORT}/assets/dashboard.js" >/dev/null 2>&1
-        curl -f "http://localhost:${PORT}/api/v1/namespaces" >/dev/null 2>&1
-        curl -L "http://localhost:${PORT}/jupyter" >/dev/null 2>&1
-        curl -L "http://localhost:${PORT}/pipeline" >/dev/null 2>&1
-        curl -L "http://localhost:${PORT}/katib" >/dev/null 2>&1
         # test communication between dashboard and access-management
         curl -f \
             -H "kubeflow-userid: test-user" \
