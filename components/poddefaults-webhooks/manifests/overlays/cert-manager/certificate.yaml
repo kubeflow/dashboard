@@ -10,7 +10,7 @@ spec:
   - REPLACEMENT-SVC-NAME.SVC-NAMESPACE.svc.cluster.local
   issuerRef:
     kind: Issuer
-    name: selfsigned-issuer
+    name: poddefaults-webhook-selfsigned-issuer
   secretName: poddefaults-webhook-certs
 
 ---
