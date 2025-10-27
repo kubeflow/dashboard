@@ -3,7 +3,7 @@
 set -euo pipefail
 
 # Script to build and deploy a Kubeflow dashboard component
-# Usage: ./deploy_component.sh COMPONENT_NAME COMPONENT_PATH IMAGE_NAME TAG [MANIFESTS_PATH] [OVERLAY]
+# Usage: ./deploy_component.sh COMPONENT_PATH IMAGE_NAME TAG [MANIFESTS_PATH] [OVERLAY]
 
 COMPONENT_PATH="$1"
 IMAGE_NAME="$2"
