@@ -16,7 +16,7 @@ PODDEFAULT_LABELS=app.kubernetes.io/component=poddefaults
 # (like PodDefaults) in user namespace.
 remove-component() {
   label=$1
-  ns_resources="deployment service role rolebinding configmap serviceaccount virtualservice authorizationpolicy certificate secret"
+  namespace_resources="deployment service role rolebinding configmap serviceaccount virtualservice authorizationpolicy certificate secret"
   cluster_resources="clusterrole clusterrolebinding mutatingwebhookconfigurations"
 
   echo -e "\nWill remove namespaced resources with labels: $label"
