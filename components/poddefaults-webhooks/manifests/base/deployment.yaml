@@ -30,5 +30,5 @@ spec:
       volumes:
       - name: webhook-cert
         secret:
-          secretName: webhook-certs
+          secretName: poddefaults-webhook-certs
       serviceAccountName: service-account
