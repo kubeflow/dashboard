@@ -60,7 +60,7 @@ perform the following actions:
     * The script will not remove any CR (Custom Resource) or CRD (Custom Resource Definition), to ensure no data loss
     * Only Kubernetes resources relevant to the Deployments will be removed (Deployment, ServiceAccount, Service etc)
     * The [`NetworkPolicy`](https://github.com/kubeflow/manifests/blob/v1.10-branch/common/networkpolicies/base/centraldashboard.yaml) from the `kubeflow/manifests` repo, of the CentralDashboard, will be removed
-2. Install the manifests from this repo for the Dashboard, Profiles Controller and PodDefaults webhook
+2. Install the manifests from this repository for the Dashboard, Profiles Controller and PodDefaults webhook
 
 ```bash
 ./scripts/upgrade_v1_to_v1.sh
