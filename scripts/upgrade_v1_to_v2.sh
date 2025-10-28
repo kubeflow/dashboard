@@ -20,7 +20,7 @@ remove-component() {
   cluster_resources="clusterrole clusterrolebinding mutatingwebhookconfigurations"
 
   echo -e "\nWill remove namespaced resources with labels: $label"
-  for resource in $ns_resources; do
+  for resource in $namespace_resources; do
     echo "Removing all $resource objects..."
     kubectl delete -n kubeflow -l $label $resource
     echo "Successfully removed all $resource objects"
