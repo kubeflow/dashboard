@@ -54,7 +54,7 @@ between the components of the different repos. You can find more details about t
 
 ### Script
 
-You can use the following script to perform the migration from `v1.10.0` components to the `v2.0.0` ones from this repo. The script will
+You can use the following script to perform the migration from `v1.10.0` components to the `v2.0.0` ones from this repository. The script will
 perform the following actions:
 1. Remove the existing components of CentralDashboard, Profiles Controller and PodDefaults Webhook
     * The script will not remove any CR or CRD, to ensure no data loss
