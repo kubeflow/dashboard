@@ -57,8 +57,8 @@ between the components of the different repos. You can find more details about t
 You can use the following script to perform the migration from `v1.10.0` components to the `v2.0.0` ones from this repository. The script will
 perform the following actions:
 1. Remove the existing components of CentralDashboard, Profiles Controller and PodDefaults Webhook
-    * The script will not remove any CR or CRD, to ensure no data loss
-    * Only K8s resources relevant to the Deployments will be removed (Deployment, ServiceAccount, Service etc)
+    * The script will not remove any CR (Custom Resource) or CRD (Custom Resource Definition), to ensure no data loss
+    * Only Kubernetes resources relevant to the Deployments will be removed (Deployment, ServiceAccount, Service etc)
     * The [`NetworkPolicy`](https://github.com/kubeflow/manifests/blob/v1.10-branch/common/networkpolicies/base/centraldashboard.yaml) from the `kubeflow/manifests` repo, of the CentralDashboard, will be removed
 2. Install the manifests from this repo for the Dashboard, Profiles Controller and PodDefaults webhook
 
