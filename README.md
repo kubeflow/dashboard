@@ -40,7 +40,7 @@ The official documentation for Kubeflow Dashboard can be found [here](https://ww
 
 ## Migrate from V1
 
-In the past, up until the Kubeflow 1.10 release, the components hosed in this repo were living in the
+In the past, up until the Kubeflow 1.10 release, the components hosed in this repository were living in the
 [`kubeflow/kubeflow`](https://github.com/kubeflow/kubeflow) repository.
 
 To accomodate the migration, the first `v2.0.0` release of this repository contains the same artifacts
