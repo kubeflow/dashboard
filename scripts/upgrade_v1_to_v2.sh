@@ -45,7 +45,7 @@ echo -e "\nSuccessfully removed Profiles!\n"
 echo -e "\nRemoving Centraldashboard component..."
 remove-component $DASHBOARD_LABELS
 echo "Removing NetworkPolicy created by kubeflow/manifests repository..."
-kubectl delete networkpolicy -n kubeflow centraldashboard || echo "No NetworkPolicy from manifests repo found. Continuing..."
+kubectl delete networkpolicy -n kubeflow centraldashboard || echo "No NetworkPolicy from manifests repository found. Continuing..."
 echo -e "\nSuccessfully removed Centraldashboard!"
 
 echo "-----------------------------------------------"
