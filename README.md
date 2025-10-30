@@ -66,6 +66,12 @@ perform the following actions:
 ./scripts/upgrade_v1_to_v2.sh
 ```
 
+> **NOTE**: The script will use the `overlays/kserve` for the Dashboard, since this is what was also used by the 1.10.2 manifests
+> [`[1]`](https://github.com/kubeflow/manifests/blob/v1.10.2/example/kustomization.yaml#L74)
+> [`[2]`](https://github.com/kubeflow/manifests/blob/v1.10.2/applications/centraldashboard/overlays/oauth2-proxy/kustomization.yaml#L6).
+> This means that the dashboard will have a link to the models web app, and expects it to be deployed. If this is not the case for your cluster, you should instead deploy
+> the dashboard using the `overlays/istio` overlay.
+
 ## Community
 
 Kubeflow Dashboard is part of the Kubeflow project, refer to the [Kubeflow Community](https://www.kubeflow.org/docs/about/community/) page for more information.

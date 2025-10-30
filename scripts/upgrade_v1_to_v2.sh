@@ -83,7 +83,7 @@ echo -e "Successfully applied the Profile Controller component!"
 echo -e "\nApplying Dashboard component..."
 echo -e "--------------------------------"
 kustomize build \
-  $SCRIPT_DIR/../components/centraldashboard/manifests/overlays/istio \
+  $SCRIPT_DIR/../components/centraldashboard/manifests/overlays/kserve \
   | kubectl apply -f -
 
 echo "Waiting for Dashboard Deployment to become available..."
