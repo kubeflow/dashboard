@@ -22,13 +22,13 @@ remove-component() {
   echo -e "\nWill remove namespaced resources with labels: $label"
   for resource in $namespace_resources; do
     echo "Removing all $resource objects..."
-    kubectl delete -n kubeflow -l $label $resource
+    kubectl delete -n kubeflow -l $label $resource --wait --timeout=300s
     echo "Successfully removed all $resource objects"
   done
 
   for resource in $cluster_resources; do
     echo "Removing all $resource objects..."
-    kubectl delete -l $label $resource
+    kubectl delete -l $label $resource --wait --timeout=300s
     echo "Successfully removed all $resource objects"
   done
 }
@@ -51,20 +51,6 @@ echo -e "\nSuccessfully removed Centraldashboard!"
 echo "-----------------------------------------------"
 echo "Installing the updated Dashboard V2 components."
 echo "-----------------------------------------------"
-
-echo -e "\nApplying Dashboard component..."
-echo -e "--------------------------------"
-kustomize build \
-  $SCRIPT_DIR/../components/centraldashboard/manifests/overlays/istio \
-  | kubectl apply -f -
-
-echo "Waiting for Dashboard Deployment to become available..."
-kubectl wait -n kubeflow \
-  --for=condition=Available \
-  deployment \
-  dashboard \
-  --timeout=5m
-echo -e "Successfully applied the Dashboard component!"
 
 echo -e "\nApplying PodDefaults component..."
 echo -e "----------------------------------"
@@ -93,5 +79,19 @@ kubectl wait -n kubeflow \
   profiles-deployment \
   --timeout=5m
 echo -e "Successfully applied the Profile Controller component!"
+
+echo -e "\nApplying Dashboard component..."
+echo -e "--------------------------------"
+kustomize build \
+  $SCRIPT_DIR/../components/centraldashboard/manifests/overlays/istio \
+  | kubectl apply -f -
+
+echo "Waiting for Dashboard Deployment to become available..."
+kubectl wait -n kubeflow \
+  --for=condition=Available \
+  deployment \
+  dashboard \
+  --timeout=5m
+echo -e "Successfully applied the Dashboard component!"
 
 echo -e "\nSuccessfully applied Dashboard V2 components!\n"
