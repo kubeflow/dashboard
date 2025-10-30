@@ -63,7 +63,7 @@ perform the following actions:
 2. Install the manifests from this repository for the Dashboard, Profiles Controller and PodDefaults webhook
 
 ```bash
-./scripts/upgrade_v1_to_v1.sh
+./scripts/upgrade_v1_to_v2.sh
 ```
 
 ## Community
