@@ -1,0 +1,76 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: kubeflow
+resources:
+- clusterrole-binding.yaml
+- clusterrole.yaml
+- deployment.yaml
+- role-binding.yaml
+- role.yaml
+- service-account.yaml
+- service.yaml
+- configmap.yaml
+- network-policy.yaml
+images:
+- name: ghcr.io/kubeflow/dashboard/dashboard
+  newName: ghcr.io/kubeflow/dashboard/dashboard
+  newTag: latest
+configMapGenerator:
+- envs:
+  - params.env
+  name: dashboard-parameters
+generatorOptions:
+  disableNameSuffixHash: true
+labels:
+- includeSelectors: true
+  pairs:
+    app: dashboard
+    app.kubernetes.io/component: dashboard
+    app.kubernetes.io/name: dashboard
+    kustomize.component: dashboard
+
+replacements:
+- source:
+    fieldPath: data.CD_USERID_HEADER
+    kind: ConfigMap
+    name: dashboard-parameters
+    version: v1
+  targets:
+  - fieldPaths:
+    select:
+      kind: Deployment
+      name: dashboard
+      version: v1
+- source:
+    fieldPath: data.CD_USERID_PREFIX
+    kind: ConfigMap
+    name: dashboard-parameters
+    version: v1
+  targets:
+  - fieldPaths:
+    select:
+      kind: Deployment
+      name: dashboard
+      version: v1
+- source:
+    fieldPath: data.CD_REGISTRATION_FLOW
+    kind: ConfigMap
+    name: dashboard-parameters
+    version: v1
+  targets:
+  - fieldPaths:
+    select:
+      kind: Deployment
+      name: dashboard
+      version: v1
+- source:
+    fieldPath: metadata.name
+    kind: ConfigMap
+    name: dashboard-config
+    version: v1
+  targets:
+  - fieldPaths:
+    select:
+      kind: Deployment
+      name: dashboard
+      version: v1

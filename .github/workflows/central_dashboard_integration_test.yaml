@@ -1,0 +1,113 @@
+name: CentralDashboard Integration Test
+on:
+  pull_request:
+    paths:
+      - components/centraldashboard/**
+      - components/access-management/**
+      - components/profile-controller/**
+      - releasing/version/VERSION
+      - .github/workflows/central_dashboard_integration_test.yaml
+    branches:
+      - main
+      - v*-branch
+
+concurrency:
+  cancel-in-progress: true
+
+jobs:
+  integration-test:
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Install KinD
+      run: ./testing/gh-actions/install_kind.sh
+
+    - name: Create KinD Cluster
+      run: kind create cluster --config testing/gh-actions/kind-1-33.yaml
+
+    - name: Install kustomize
+      run: ./testing/gh-actions/install_kustomize.sh
+
+    - name: Install Istio
+      run: ./testing/gh-actions/install_istio.sh
+
+    - name: Create Kubeflow Namespace
+      run: kubectl create namespace kubeflow
+
+    - name: Deploy Profile Controller with KFAM
+      run: ./testing/shared/install_profile_controller.sh
+
+    - name: Deploy CentralDashboard Component
+      run: ./testing/shared/install_centraldashboard.sh
+
+    - name: Create Test Profile for Dashboard Testing
+      run: |
+        kubectl apply -f components/profile-controller/integration/resources/profile-dashboard-test.yaml
+
+        for i in {1..60}; do
+          if kubectl get namespace test-dashboard-profile >/dev/null 2>&1; then
+            break
+          fi
+          echo "Waiting for namespace... (attempt $i/60)"
+          sleep 5
+        done
+
+        if ! kubectl get namespace test-dashboard-profile >/dev/null 2>&1; then
+          exit 1
+        fi
+
+        kubectl get profile test-dashboard-profile
+        kubectl get namespace test-dashboard-profile
+
+    - name: Validate Service
+      run: |
+        ./testing/shared/test_service.sh validate-service dashboard kubeflow
+
+    - name: Start Port Forward for Dashboard Testing
+      run: |
+        ./testing/shared/test_service.sh port-forward dashboard kubeflow 8082 80
+
+    - name: Test Dashboard Health
+      run: |
+        ./testing/shared/test_service.sh test-health dashboard kubeflow 8082
+
+    - name: Integration Tests
+      run: |
+        kubectl get service dashboard -n kubeflow
+        kubectl get pods -n kubeflow -l app=dashboard
+        ./testing/shared/test_service.sh test-dashboard dashboard kubeflow 8082
+        ./testing/shared/test_service.sh performance-test dashboard kubeflow 8082 80 10
+        ./testing/shared/test_service.sh test-metrics dashboard kubeflow 8082
+        ./testing/shared/test_service.sh check-logs dashboard kubeflow 50
+        ./testing/shared/test_service.sh check-errors dashboard kubeflow
+
+    - name: Test Dashboard Configuration
+      run: |
+        kubectl get configmap dashboard-config -n kubeflow
+        kubectl describe configmap dashboard-config -n kubeflow
+
+    - name: Test Virtual Service (if Istio is configured)
+      run: |
+        kubectl get virtualservice dashboard -n kubeflow
+
+    - name: Stop Port Forward
+      run: |
+        ./testing/shared/test_service.sh stop-port-forward dashboard kubeflow 8082
+
+    - name: Cleanup Test Resources
+      run: |
+        kubectl delete profile test-dashboard-profile --ignore-not-found=true
+        for i in {1..30}; do
+          if ! kubectl get namespace test-dashboard-profile >/dev/null 2>&1; then
+            break
+          fi
+          echo "Waiting for namespace deletion... (attempt $i/30)"
+          sleep 5
+        done

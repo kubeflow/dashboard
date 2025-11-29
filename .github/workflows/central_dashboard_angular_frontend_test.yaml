@@ -1,0 +1,135 @@
+name: CentralDashboard-angular Frontend Tests
+on:
+  pull_request:
+    paths:
+      - components/centraldashboard-angular/frontend/**
+      - releasing/version/VERSION
+      - .github/workflows/central_dashboard_angular_frontend_test.yaml
+    branches:
+      - main
+      - v*-branch
+
+jobs:
+  frontend-format-lint-check:
+    name: Check code format and lint
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 16
+
+      - name: Check frontend code formatting
+        run: |
+          cd components/centraldashboard-angular/frontend/
+          npm i
+          npm run format:check
+
+      - name: Check frontend code linting
+        run: |
+          cd components/centraldashboard-angular/frontend
+          npm i
+          npm run lint-check
+
+  run-frontend-unittests:
+    name: Unit tests
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 16
+
+      - name: Install dependecies
+        run: |
+          BASE="${{ github.workspace }}/components/centraldashboard-angular"
+          cd "$BASE/frontend"
+          npm i
+          cd "$BASE"
+          make build-common-lib
+          cd "$BASE/frontend"
+          npm link kubeflow
+
+      - name: Run unit tests
+        run: |
+          cd components/centraldashboard-angular/frontend/
+          npm run test:prod
+
+  run-ui-tests:
+    name: UI tests in chrome and firefox
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup node version to 16
+        uses: actions/setup-node@v4
+        with:
+          node-version: 16
+
+      - name: Install KinD
+        run: ./testing/gh-actions/install_kind.sh
+
+      - name: Create KinD Cluster
+        run: kind create cluster --config testing/gh-actions/kind-1-33.yaml
+
+      - name: Install kustomize
+        run: ./testing/gh-actions/install_kustomize.sh
+
+      - name: Install Istio
+        run: ./testing/gh-actions/install_istio.sh
+
+      - name: Apply KF Controllers
+        run: |
+          cd components
+          kubectl create namespace kubeflow
+          kustomize build profile-controller/config/overlays/kubeflow | kubectl apply -f -
+          kustomize build https://github.com/kubeflow/kubeflow//components/notebook-controller/config/overlays/kubeflow?ref=master | kubectl apply -f -
+          kubectl wait pods -n kubeflow -l kustomize.component=profiles --for=condition=Ready --timeout=300s
+          kubectl wait pods -n kubeflow -l app=notebook-controller --for=condition=Ready --timeout=300s
+
+      - name: Apply JWA manifests
+        run: |
+          kustomize build https://github.com/kubeflow/kubeflow//components/crud-web-apps/jupyter/manifests/overlays/istio?ref=master | kubectl apply -f -
+          kubectl wait pods -n kubeflow -l app=jupyter-web-app --for=condition=Ready --timeout=300s
+          kubectl port-forward -n kubeflow svc/jupyter-web-app-service 8085:80 &
+
+      - name: Apply VWA manifests
+        run: |
+          kustomize build https://github.com/kubeflow/kubeflow//components/crud-web-apps/volumes/manifests/overlays/istio?ref=master | kubectl apply -f -
+          kubectl wait pods -n kubeflow -l app=volumes-web-app --for=condition=Ready --timeout=300s
+          kubectl port-forward -n kubeflow svc/volumes-web-app-service 8087:80 &
+
+      - name: Apply necessary CRs
+        run: |
+          kustomize build https://github.com/kubeflow/manifests//common/kubeflow-roles/base?ref=master | kubectl apply -f -
+          kubectl apply -f components/profile-controller/integration/resources/user-profile.yaml
+          while ! kubectl get ns kubeflow-user; do sleep 1; done
+          kubectl apply -f components/centraldashboard-angular/integration/resources/test-notebook.yaml
+          kubectl wait notebooks -n kubeflow-user -l app=test-notebook --for=condition=Ready --timeout=300s
+
+      - name: Test proxied apps
+        run: |
+          curl -H "kubeflow-userid: user" localhost:8085
+          curl -H "kubeflow-userid: user" localhost:8087
+
+      - name: Install dependecies
+        run: |
+          BASE="${{ github.workspace }}/components/centraldashboard-angular"
+          cd "$BASE/frontend"
+          npm i
+          cd "$BASE"
+          make build-common-lib
+          cd "$BASE/frontend"
+          npm link kubeflow
+
+      - name: Serve UI & run Cypress tests in Chrome and Electron
+        run: |
+          cd components/centraldashboard-angular/frontend
+          npm run serve & npx wait-on http://localhost:4200
+          npm run ui-test-ci-all

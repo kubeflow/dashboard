@@ -1,0 +1,24 @@
+--- profile-overlay-before.yaml	2025-11-10 18:12:06.795675600 +0530
++++ profile-overlay-after.yaml	2025-11-11 21:54:41.469160000 +0530
+@@ -2,6 +2,7 @@
+ kind: CustomResourceDefinition
+ metadata:
+   annotations:
++    cert-manager.io/inject-ca-from: $(CERTIFICATE_NAMESPACE)/$(CERTIFICATE_NAME)
+     controller-gen.kubebuilder.io/version: v0.8.0
+   labels:
+@@ -9,7 +10,15 @@
+   name: profiles.kubeflow.org
+   conversion:
+-    strategy: None
++    strategy: Webhook
++    webhook:
++      clientConfig:
++        service:
++          name: webhook-service
++          namespace: kubeflow
++          path: /convert
++      conversionReviewVersions:
++      - v1
+   names:
+     kind: Profile

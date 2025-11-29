@@ -1,0 +1,6 @@
+{
+        "**/*_test.ts"
+    ],
+    "stopSpecOnExpectationFailure": false,
+    "random": true
+}

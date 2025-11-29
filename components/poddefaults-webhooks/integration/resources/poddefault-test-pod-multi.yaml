@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ${TEST_POD_NAME}-multi
+  namespace: ${NAMESPACE}
+  labels:
+    ${PODDEFAULT_NAME}: "true"
+    test-multi: "true"
+  containers:
+  - name: test-container
+    image: busybox:latest
+    command: ["sleep", "300"] 

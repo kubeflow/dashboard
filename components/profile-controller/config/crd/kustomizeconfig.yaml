@@ -1,0 +1,15 @@
+# This file is for teaching kustomize how to substitute name and namespace reference in CRD
+nameReference:
+- kind: Service
+  version: v1
+  fieldSpecs:
+  - kind: CustomResourceDefinition
+    version: v1
+
+namespace:
+- kind: CustomResourceDefinition
+  version: v1
+  create: false
+
+varReference:
+- path: metadata/annotations

@@ -1,0 +1,10 @@
+apiVersion: kubeflow.org/v1
+kind: Profile
+metadata:
+  name: profile-aws-iam
+  owner:
+    kind: User
+    name: test-user@kubeflow.org
+  plugins:
+  - kind: AwsIamForServiceAccount
+      awsIamRole: arn:aws:iam::account-id:role/s3-reader

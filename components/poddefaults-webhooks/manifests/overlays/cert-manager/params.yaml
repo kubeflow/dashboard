@@ -1,0 +1,4 @@
+nameReference:
+- kind: Issuer
+  fieldSpecs:
+  - kind: Certificate

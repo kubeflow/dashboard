@@ -1,0 +1,116 @@
+# This overlay uses CertManager to provision a certificate for the
+# PodDefaults admission controller. This is preferred over the old
+# way of using "bootstrap" which was running a shell script to create
+# the certificate.
+# TODO(jlewi): We should eventually refactor the manifests to delete
+# bootstrap and use certmanager by default.
+
+resources:
+ - ../../base
+ - certificate.yaml
+
+
+
+
+namespace: kubeflow
+
+labels:
+- includeSelectors: true
+  pairs:
+    app: poddefaults
+    kustomize.component: poddefaults
+    app.kubernetes.io/component: poddefaults
+    app.kubernetes.io/name: poddefaults
+    
+patches:
+- path: mutating-webhook-configuration.yaml
+- path: deployment.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+replacements:
+# Replacements for the Certificate
+- source:
+    fieldPath: metadata.name
+    kind: Service
+    name: service
+    version: v1
+  targets:
+  - fieldPaths:
+    options:
+      delimiter: .
+      index: 0
+    select:
+      kind: Certificate
+      version: v1
+- source:
+    fieldPath: metadata.namespace
+    kind: Service
+    name: service
+    version: v1
+  targets:
+  - fieldPaths:
+    options:
+      delimiter: .
+      index: 1
+    select:
+      kind: Certificate
+      version: v1
+
+# Replacements for the MutatingWebhookConfiguration
+- source:
+    fieldPath: metadata.namespace
+    kind: Certificate
+    version: v1
+  targets:
+  - fieldPaths:
+    - metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      delimiter: /
+      index: 0
+    select:
+      kind: MutatingWebhookConfiguration
+      version: v1
+- source:
+    fieldPath: metadata.name
+    kind: Certificate
+    version: v1
+  targets:
+  - fieldPaths:
+    - metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      delimiter: /
+      index: 1
+    select:
+      kind: MutatingWebhookConfiguration
+      version: v1
+
+
+# Replacements for the MutatingWebhookConfiguration
+- source:
+    fieldPath: metadata.namespace
+    kind: Certificate
+    version: v1
+  targets:
+  - fieldPaths:
+      - metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      delimiter: /
+      index: 0
+    select:
+      kind: MutatingWebhookConfiguration
+      version: v1
+- source:
+    fieldPath: metadata.name
+    kind: Certificate
+    version: v1
+  targets:
+  - fieldPaths:
+      - metadata.annotations.[cert-manager.io/inject-ca-from]
+    options:
+      delimiter: /
+      index: 1
+    select:
+      kind: MutatingWebhookConfiguration
+      version: v1

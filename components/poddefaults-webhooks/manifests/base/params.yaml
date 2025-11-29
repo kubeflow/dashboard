@@ -1,0 +1,10 @@
+nameReference:
+- kind: Service
+  version: v1
+  fieldSpecs:
+  - kind: MutatingWebhookConfiguration
+    path: webhooks/clientConfig/service/name
+namespace:
+- kind: MutatingWebhookConfiguration
+  path: webhooks/clientConfig/service/namespace
+  create: true

@@ -1,0 +1,22 @@
+--- profile-crd-before.yaml	2025-11-10 18:09:26.476417000 +0530
++++ profile-crd-after.yaml	2025-11-10 18:10:01.035968400 +0530
+@@ -2,12 +2,21 @@
+ kind: CustomResourceDefinition
+ metadata:
+   annotations:
++    cert-manager.io/inject-ca-from: $(CERTIFICATE_NAMESPACE)/$(CERTIFICATE_NAME)
+     controller-gen.kubebuilder.io/version: v0.8.0
+   name: profiles.kubeflow.org
+   conversion:
+-    strategy: None
++    strategy: Webhook
++    webhook:
++      clientConfig:
++        service:
++          name: webhook-service
++          namespace: system
++          path: /convert
++      conversionReviewVersions:
++      - v1
+   names:
+     kind: Profile

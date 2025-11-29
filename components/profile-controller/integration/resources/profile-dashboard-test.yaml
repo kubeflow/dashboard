@@ -1,0 +1,7 @@
+apiVersion: kubeflow.org/v1
+kind: Profile
+metadata:
+  name: test-dashboard-profile
+  owner:
+    kind: User
+    name: dashboard-user@example.com 

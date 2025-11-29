@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment
+  template:
+    metadata:
+      labels:
+        sidecar.istio.io/inject: "false"
+      containers:
+      - image: ghcr.io/kubeflow/dashboard/poddefaults-webhook
+        name: poddefaults-webhook
+        volumeMounts:
+        - mountPath: /etc/webhook/certs
+          name: webhook-cert
+          readOnly: true
+        ports:
+        - name: https-webhook
+          containerPort: 4443
+        securityContext:
+          runAsNonRoot: true
+          allowPrivilegeEscalation: false
+          runAsUser: 65532
+          seccompProfile:
+            type: RuntimeDefault
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: webhook-cert
+        secret:
+          secretName: poddefaults-webhook-certs
+      serviceAccountName: service-account

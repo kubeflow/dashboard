@@ -1,0 +1,109 @@
+name: PodDefaults Integration Test
+on:
+  pull_request:
+    paths:
+      - components/poddefaults-webhooks/**
+      - releasing/version/VERSION
+      - .github/workflows/poddefaults_intergration_test.yaml
+    branches:
+      - main
+      - v*-branch
+
+concurrency:
+  cancel-in-progress: true
+
+env:
+  IMG: ghcr.io/kubeflow/dashboard/poddefaults-webhook
+  TAG: integration-test
+
+jobs:
+  integration-test:
+    runs-on: ubuntu-22.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Install KinD
+      run: ./testing/gh-actions/install_kind.sh
+
+    - name: Create KinD Cluster
+      run: kind create cluster --config testing/gh-actions/kind-1-33.yaml
+
+    - name: Install kustomize
+      run: ./testing/gh-actions/install_kustomize.sh
+
+    - name: Install Istio
+      run: ./testing/gh-actions/install_istio.sh
+
+    - name: Install cert-manager
+      run: ./testing/gh-actions/install_cert_manager.sh
+
+    - name: Create Kubeflow Namespace
+      run: kubectl create namespace kubeflow
+
+    - name: Deploy PodDefaults Webhook Component
+      run: |
+        ./testing/shared/deploy_component.sh \
+          "components/poddefaults-webhooks" \
+          "${IMG}" \
+          "${TAG}" \
+          "manifests" \
+          "overlays/cert-manager"
+
+    - name: Wait for Admission Webhook to be Ready
+      run: |
+        kubectl wait --for=condition=Ready pods -n kubeflow -l app=poddefaults --timeout=300s
+        kubectl wait --for=condition=Available deployment -n kubeflow poddefaults-webhook-deployment --timeout=300s
+
+    - name: Validate Webhook Configuration
+      run: |
+        ./components/poddefaults-webhooks/integration/test_poddefault.sh validate-webhook kubeflow
+
+    - name: Create Test Namespace
+      run: |
+        ./components/poddefaults-webhooks/integration/test_poddefault.sh create-namespace test-poddefaults
+
+    - name: Create Test PodDefault
+      run: |
+        ./components/poddefaults-webhooks/integration/test_poddefault.sh create-poddefault test-poddefaults test-poddefault
+
+    - name: Test PodDefault Mutation
+      run: |
+        ./components/poddefaults-webhooks/integration/test_poddefault.sh test-mutation test-poddefaults test-poddefault test-pod
+
+    - name: Create Multiple PodDefaults for Testing
+      run: |
+        ./components/poddefaults-webhooks/integration/test_poddefault.sh create-multi-poddefault test-poddefaults test-poddefault
+
+    - name: Test Multiple PodDefaults Mutation
+      run: |
+        ./components/poddefaults-webhooks/integration/test_poddefault.sh test-multi-mutation test-poddefaults test-poddefault test-pod
+
+    - name: Test Error Handling
+      run: |
+        ./components/poddefaults-webhooks/integration/test_poddefault.sh test-error-handling test-poddefaults
+
+    - name: Check Webhook Logs
+      run: |
+        kubectl logs -n kubeflow -l app=poddefaults --tail=100
+
+    - name: Check for Errors in Webhook Logs
+      run: |
+        if ! kubectl logs -n kubeflow -l app=poddefaults --tail=100 \
+          | egrep -i "^(E[0-9]{4})|unable to|traceback|error:" \
+          | egrep -vi "ErrorLog:\(|nextProtoErr:"; then
+          echo "No errors found in webhook logs"
+        fi
+      
+    # - name: Check for Errors in Webhook Logs  
+    #   run: |
+    #     kubectl logs -n kubeflow -l app=poddefaults --tail=100 | grep -i error || echo "No errors found in webhook logs"
+
+    - name: Cleanup Test Resources
+      run: |
+        ./components/poddefaults-webhooks/integration/test_poddefault.sh cleanup test-poddefaults

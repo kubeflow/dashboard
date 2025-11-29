@@ -1,0 +1,16 @@
+    on-response='handleContribDelete', on-error='handleContribDelete', handle-as='json', content-type='application/json')
+    on-response='handleContribCreate', on-error='handleContribCreate', handle-as='json', content-type='application/json')
+    last-response='{{contributorList}}', on-error='onContribFetchError', handle-as='json')
+h2
+    span.text
+        | Contributors for -
+        |
+        code [[ownedNamespace.namespace]]
+.content.small
+    md2-input(label='Email Addresses', value='{{newContribEmail}}', on-submit='addNewContrib', placeholder='Add by email address', error$='[[contribCreateError]]')
+        .prefix(slot='prefix')
+            template(is='dom-repeat', items='[[contributorList]]')
+                paper-chip(on-remove='removeContributor') [[item]]
+paper-toast#ContribError(duration=5000)
+    | Failed to fetch contributor list for {{ownedNamespace.namespace}}, because:
+    strong [[contribError]]

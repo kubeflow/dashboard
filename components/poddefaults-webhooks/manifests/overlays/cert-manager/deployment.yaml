@@ -1,0 +1,10 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment
+  template:
+      containers:
+      - name: poddefaults-webhook
+        args:
+        - --tlsCertFile=/etc/webhook/certs/tls.crt
+        - --tlsKeyFile=/etc/webhook/certs/tls.key

@@ -1,0 +1,13 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Kubeflow Documentation
+    url: https://www.kubeflow.org/
+    about: Official Kubeflow Documentation
+
+  - name: Kubeflow Documentation - Dashboard
+    url: https://www.kubeflow.org/docs/components/central-dash/
+    about: Official Kubeflow Documentation
+
+  - name: "Kubeflow Slack (join `#kubeflow-platform` channel)"
+    url: https://www.kubeflow.org/docs/about/community/#kubeflow-slack-channels
+    about: Join the Kubeflow Slack

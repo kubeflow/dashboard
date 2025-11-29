@@ -1,0 +1,16 @@
+# This patch enables Prometheus scraping for the manager pod.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deployment
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: 'true'
+      containers:
+      # Expose the prometheus metrics on default port
+      - name: manager
+        ports:
+        - containerPort: 8080
+          name: metrics
+          protocol: TCP

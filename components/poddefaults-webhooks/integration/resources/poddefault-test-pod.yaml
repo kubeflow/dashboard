@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: ${TEST_POD_NAME}
+  namespace: ${NAMESPACE}
+  labels:
+    ${PODDEFAULT_NAME}: "true"
+  containers:
+  - name: test-container
+    image: busybox:latest
+    command: ["sleep", "3600"] 
