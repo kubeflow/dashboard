@@ -31,11 +31,11 @@ export class Api {
    * - Are a cluster admin
    * - Are in basic auth mode (non-identity aware clusters)
    */
-  private async checkNamespaceAccess(req: Request, res: Response, next: NextFunction) {
-    const namespace = req.params.namespace;
+  private async checkNamespaceAccess(request: Request, response: Response, next: NextFunction) {
+    const namespace = request.params.namespace;
     if (!namespace) {
       return apiError({
-        res,
+        res: response,
         code: 400,
         error: 'Namespace parameter is required',
       });
@@ -47,9 +47,9 @@ export class Api {
     }
 
     // If no user is attached to request, deny access
-    if (!req.user) {
+    if (!request.user) {
       return apiError({
-        res,
+        res: response,
         code: 401,
         error: 'Authentication required to access namespace activities',
       });
@@ -57,12 +57,12 @@ export class Api {
 
     try {
       // For non-authenticated users in basic auth mode, allow access
-      if (!req.user.hasAuth) {
+      if (!request.user.hasAuth) {
         return next();
       }
 
       // Get user's workgroup information
-      const workgroupInfo = await this.workgroupApi.getWorkgroupInfo(req.user);
+      const workgroupInfo = await this.workgroupApi.getWorkgroupInfo(request.user);
 
       // Check if user is cluster admin
       if (workgroupInfo.isClusterAdmin) {
@@ -76,7 +76,7 @@ export class Api {
 
       if (!hasAccess) {
         return apiError({
-          res,
+          res: response,
           code: 403,
           error: `Access denied. You do not have permission to view activities for namespace '${namespace}'.`,
         });
@@ -86,7 +86,7 @@ export class Api {
     } catch (err) {
       console.error('Error checking namespace access:', err);
       return apiError({
-        res,
+        res: response,
         code: 500,
         error: 'Unable to verify namespace access permissions',
       });
