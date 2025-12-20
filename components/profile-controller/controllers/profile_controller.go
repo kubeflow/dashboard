@@ -95,6 +95,7 @@ type ProfileReconciler struct {
 
 // +kubebuilder:rbac:groups=core,resources=namespaces,verbs="*"
 // +kubebuilder:rbac:groups=core,resources=serviceaccounts,verbs="*"
+// +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch
 // +kubebuilder:rbac:groups=rbac.authorization.k8s.io,resources=rolebindings,verbs="*"
 // +kubebuilder:rbac:groups=security.istio.io,resources=authorizationpolicies,verbs="*"
 // +kubebuilder:rbac:groups=kubeflow.org,resources=profiles;profiles/status;profiles/finalizers,verbs="*"
@@ -671,10 +672,39 @@ func (r *ProfileReconciler) updateRoleBinding(profileIns *profilev1.Profile,
 }
 
 // GetPluginSpec will try to unmarshal the plugin spec inside profile for the specified plugin
+// Now supports loading from ConfigMap for more flexible plugin configuration
 // Returns an error if the plugin isn't defined or if there is a problem
 func (r *ProfileReconciler) GetPluginSpec(profileIns *profilev1.Profile) ([]Plugin, error) {
 	logger := r.Log.WithValues("profile", profileIns.Name)
 	plugins := []Plugin{}
+
+	// First, try to load plugin configuration from ConfigMap
+	pluginConfig, err := r.LoadPluginConfigFromConfigMap(context.Background())
+	if err != nil {
+		logger.Error(err, "Failed to load plugin config from ConfigMap, falling back to Profile CR")
+		// Fall through to use Profile CR plugins if ConfigMap fails
+		pluginConfig = nil
+	}
+
+	// If ConfigMap exists and has plugins configured, use those
+	if pluginConfig != nil && len(pluginConfig.Plugins) > 0 {
+		logger.Info("Using plugin configuration from ConfigMap", "pluginCount", len(pluginConfig.Plugins))
+		for _, config := range pluginConfig.Plugins {
+			pluginIns, err := r.GetPluginInstanceFromConfig(config)
+			if err != nil {
+				logger.Error(err, "Failed to create plugin from ConfigMap config", "kind", config.Kind)
+				return nil, err
+			}
+			// Skip if plugin is disabled or not recognized
+			if pluginIns != nil {
+				plugins = append(plugins, pluginIns)
+			}
+		}
+		return plugins, nil
+	}
+
+	// Fallback: Use plugins defined in Profile CR (backward compatibility)
+	logger.Info("ConfigMap not found or empty, using plugins from Profile CR")
 	for _, p := range profileIns.Spec.Plugins {
 		var pluginIns Plugin
 		switch p.Kind {
@@ -707,7 +737,28 @@ func (r *ProfileReconciler) GetPluginSpec(profileIns *profilev1.Profile) ([]Plug
 }
 
 // PatchDefaultPluginSpec patch default plugins to profile CR instance if user doesn't specify plugin of same kind in CR.
+// Now supports reading defaults from ConfigMap instead of only from controller flags
 func (r *ProfileReconciler) PatchDefaultPluginSpec(ctx context.Context, profileIns *profilev1.Profile) error {
+	logger := r.Log.WithValues("profile", profileIns.Name)
+	
+	// Try to load plugin configuration from ConfigMap
+	pluginConfig, err := r.LoadPluginConfigFromConfigMap(ctx)
+	if err != nil {
+		logger.Error(err, "Failed to load plugin config from ConfigMap")
+		// Don't return error, fall back to legacy behavior
+		pluginConfig = nil
+	}
+
+	// If ConfigMap exists, plugins are managed via ConfigMap - don't patch Profile CR
+	if pluginConfig != nil && len(pluginConfig.Plugins) > 0 {
+		logger.Info("Plugins managed via ConfigMap, skipping Profile CR patching")
+		return nil
+	}
+
+	// Legacy behavior: Use controller flags to patch default plugins
+	// This maintains backward compatibility for deployments not using ConfigMap
+	logger.Info("ConfigMap not found, using legacy flag-based plugin configuration")
+	
 	// read existing plugins into map
 	plugins := make(map[string]profilev1.Plugin)
 	for _, p := range profileIns.Spec.Plugins {
