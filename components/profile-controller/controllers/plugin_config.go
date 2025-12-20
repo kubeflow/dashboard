@@ -59,6 +59,12 @@ type PluginsConfiguration struct {
 func (r *ProfileReconciler) LoadPluginConfigFromConfigMap(ctx context.Context) (*PluginsConfiguration, error) {
 	logger := r.Log.WithValues("configmap", PLUGIN_CONFIG_MAP_NAME, "namespace", PLUGIN_CONFIG_MAP_NAMESPACE)
 
+	// If Client is not initialized (e.g., in unit tests), return nil to fallback to Profile CR
+	if r.Client == nil {
+		logger.Info("Client not initialized, skipping ConfigMap loading")
+		return nil, nil
+	}
+
 	// Fetch the ConfigMap from Kubernetes
 	configMap := &corev1.ConfigMap{}
 	err := r.Get(ctx, types.NamespacedName{
