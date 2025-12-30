@@ -83,8 +83,8 @@ export class Api {
       }
 
       next();
-    } catch (err) {
-      console.error('Error checking namespace access:', err);
+    } catch (error) {
+      console.error('Error checking namespace access:', error);
       return apiError({
         res: response,
         code: 500,
