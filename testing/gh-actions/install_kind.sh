@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-KIND_VERSION="0.29.0"
+KIND_VERSION="0.31.0"
 KIND_URL="https://kind.sigs.k8s.io/dl/v${KIND_VERSION}/kind-linux-amd64"
 
 echo "Setting up kind environment..."

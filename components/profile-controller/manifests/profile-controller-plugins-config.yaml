@@ -1,0 +1,107 @@
+# ConfigMap for Profile Controller Plugin Configuration
+# This ConfigMap allows operators to configure plugins without rebuilding the controller image
+#
+# To apply this ConfigMap:
+#   kubectl apply -f profile-controller-plugins-config.yaml
+#
+# To modify plugin configuration:
+#   kubectl edit configmap profile-controller-plugins-config -n kubeflow
+#
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: profile-controller-plugins-config
+  namespace: kubeflow
+data:
+  plugins.yaml: |
+    # List of available plugins for the Profile Controller
+    # Each plugin can be enabled/disabled and configured here
+    plugins:
+      # GCP Workload Identity Plugin
+      # Grants GCP service account access to Kubernetes service accounts in profile namespaces
+      - kind: WorkloadIdentity
+        enabled: false
+        config:
+          # GCP Service Account email (e.g., "my-sa@my-project.iam.gserviceaccount.com")
+          # This service account will be bound to the Kubernetes service account in the profile namespace
+          gcpServiceAccount: ""
+      
+      # AWS IAM for Service Account (IRSA) Plugin
+      # Grants AWS IAM role access to Kubernetes service accounts in profile namespaces
+      - kind: AwsIamForServiceAccount
+        enabled: false
+        config:
+          # AWS IAM Role ARN (e.g., "arn:aws:iam::123456789012:role/my-role")
+          awsIamRole: ""
+          # If true, only annotate the service account without modifying IAM trust policy
+          # Set to true if IAM role trust policy is managed externally
+          annotateOnly: false
+
+---
+# Example: Enabling GCP Workload Identity
+# Uncomment and modify the section below to enable GCP Workload Identity
+#
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: profile-controller-plugins-config
+#   namespace: kubeflow
+# data:
+#   plugins.yaml: |
+#     plugins:
+#       - kind: WorkloadIdentity
+#         enabled: true
+#         config:
+#           gcpServiceAccount: "kubeflow-profiles@my-gcp-project.iam.gserviceaccount.com"
+#       
+#       - kind: AwsIamForServiceAccount
+#         enabled: false
+#         config:
+#           awsIamRole: ""
+#           annotateOnly: false
+
+---
+# Example: Enabling AWS IAM for Service Account (IRSA)
+# Uncomment and modify the section below to enable AWS IRSA
+#
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: profile-controller-plugins-config
+#   namespace: kubeflow
+# data:
+#   plugins.yaml: |
+#     plugins:
+#       - kind: WorkloadIdentity
+#         enabled: false
+#         config:
+#           gcpServiceAccount: ""
+#       
+#       - kind: AwsIamForServiceAccount
+#         enabled: true
+#         config:
+#           awsIamRole: "arn:aws:iam::123456789012:role/kubeflow-profile-role"
+#           annotateOnly: false
+
+---
+# Example: Enabling both plugins with annotateOnly for AWS
+# Uncomment and modify the section below to enable both plugins
+#
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: profile-controller-plugins-config
+#   namespace: kubeflow
+# data:
+#   plugins.yaml: |
+#     plugins:
+#       - kind: WorkloadIdentity
+#         enabled: true
+#         config:
+#           gcpServiceAccount: "kubeflow-profiles@my-gcp-project.iam.gserviceaccount.com"
+#       
+#       - kind: AwsIamForServiceAccount
+#         enabled: true
+#         config:
+#           awsIamRole: "arn:aws:iam::123456789012:role/kubeflow-profile-role"
+#           annotateOnly: true
