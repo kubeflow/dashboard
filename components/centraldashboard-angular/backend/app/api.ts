@@ -1,6 +1,7 @@
 import {Router, Request, Response, NextFunction} from 'express';
 import {KubernetesService} from './k8s_service';
 import {Interval, MetricsService} from './metrics_service';
+import {WorkgroupApi} from './api_workgroup';
 
 export const ERRORS = {
   operation_not_supported: 'Operation not supported',
@@ -20,8 +21,77 @@ export class Api {
   constructor(
       private k8sService: KubernetesService,
       private metricsService?: MetricsService,
+      private workgroupApi?: WorkgroupApi,
     ) {}
 
+  /**
+   * Middleware to check if user has access to a specific namespace.
+   * Users can access a namespace if they:
+   * - Contain any role binding within the namespace (owner, contributor, or viewer)
+   * - Are a cluster admin
+   * - Are in basic auth mode (non-identity aware clusters)
+   */
+  private async checkNamespaceAccess(request: Request, response: Response, next: NextFunction) {
+    const namespace = request.params.namespace;
+    if (!namespace) {
+      return apiError({
+        res: response,
+        code: 400,
+        error: 'Namespace parameter is required',
+      });
+    }
+
+    // If no workgroup API is configured, allow access (backward compatibility)
+    if (!this.workgroupApi) {
+      return next();
+    }
+
+    // If no user is attached to request, deny access
+    if (!request.user) {
+      return apiError({
+        res: response,
+        code: 401,
+        error: 'Authentication required to access namespace activities',
+      });
+    }
+
+    try {
+      // For non-authenticated users in basic auth mode, allow access
+      if (!request.user.hasAuth) {
+        return next();
+      }
+
+      // Get user's workgroup information
+      const workgroupInfo = await this.workgroupApi.getWorkgroupInfo(request.user);
+
+      // Check if user is cluster admin
+      if (workgroupInfo.isClusterAdmin) {
+        return next();
+      }
+
+      // Check if user has access to the specific namespace
+      const hasAccess = workgroupInfo.namespaces.some(
+        binding => binding.namespace === namespace
+      );
+
+      if (!hasAccess) {
+        return apiError({
+          res: response,
+          code: 403,
+          error: `Access denied. You do not have permission to view activities for namespace '${namespace}'.`,
+        });
+      }
+
+      next();
+    } catch (error) {
+      console.error('Error checking namespace access:', error);
+      return apiError({
+        res: response,
+        code: 500,
+        error: 'Unable to verify namespace access permissions',
+      });
+    }
+  }
 
   /**
    * Returns the Express router for the API routes.
@@ -65,6 +135,7 @@ export class Api {
             })
         .get(
             '/activities/:namespace',
+            this.checkNamespaceAccess.bind(this),
             async (req: Request, res: Response) => {
               res.json(await this.k8sService.getEventsForNamespace(
                   req.params.namespace));
