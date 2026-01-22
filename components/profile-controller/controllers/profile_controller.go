@@ -32,6 +32,7 @@ import (
 	"gopkg.in/fsnotify.v1"
 	"gopkg.in/yaml.v2"
 	istioSecurity "istio.io/api/security/v1beta1"
+	istioApi "istio.io/api/type/v1beta1"
 	istioSecurityClient "istio.io/client-go/pkg/apis/security/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -452,7 +453,7 @@ func (r *ProfileReconciler) getAuthorizationPolicy(profileIns *profilev1.Profile
 		"KFP_UI_PRINCIPAL",
 		"cluster.local/ns/kubeflow/sa/ml-pipeline-ui")
 
-	return &istioSecurity.AuthorizationPolicy{
+	policy := &istioSecurity.AuthorizationPolicy{
 		Action: istioSecurity.AuthorizationPolicy_ALLOW,
 		// Empty selector == match all workloads in namespace
 		Selector: nil,
@@ -524,6 +525,20 @@ func (r *ProfileReconciler) getAuthorizationPolicy(profileIns *profilev1.Profile
 			},
 		},
 	}
+
+	if r.ServiceMeshMode == "istio-ambient" {
+		targetRefs := []*istioApi.PolicyTargetReference{
+			{
+				Kind:  "Gateway",
+				Group: "gateway.networking.k8s.io",
+				Name:  r.WaypointName,
+			},
+		}
+
+		policy.TargetRefs = targetRefs
+	}
+
+	return policy
 }
 
 // updateIstioAuthorizationPolicy create or update Istio AuthorizationPolicy
@@ -820,7 +835,6 @@ func (r *ProfileReconciler) setNamespaceLabelsAndServiceMesh(ns *corev1.Namespac
 	}
 }
 
-
 func (r *ProfileReconciler) readDefaultLabelsFromFile(path string) map[string]string {
 	logger := r.Log.WithName("read-config-file").WithValues("path", path)
 	dat, err := ioutil.ReadFile(path)
@@ -837,7 +851,6 @@ func (r *ProfileReconciler) readDefaultLabelsFromFile(path string) map[string]st
 	}
 	return labels
 }
-
 
 // createWaypoint creates a waypoint proxy in the profile namespace for ambient mode
 func (r *ProfileReconciler) createWaypoint(profileIns *profilev1.Profile) error {

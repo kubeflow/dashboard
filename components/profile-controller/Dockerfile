@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.17 as builder
+FROM golang:1.23 as builder
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
@@ -26,7 +26,6 @@ WORKDIR /
 COPY --from=builder /workspace/dash /bin/dash
 COPY third_party third_party
 COPY --from=builder /workspace/manager .
-COPY --from=builder /go/pkg/mod/github.com/hashicorp third_party/library/
 
 USER 65532:65532
 
