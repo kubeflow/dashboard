@@ -1,0 +1,84 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: kubeflow
+resources:
+  - clusterrole-binding.yaml
+  - clusterrole.yaml
+  - deployment.yaml
+  - role-binding.yaml
+  - role.yaml
+  - service-account.yaml
+  - service.yaml
+  - configmap.yaml
+  - network-policy.yaml
+images:
+  - name: ghcr.io/kubeflow/dashboard/dashboard-angular
+    newName: ghcr.io/kubeflow/dashboard/dashboard-angular
+    newTag: latest
+configMapGenerator:
+  - envs:
+      - params.env
+    name: dashboard-angular-parameters
+generatorOptions:
+  disableNameSuffixHash: true
+labels:
+  - includeSelectors: true
+    pairs:
+      app: dashboard-angular
+      app.kubernetes.io/component: dashboard-angular
+      app.kubernetes.io/name: centraldashboard-angular
+      app.kubernetes.io/part-of: kubeflow-dashboard
+      app.kubernetes.io/managed-by: kustomize
+replacements:
+  - source:
+      fieldPath: data.CD_USERID_HEADER
+      kind: ConfigMap
+      name: dashboard-angular-parameters
+      version: v1
+    targets:
+      - fieldPaths:
+          - spec.template.spec.containers.[name=dashboard-angular].env.[name=USERID_HEADER].value
+        select:
+          group: apps
+          kind: Deployment
+          name: dashboard-angular
+          version: v1
+  - source:
+      fieldPath: data.CD_USERID_PREFIX
+      kind: ConfigMap
+      name: dashboard-angular-parameters
+      version: v1
+    targets:
+      - fieldPaths:
+          - spec.template.spec.containers.[name=dashboard-angular].env.[name=USERID_PREFIX].value
+        select:
+          group: apps
+          kind: Deployment
+          name: dashboard-angular
+          version: v1
+  - source:
+      fieldPath: data.CD_REGISTRATION_FLOW
+      kind: ConfigMap
+      name: dashboard-angular-parameters
+      version: v1
+    targets:
+      - fieldPaths:
+          - spec.template.spec.containers.[name=dashboard-angular].env.[name=REGISTRATION_FLOW].value
+        select:
+          group: apps
+          kind: Deployment
+          name: dashboard-angular
+          version: v1
+  - source:
+      fieldPath: metadata.name
+      kind: ConfigMap
+      name: dashboard-angular-config
+      version: v1
+    targets:
+      - fieldPaths:
+          - spec.template.spec.containers.[name=dashboard-angular].env.[name=DASHBOARD_CONFIGMAP].value
+        select:
+          group: apps
+          kind: Deployment
+          name: dashboard-angular
+          version: v1
