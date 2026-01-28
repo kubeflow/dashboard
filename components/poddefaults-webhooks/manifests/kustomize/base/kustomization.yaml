@@ -1,0 +1,77 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - cluster-role-binding.yaml
+  - cluster-role.yaml
+  - deployment.yaml
+  - mutating-webhook-configuration.yaml
+  - service-account.yaml
+  - service.yaml
+  - crd.yaml
+images:
+  - name: ghcr.io/kubeflow/dashboard/poddefaults-webhook
+    newName: ghcr.io/kubeflow/dashboard/poddefaults-webhook
+    newTag: latest
+namespace: kubeflow
+namePrefix: poddefaults-webhook-
+generatorOptions:
+  disableNameSuffixHash: true
+configurations:
+  - params.yaml
+labels:
+  - includeSelectors: true
+    pairs:
+      app: poddefaults
+      app.kubernetes.io/component: poddefaults
+      app.kubernetes.io/name: poddefaults-webhooks
+      app.kubernetes.io/part-of: kubeflow-dashboard
+      app.kubernetes.io/managed-by: kustomize
+replacements:
+  # These vars are used to substitute in the namespace, service name and
+  # deployment name into the mutating WebHookConfiguration.
+  # Since its a CR kustomize isn't aware of those fields and won't
+  # transform them.
+  # We need the var names to be relatively unique so that when we
+  # compose with other applications they won't conflict.
+  - source:
+      fieldPath: metadata.namespace
+      kind: Service
+      name: service
+      version: v1
+    targets:
+      - fieldPaths:
+          - webhooks.0.clientConfig.service.namespace
+        select:
+          group: admissionregistration.k8s.io
+          kind: MutatingWebhookConfiguration
+          name: mutating-webhook-configuration
+          version: v1
+  - source:
+      fieldPath: metadata.name
+      kind: Service
+      name: service
+      version: v1
+    targets:
+      - fieldPaths:
+          - webhooks.0.clientConfig.service.name
+        select:
+          group: admissionregistration.k8s.io
+          kind: MutatingWebhookConfiguration
+          name: mutating-webhook-configuration
+          version: v1
+  - source:
+      fieldPath: metadata.name
+      group: apps
+      kind: Deployment
+      name: deployment
+      version: v1
+    targets:
+      - fieldPaths:
+          - webhooks.0.name
+        options:
+          delimiter: .
+        select:
+          group: admissionregistration.k8s.io
+          kind: MutatingWebhookConfiguration
+          name: mutating-webhook-configuration
+          version: v1
