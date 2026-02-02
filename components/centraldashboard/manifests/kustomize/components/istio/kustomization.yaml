@@ -1,40 +1,22 @@
 apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
+
 resources:
   - virtual-service.yaml
   - authorizationpolicy.yaml
-configurations:
-  - params.yaml
-replacements:
-  - source:
-      fieldPath: metadata.namespace
-      kind: Service
+  - network-policy.yaml
+
+patches:
+  - patch: |-
+      - op: add
+        path: /spec/template/metadata/labels/sidecar.istio.io~1inject
+        value: "true"
+    target:
+      group: apps
+      version: v1
+      kind: Deployment
       name: dashboard
-      version: v1
-    targets:
-      - fieldPaths:
-          - spec.http.0.route.0.destination.host
-        options:
-          delimiter: .
-          index: 1
-        select:
-          group: networking.istio.io
-          kind: VirtualService
-          name: dashboard
-          version: v1alpha3
-  - source:
-      fieldPath: data.CD_CLUSTER_DOMAIN
-      kind: ConfigMap
-      name: dashboard-parameters
-      version: v1
-    targets:
-      - fieldPaths:
-          - spec.http.0.route.0.destination.host
-        options:
-          delimiter: .
-          index: 3
-        select:
-          group: networking.istio.io
-          kind: VirtualService
-          name: dashboard
-          version: v1alpha3
+
+labels:
+  - pairs:
+      app.kubernetes.io/component: dashboard

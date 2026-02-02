@@ -4,17 +4,17 @@ metadata:
   name: dashboard
 spec:
   gateways:
-  - kubeflow-gateway
+    - kubeflow-gateway
   hosts:
-  - '*'
+    - "*"
   http:
-  - match:
-    - uri:
-        prefix: /
-    rewrite:
-      uri: /
-    route:
-    - destination:
-        host: dashboard.CD_NAMESPACE_PLACEHOLDER.svc.CD_CLUSTER_DOMAIN_PLACEHOLDER
-        port:
-          number: 80
+    - match:
+        - uri:
+            prefix: /
+      rewrite:
+        uri: /
+      route:
+        - destination:
+            host: dashboard.kubeflow.svc.cluster.local
+            port:
+              number: 80
