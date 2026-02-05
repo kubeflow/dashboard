@@ -1,3 +1,5 @@
+labels:
+  - area/poddefaults
 approvers:
   - kimwnasptd
   - thesuperzapper
