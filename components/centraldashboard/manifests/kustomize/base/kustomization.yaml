@@ -26,4 +26,5 @@ configMapGenerator:
 labels:
   - includeSelectors: true
     pairs:
+      app: dashboard
       app.kubernetes.io/component: dashboard
