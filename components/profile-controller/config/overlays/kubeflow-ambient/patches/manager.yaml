@@ -18,6 +18,8 @@ spec:
         - $(USERID_PREFIX)
         - -workload-identity
         - $(WORKLOAD_IDENTITY)
+        - -service-mesh-mode
+        - $(SERVICE_MESH_MODE)
         env:
         - name: SERVICE_MESH_MODE
           value: istio-ambient

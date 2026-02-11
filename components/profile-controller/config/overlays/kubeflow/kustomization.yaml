@@ -1,18 +1,18 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+
 namespace: kubeflow
+
 resources:
 - ../../base
-- service.yaml
 - virtual-service.yaml
-- authorizationpolicy.yaml
+
+components:
+- ../../components/remove-system-namespace
+- ../../components/kfam
 
 commonLabels:
   kustomize.component: profiles
-
-patchesStrategicMerge:
-- patches/kfam.yaml
-- patches/remove-namespace.yaml
 
 configurations:
 - params.yaml
@@ -25,8 +25,3 @@ vars:
     name: profiles-kfam
     kind: Service
     apiVersion: v1
-
-images:
-- name: ghcr.io/kubeflow/dashboard/access-management
-  newName: ghcr.io/kubeflow/dashboard/access-management
-  newTag: latest
