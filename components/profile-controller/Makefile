@@ -134,7 +134,7 @@ $(LOCALBIN):
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
-ENVTEST_VERSION?=release-0.12
+ENVTEST_VERSION?=latest
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v3.2.0
