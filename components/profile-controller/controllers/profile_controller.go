@@ -453,6 +453,10 @@ func (r *ProfileReconciler) getAuthorizationPolicy(profileIns *profilev1.Profile
 		"KFP_UI_PRINCIPAL",
 		"cluster.local/ns/kubeflow/sa/ml-pipeline-ui")
 
+	katibControllerPrincipal := GetEnvDefault(
+		"KFP_UI_PRINCIPAL",
+		"cluster.local/ns/kubeflow/sa/katib-controller")
+
 	policy := &istioSecurity.AuthorizationPolicy{
 		Action: istioSecurity.AuthorizationPolicy_ALLOW,
 		// Empty selector == match all workloads in namespace
@@ -503,6 +507,16 @@ func (r *ProfileReconciler) getAuthorizationPolicy(profileIns *profilev1.Profile
 						},
 					},
 				},
+			},
+			{
+				// allow katib-controller to talk to suggestion server
+				From: []*istioSecurity.Rule_From{{
+					Source: &istioSecurity.Source{
+						Principals: []string{
+							katibControllerPrincipal,
+						},
+					},
+				}},
 			},
 			{
 				// allow the notebook-controller in the kubeflow namespace to
