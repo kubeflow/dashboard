@@ -55,7 +55,6 @@ replacements:
         select:
           kind: ClusterRoleBinding
           name: dashboard-angular
-  # Sync DASHBOARD_CONFIGMAP env var with ConfigMap name
   - source:
       kind: ConfigMap
       name: dashboard-angular-config
@@ -66,7 +65,6 @@ replacements:
         select:
           kind: Deployment
           name: dashboard-angular
-  # Sync VirtualService destination port with Service port
   - source:
       kind: Service
       name: dashboard-angular
@@ -78,7 +76,6 @@ replacements:
           group: networking.istio.io
           kind: VirtualService
           name: dashboard-angular
-  # Sync liveness probe port with container port
   - source:
       kind: Deployment
       name: dashboard-angular
@@ -89,7 +86,6 @@ replacements:
         select:
           kind: Deployment
           name: dashboard-angular
-  # Sync service targetPort with container port
   - source:
       kind: Deployment
       name: dashboard-angular
