@@ -7,20 +7,13 @@ namespace: kubeflow
 
 resources:
   - ../../base
-  - certificate.yaml
 
 components:
   - ../../components/common
-
-patches:
-  - path: mutating-webhook-configuration.yaml
-  - path: deployment.yaml
+  - ../../components/cert-manager
 
 generatorOptions:
   disableNameSuffixHash: true
-
-configurations:
-  - params.yaml
 
 replacements:
   # Sync Certificate commonName and dnsNames with service name
