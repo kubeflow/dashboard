@@ -1,0 +1,99 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: kubeflow
+
+resources:
+  - ../../base
+
+components:
+  - ../../components/istio
+  - ../../components/common
+
+replacements:
+  - source:
+      fieldPath: metadata.name
+      kind: Service
+      name: dashboard-angular
+      version: v1
+    targets:
+      - fieldPaths:
+          - spec.http.0.route.0.destination.host
+        options:
+          delimiter: .
+        select:
+          group: networking.istio.io
+          kind: VirtualService
+          name: dashboard-angular
+          version: v1alpha3
+  - source:
+      fieldPath: metadata.namespace
+      kind: Service
+      name: dashboard-angular
+      version: v1
+    targets:
+      - fieldPaths:
+          - spec.http.0.route.0.destination.host
+        options:
+          delimiter: .
+          index: 1
+        select:
+          group: networking.istio.io
+          kind: VirtualService
+          name: dashboard-angular
+          version: v1alpha3
+  - source:
+      fieldPath: metadata.namespace
+      kind: ServiceAccount
+      name: dashboard-angular
+    targets:
+      - fieldPaths:
+          - subjects.[kind=ServiceAccount].namespace
+        select:
+          kind: ClusterRoleBinding
+          name: dashboard-angular
+  # Sync DASHBOARD_CONFIGMAP env var with ConfigMap name
+  - source:
+      kind: ConfigMap
+      name: dashboard-angular-config
+      fieldPath: metadata.name
+    targets:
+      - fieldPaths:
+          - spec.template.spec.containers.[name=dashboard-angular].env.[name=DASHBOARD_CONFIGMAP].value
+        select:
+          kind: Deployment
+          name: dashboard-angular
+  # Sync VirtualService destination port with Service port
+  - source:
+      kind: Service
+      name: dashboard-angular
+      fieldPath: spec.ports.0.port
+    targets:
+      - fieldPaths:
+          - spec.http.0.route.0.destination.port.number
+        select:
+          group: networking.istio.io
+          kind: VirtualService
+          name: dashboard-angular
+  # Sync liveness probe port with container port
+  - source:
+      kind: Deployment
+      name: dashboard-angular
+      fieldPath: spec.template.spec.containers.[name=dashboard-angular].ports.0.containerPort
+    targets:
+      - fieldPaths:
+          - spec.template.spec.containers.[name=dashboard-angular].livenessProbe.httpGet.port
+        select:
+          kind: Deployment
+          name: dashboard-angular
+  # Sync service targetPort with container port
+  - source:
+      kind: Deployment
+      name: dashboard-angular
+      fieldPath: spec.template.spec.containers.[name=dashboard-angular].ports.0.containerPort
+    targets:
+      - fieldPaths:
+          - spec.ports.0.targetPort
+        select:
+          kind: Service
+          name: dashboard-angular
