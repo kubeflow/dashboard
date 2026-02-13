@@ -1,0 +1,93 @@
+# This overlay uses CertManager to provision a certificate for the
+# PodDefaults admission controller.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: kubeflow
+
+resources:
+  - ../../base
+  - certificate.yaml
+
+components:
+  - ../../components/common
+
+patches:
+  - path: mutating-webhook-configuration.yaml
+  - path: deployment.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+configurations:
+  - params.yaml
+
+replacements:
+  # Sync Certificate commonName and dnsNames with service name
+  - source:
+      fieldPath: metadata.name
+      kind: Service
+      name: service
+      version: v1
+    targets:
+      - fieldPaths:
+          - spec.commonName
+          - spec.dnsNames.0
+          - spec.dnsNames.1
+        options:
+          delimiter: .
+          index: 0
+        select:
+          group: cert-manager.io
+          kind: Certificate
+          version: v1
+  # Sync Certificate commonName and dnsNames with service namespace
+  - source:
+      fieldPath: metadata.namespace
+      kind: Service
+      name: service
+      version: v1
+    targets:
+      - fieldPaths:
+          - spec.commonName
+          - spec.dnsNames.0
+          - spec.dnsNames.1
+        options:
+          delimiter: .
+          index: 1
+        select:
+          group: cert-manager.io
+          kind: Certificate
+          version: v1
+  # Sync MutatingWebhookConfiguration cert-manager annotation namespace
+  - source:
+      fieldPath: metadata.namespace
+      group: cert-manager.io
+      kind: Certificate
+      version: v1
+    targets:
+      - fieldPaths:
+          - metadata.annotations.[cert-manager.io/inject-ca-from]
+        options:
+          delimiter: /
+          index: 0
+        select:
+          group: admissionregistration.k8s.io
+          kind: MutatingWebhookConfiguration
+          version: v1
+  # Sync MutatingWebhookConfiguration cert-manager annotation cert name
+  - source:
+      fieldPath: metadata.name
+      group: cert-manager.io
+      kind: Certificate
+      version: v1
+    targets:
+      - fieldPaths:
+          - metadata.annotations.[cert-manager.io/inject-ca-from]
+        options:
+          delimiter: /
+          index: 1
+        select:
+          group: admissionregistration.k8s.io
+          kind: MutatingWebhookConfiguration
+          version: v1
