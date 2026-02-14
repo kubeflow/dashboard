@@ -83,11 +83,6 @@ replacements:
         select:
           kind: Deployment
           name: dashboard
-  - source:
-      kind: Deployment
-      name: dashboard
-      fieldPath: spec.template.spec.containers.[name=dashboard].ports.0.containerPort
-    targets:
       - fieldPaths:
           - spec.ports.0.targetPort
         select:
