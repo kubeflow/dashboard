@@ -53,7 +53,7 @@ jobs:
           "components/poddefaults-webhooks" \
           "${IMG}" \
           "${TAG}" \
-          "manifests" \
+          "manifests/kustomize" \
           "overlays/cert-manager"
 
     - name: Wait for Admission Webhook to be Ready
