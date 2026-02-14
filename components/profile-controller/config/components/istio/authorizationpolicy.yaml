@@ -11,4 +11,4 @@ spec:
               - cluster.local/ns/kubeflow/sa/dashboard
   selector:
     matchLabels:
-      kustomize.component: profiles
+      app: profiles

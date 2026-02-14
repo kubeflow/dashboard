@@ -10,7 +10,11 @@ namePrefix: profiles-
 
 # Labels to add to all resources and selectors.
 commonLabels:
-  kustomize.component: profiles
+  app: profiles
+  app.kubernetes.io/component: profiles
+  app.kubernetes.io/name: profile-controller
+  app.kubernetes.io/part-of: kubeflow-dashboard
+  app.kubernetes.io/managed-by: kustomize
 
 bases:
 - ../crd
