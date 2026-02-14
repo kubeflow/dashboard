@@ -83,11 +83,6 @@ replacements:
         select:
           kind: Deployment
           name: dashboard-angular
-  - source:
-      kind: Deployment
-      name: dashboard-angular
-      fieldPath: spec.template.spec.containers.[name=dashboard-angular].ports.0.containerPort
-    targets:
       - fieldPaths:
           - spec.ports.0.targetPort
         select:
