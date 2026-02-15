@@ -7,7 +7,6 @@ on:
     paths:
       - components/poddefaults-webhooks/**
       - releasing/version/VERSION
-      - .github/workflows/poddefaults_oci_publish.yaml
 
 env:
   IMG: ghcr.io/kubeflow/dashboard/poddefaults-webhook

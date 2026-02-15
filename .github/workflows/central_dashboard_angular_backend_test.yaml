@@ -4,7 +4,6 @@ on:
     paths:
       - components/centraldashboard-angular/backend/**
       - releasing/version/VERSION
-      - .github/workflows/central_dashboard_angular_backend_test.yaml
     branches:
       - main
       - v*-branch

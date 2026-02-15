@@ -4,7 +4,6 @@ on:
     paths:
       - components/poddefaults-webhooks/**
       - releasing/version/VERSION
-      - .github/workflows/poddefaults_multi_arch_test.yaml
     branches:
       - main
       - v*-branch

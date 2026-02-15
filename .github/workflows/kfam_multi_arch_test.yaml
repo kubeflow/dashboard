@@ -4,7 +4,6 @@ on:
     paths:
       - components/access-management/**
       - releasing/version/VERSION
-      - .github/workflows/kfam_multi_arch_test.yaml
     branches:
       - main
       - v*-branch
