@@ -4,11 +4,12 @@ metadata:
   name: dashboard-angular
 spec:
   podSelector:
-    matchExpressions:
-      - key: app
-        operator: In
-        values:
-          - dashboard-angular
+    matchLabels:
+      app: dashboard-angular
+      app.kubernetes.io/component: dashboard-angular
+      app.kubernetes.io/managed-by: kustomize
+      app.kubernetes.io/name: centraldashboard-angular
+      app.kubernetes.io/part-of: kubeflow-dashboard
   ingress:
     - from:
         - namespaceSelector:

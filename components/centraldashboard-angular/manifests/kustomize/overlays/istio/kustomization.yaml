@@ -1,0 +1,65 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: kubeflow
+
+resources:
+  - ../../base
+
+components:
+  - ../../components/istio
+  - ../../components/common
+
+replacements:
+  - source:
+      fieldPath: metadata.name
+      kind: Service
+      name: dashboard-angular
+      version: v1
+    targets:
+      - fieldPaths:
+          - spec.http.0.route.0.destination.host
+        options:
+          delimiter: .
+        select:
+          group: networking.istio.io
+          kind: VirtualService
+          name: dashboard-angular
+          version: v1alpha3
+  - source:
+      fieldPath: metadata.namespace
+      kind: Service
+      name: dashboard-angular
+      version: v1
+    targets:
+      - fieldPaths:
+          - spec.http.0.route.0.destination.host
+        options:
+          delimiter: .
+          index: 1
+        select:
+          group: networking.istio.io
+          kind: VirtualService
+          name: dashboard-angular
+          version: v1alpha3
+  - source:
+      fieldPath: metadata.namespace
+      kind: ServiceAccount
+      name: dashboard-angular
+    targets:
+      - fieldPaths:
+          - subjects.[kind=ServiceAccount].namespace
+        select:
+          kind: ClusterRoleBinding
+          name: dashboard-angular
+  - source:
+      kind: Service
+      name: dashboard-angular
+      fieldPath: spec.ports.0.port
+    targets:
+      - fieldPaths:
+          - spec.http.0.route.0.destination.port.number
+        select:
+          group: networking.istio.io
+          kind: VirtualService
+          name: dashboard-angular
