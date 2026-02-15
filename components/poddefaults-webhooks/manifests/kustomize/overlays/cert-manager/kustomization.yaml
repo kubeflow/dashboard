@@ -9,18 +9,15 @@ resources:
   - ../../base
 
 components:
-  - ../../components/common
   - ../../components/cert-manager
-
-generatorOptions:
-  disableNameSuffixHash: true
+  - ../../components/istio
+  - ../../components/common
 
 replacements:
-  # Sync Certificate commonName and dnsNames with service name
   - source:
       fieldPath: metadata.name
       kind: Service
-      name: service
+      name: poddefaults-webhook-service
       version: v1
     targets:
       - fieldPaths:
@@ -34,11 +31,10 @@ replacements:
           group: cert-manager.io
           kind: Certificate
           version: v1
-  # Sync Certificate commonName and dnsNames with service namespace
   - source:
       fieldPath: metadata.namespace
       kind: Service
-      name: service
+      name: poddefaults-webhook-service
       version: v1
     targets:
       - fieldPaths:
@@ -52,7 +48,6 @@ replacements:
           group: cert-manager.io
           kind: Certificate
           version: v1
-  # Sync MutatingWebhookConfiguration cert-manager annotation namespace
   - source:
       fieldPath: metadata.namespace
       group: cert-manager.io
@@ -68,7 +63,6 @@ replacements:
           group: admissionregistration.k8s.io
           kind: MutatingWebhookConfiguration
           version: v1
-  # Sync MutatingWebhookConfiguration cert-manager annotation cert name
   - source:
       fieldPath: metadata.name
       group: cert-manager.io

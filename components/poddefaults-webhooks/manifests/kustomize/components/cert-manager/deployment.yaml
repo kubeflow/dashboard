@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: deployment
+  name: poddefaults-webhook-deployment
 spec:
   template:
     spec:

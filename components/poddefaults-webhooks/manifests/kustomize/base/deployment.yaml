@@ -1,12 +1,9 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: deployment
+  name: poddefaults-webhook-deployment
 spec:
   template:
-    metadata:
-      labels:
-        sidecar.istio.io/inject: "false"
     spec:
       containers:
       - image: ghcr.io/kubeflow/dashboard/poddefaults-webhook
@@ -31,4 +28,4 @@ spec:
       - name: webhook-cert
         secret:
           secretName: poddefaults-webhook-certs
-      serviceAccountName: service-account
+      serviceAccountName: poddefaults-webhook-service-account
