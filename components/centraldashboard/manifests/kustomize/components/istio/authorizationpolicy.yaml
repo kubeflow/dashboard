@@ -12,3 +12,7 @@ spec:
   selector:
     matchLabels:
       app: dashboard
+      app.kubernetes.io/component: dashboard
+      app.kubernetes.io/managed-by: kustomize
+      app.kubernetes.io/name: centraldashboard
+      app.kubernetes.io/part-of: kubeflow-dashboard
