@@ -78,3 +78,17 @@ replacements:
           group: admissionregistration.k8s.io
           kind: MutatingWebhookConfiguration
           version: v1
+  - source:
+      fieldPath: spec.secretName
+      group: cert-manager.io
+      kind: Certificate
+      name: poddefaults-webhook-cert
+      version: v1
+    targets:
+      - fieldPaths:
+          - spec.template.spec.volumes.[name=webhook-cert].secret.secretName
+        select:
+          group: apps
+          kind: Deployment
+          name: poddefaults-webhook-deployment
+          version: v1
