@@ -7,7 +7,6 @@ on:
     paths:
       - components/centraldashboard/**
       - releasing/version/VERSION
-      - .github/workflows/central_dashboard_oci_publish.yaml
 
 env:
   IMG: ghcr.io/kubeflow/dashboard/dashboard

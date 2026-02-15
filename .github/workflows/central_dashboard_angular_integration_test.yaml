@@ -6,7 +6,6 @@ on:
       - components/access-management/**  
       - components/profile-controller/** 
       - releasing/version/VERSION
-      - .github/workflows/central_dashboard_angular_integration_test.yaml
     branches:
       - main
       - v*-branch
