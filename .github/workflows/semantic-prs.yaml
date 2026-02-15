@@ -32,8 +32,5 @@ jobs:
             docs
             chore
 
-          scopes: |
-            dashboard
-            kfam
-            profile
-          requireScope: false
+          # disallow all commit scopes
+          disallowScopes: ".*"
