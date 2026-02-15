@@ -21,7 +21,7 @@ CURRENT_KFAM_IMAGE_ESCAPED=$(echo "$KFAM_IMG" | sed 's|\.|\\.|g')
 NEW_KFAM_IMAGE_ESCAPED=$(echo "$NEW_KFAM_IMAGE" | sed 's|\.|\\.|g')
 
 echo "Deploying Profile Controller and KFAM to kubeflow namespace"
-kustomize build components/profile-controller/config/overlays/kubeflow \
+kustomize build components/profile-controller/manifests/kustomize/overlays/kubeflow \
     | sed "s|${CURRENT_PROFILE_IMAGE_ESCAPED}:[a-zA-Z0-9_.-]*|${NEW_PROFILE_IMAGE_ESCAPED}|g" \
     | sed "s|${CURRENT_KFAM_IMAGE_ESCAPED}:[a-zA-Z0-9_.-]*|${NEW_KFAM_IMAGE_ESCAPED}|g" \
     | kubectl apply -f -

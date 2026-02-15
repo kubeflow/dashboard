@@ -39,7 +39,7 @@ So profile owner can access services in above namespace via Istio (browser).
 Cluster admin can manage access management for cluster users:
 
 **To create an isolated namespace `test-user-profile` for user `test-user@kubeflow.org`**
-- Admin can create a [profile](config/samples/_v1_profile.yaml) via kubectl:
+- Admin can create a [profile](manifests/kustomize/samples/_v1_profile.yaml) via kubectl:
 ```
 kubectl create -f /path/to/profile/config
 ```
@@ -63,7 +63,7 @@ Users with access to cluster API server should be able to register and use kubef
 Profile now support configuring `ResourceQuotaSpec` as part of profile CR.
 - `ResourceQuotaSpec` field will accept standard [k8s ResourceQuotaSpec](https://godoc.org/k8s.io/api/core/v1#ResourceQuotaSpec)
 - A resource quota will be created in target namespace.
-- [Example](config/samples/_v1beta1_profile.yaml)
+- [Example](manifests/kustomize/samples/_v1beta1_profile.yaml)
 
 ### Plugins
 Plugins field is introduced to support customized actions based on k8s cluster's surrounding platform.
@@ -153,4 +153,3 @@ kubectl edit deployment profiles-deployment -n=kubeflow
 ```sh
 make run
 ```
-

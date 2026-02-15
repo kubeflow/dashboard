@@ -30,7 +30,7 @@ help: ## Display this help.
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) crd paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) crd paths="./..." output:crd:artifacts:config=manifests/kustomize/base/crd/bases
 	# Uncomment when we remove the permissive ClusterRoleBinding to cluster-admin
 	# $(CONTROLLER_GEN) rbac:roleName=cluster-role-binding webhook paths="./..."
 
@@ -59,7 +59,7 @@ build: generate fmt vet ## Build manager binary.
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
-	go run ./main.go -namespace-labels-path ./config/base/namespace-labels.yaml
+	go run ./main.go -namespace-labels-path ./manifests/kustomize/base/namespace-labels.yaml
 
 .PHONY: docker-build
 docker-build: ## Build docker image with the manager.
@@ -97,31 +97,31 @@ endif
 
 .PHONY: install
 install: manifests  ## Install CRDs into the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/crd | kubectl apply -f -
+	$(KUSTOMIZE) build manifests/kustomize/base/crd | kubectl apply -f -
 
 .PHONY: uninstall
 uninstall: manifests ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	$(KUSTOMIZE) build config/crd | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
+	$(KUSTOMIZE) build manifests/kustomize/base/crd | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
 .PHONY: deploy
 deploy: manifests ## Deploy controller to the K8s cluster specified in ~/.kube/config.
 	@echo IMG=${IMG}
 	@echo TAG=${TAG}
-	sed -i'' -e 's@newName: .*@newName: '"${IMG}"'@' ./config/base/kustomization.yaml
-	sed -i'' -e 's@newTag: .*@newTag: '"${TAG}"'@' ./config/base/kustomization.yaml
-	$(KUSTOMIZE) build config/base | kubectl apply -f -
+	sed -i'' -e 's@newName: .*@newName: '"${IMG}"'@' ./manifests/kustomize/base/kustomization.yaml
+	sed -i'' -e 's@newTag: .*@newTag: '"${TAG}"'@' ./manifests/kustomize/base/kustomization.yaml
+	$(KUSTOMIZE) build manifests/kustomize/base | kubectl apply -f -
 
 .PHONY: test-overlays
 test-overlays: manifests ## Deploy controller to the K8s cluster specified in ~/.kube/config. with overlay changes on top
 	@echo IMG=${IMG}
 	@echo TAG=${TAG}
-	sed -i'' -e 's@newName: .*@newName: '"${IMG}"'@' ./config/base/kustomization.yaml
-	sed -i'' -e 's@newTag: .*@newTag: '"${TAG}"'@' ./config/base/kustomization.yaml
-	$(KUSTOMIZE) build config/overlays/kubeflow | kubectl apply -f -
+	sed -i'' -e 's@newName: .*@newName: '"${IMG}"'@' ./manifests/kustomize/base/kustomization.yaml
+	sed -i'' -e 's@newTag: .*@newTag: '"${TAG}"'@' ./manifests/kustomize/base/kustomization.yaml
+	$(KUSTOMIZE) build manifests/kustomize/overlays/kubeflow | kubectl apply -f -
 
 .PHONY: undeploy
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	$(KUSTOMIZE) build config/base | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
+	$(KUSTOMIZE) build manifests/kustomize/base | kubectl delete --ignore-not-found=$(ignore-not-found) -f -
 
 ##@ Build Dependencies
 

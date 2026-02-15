@@ -65,7 +65,7 @@ applications = [
     },
     {
         "name": "Profile Controller",
-        "kustomization": "components/profile-controller/config/base/kustomization.yaml",
+        "kustomization": "components/profile-controller/manifests/kustomize/base/kustomization.yaml",
         "images": [
             {
                 "name": "ghcr.io/kubeflow/dashboard/profile-controller",
@@ -75,7 +75,7 @@ applications = [
     },
     {
         "name": "Access Management",
-        "kustomization": "components/profile-controller/config/overlays/kubeflow/kustomization.yaml",
+        "kustomization": "components/profile-controller/manifests/kustomize/overlays/kubeflow/kustomization.yaml",
         "images": [
             {
                 "name": "ghcr.io/kubeflow/dashboard/access-management",
