@@ -56,16 +56,6 @@ replacements:
           kind: ClusterRoleBinding
           name: dashboard-angular
   - source:
-      kind: ConfigMap
-      name: dashboard-angular-config
-      fieldPath: metadata.name
-    targets:
-      - fieldPaths:
-          - spec.template.spec.containers.[name=dashboard-angular].env.[name=DASHBOARD_CONFIGMAP].value
-        select:
-          kind: Deployment
-          name: dashboard-angular
-  - source:
       kind: Service
       name: dashboard-angular
       fieldPath: spec.ports.0.port
@@ -75,19 +65,4 @@ replacements:
         select:
           group: networking.istio.io
           kind: VirtualService
-          name: dashboard-angular
-  - source:
-      kind: Deployment
-      name: dashboard-angular
-      fieldPath: spec.template.spec.containers.[name=dashboard-angular].ports.0.containerPort
-    targets:
-      - fieldPaths:
-          - spec.template.spec.containers.[name=dashboard-angular].livenessProbe.httpGet.port
-        select:
-          kind: Deployment
-          name: dashboard-angular
-      - fieldPaths:
-          - spec.ports.0.targetPort
-        select:
-          kind: Service
           name: dashboard-angular
