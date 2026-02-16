@@ -59,7 +59,7 @@ jobs:
         cd components/profile-controller
         make docker-build-multi-arch IMG="${PROFILE_CONTROLLER_IMG}" TAG="${TAG}"
         kind load docker-image "${PROFILE_CONTROLLER_IMG}:${TAG}"
-        cd config
+        cd manifests/kustomize
         kustomize build overlays/kubeflow \
           | sed "s|ghcr.io/kubeflow/dashboard/profile-controller:[a-zA-Z0-9_.-]*|${PROFILE_CONTROLLER_IMG}:${TAG}|g" \
           | sed "s|ghcr.io/kubeflow/dashboard/access-management:[a-zA-Z0-9_.-]*|${ACCESS_MANAGEMENT_IMG}:${TAG}|g" \
