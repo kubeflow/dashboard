@@ -8,10 +8,6 @@ spec:
       containers:
       - image: ghcr.io/kubeflow/dashboard/poddefaults-webhook
         name: poddefaults-webhook
-        volumeMounts:
-        - mountPath: /etc/webhook/certs
-          name: webhook-cert
-          readOnly: true
         ports:
         - name: https-webhook
           containerPort: 4443
@@ -24,8 +20,4 @@ spec:
           capabilities:
             drop:
             - ALL
-      volumes:
-      - name: webhook-cert
-        secret:
-          secretName: poddefaults-webhook-certs
       serviceAccountName: poddefaults-webhook-service-account

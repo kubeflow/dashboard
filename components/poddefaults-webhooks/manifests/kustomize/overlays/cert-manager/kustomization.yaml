@@ -57,6 +57,7 @@ replacements:
       - fieldPaths:
           - metadata.annotations.[cert-manager.io/inject-ca-from]
         options:
+          create: true
           delimiter: /
           index: 0
         select:
@@ -72,6 +73,7 @@ replacements:
       - fieldPaths:
           - metadata.annotations.[cert-manager.io/inject-ca-from]
         options:
+          create: true
           delimiter: /
           index: 1
         select:
