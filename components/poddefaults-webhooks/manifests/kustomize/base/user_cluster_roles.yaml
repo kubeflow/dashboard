@@ -1,27 +1,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: cluster-role
-rules:
-- apiGroups:
-  - kubeflow.org
-  resources:
-  - poddefaults
-  verbs:
-  - get
-  - watch
-  - list
-  - update
-  - create
-  - patch
-  - delete
-
----
-
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: kubeflow-poddefaults-admin
+  name: poddefaults-webhook-kubeflow-poddefaults-admin
   labels:
     rbac.authorization.kubeflow.org/aggregate-to-kubeflow-admin: "true"
 aggregationRule:
@@ -29,31 +9,30 @@ aggregationRule:
   - matchLabels:
       rbac.authorization.kubeflow.org/aggregate-to-kubeflow-poddefaults-admin: "true"
 rules: []
-
 ---
-
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: kubeflow-poddefaults-edit
+  name: poddefaults-webhook-kubeflow-poddefaults-edit
   labels:
     rbac.authorization.kubeflow.org/aggregate-to-kubeflow-edit: "true"
+    rbac.authorization.kubeflow.org/aggregate-to-kubeflow-poddefaults-admin: "true"
 aggregationRule:
   clusterRoleSelectors:
   - matchLabels:
       rbac.authorization.kubeflow.org/aggregate-to-kubeflow-poddefaults-edit: "true"
+# The edit ClusterRole does not currently give edit access to PodDefaults.
+# This is because the `kubeflow-edit` ClusterRole is currently given to all users by default in most Kubeflow deployments,
+# and normal users don't need to manage the PodDefaults in their profile namespaces.
 rules: []
-
 ---
-
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: kubeflow-poddefaults-view
+  name: poddefaults-webhook-kubeflow-poddefaults-view
   labels:
-    rbac.authorization.kubeflow.org/aggregate-to-kubeflow-poddefaults-admin: "true"
-    rbac.authorization.kubeflow.org/aggregate-to-kubeflow-poddefaults-edit: "true"
     rbac.authorization.kubeflow.org/aggregate-to-kubeflow-view: "true"
+    rbac.authorization.kubeflow.org/aggregate-to-kubeflow-poddefaults-edit: "true"
 rules:
 - apiGroups:
   - kubeflow.org

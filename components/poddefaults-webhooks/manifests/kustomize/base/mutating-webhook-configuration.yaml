@@ -1,7 +1,7 @@
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
-  name: mutating-webhook-configuration
+  name: poddefaults-webhook-mutating-webhook-configuration
 webhooks:
 - admissionReviewVersions:
     - v1beta1
@@ -9,11 +9,11 @@ webhooks:
   clientConfig:
     caBundle: ""
     service:
-      name: service
+      name: poddefaults-webhook-service
       path: /apply-poddefault
   sideEffects: None
   failurePolicy: Fail
-  name: podDefaultsDeploymentName_PLACEHOLDER.kubeflow.org
+  name: poddefaults-webhook-deployment.kubeflow.org
   namespaceSelector:
     matchLabels:
       app.kubernetes.io/part-of: kubeflow-profile

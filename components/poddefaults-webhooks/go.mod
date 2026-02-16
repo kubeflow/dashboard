@@ -1,6 +1,6 @@
 module github.com/kubeflow/dashboard/components/poddefaults-webhooks
 
-go 1.20
+go 1.22.12
 
 require (
 	github.com/mattbaird/jsonpatch v0.0.0-20171005235357-81af80346b1a

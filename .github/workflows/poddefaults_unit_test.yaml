@@ -18,10 +18,26 @@ jobs:
     - name: Install Go
       uses: actions/setup-go@v5
       with:
-        go-version: "1.20"
+        go-version-file: components/poddefaults-webhooks/go.mod
         check-latest: true
+        cache-dependency-path: components/poddefaults-webhooks/go.sum
+
+    - name: Build
+      working-directory: components/poddefaults-webhooks
+      run: make build
 
     - name: Run unit tests
+      working-directory: components/poddefaults-webhooks
+      run: make test
+
+    - name: Check if there are uncommitted file changes
+      working-directory: components/poddefaults-webhooks
       run: |
-        cd components/poddefaults-webhooks
-        make test
+        clean=$(git status --porcelain)
+        if [[ -z "$clean" ]]; then
+            echo "Empty git status --porcelain: $clean"
+        else
+            echo "Uncommitted file changes detected: $clean"
+            git diff
+            exit 1
+        fi
