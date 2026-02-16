@@ -134,11 +134,12 @@ $(LOCALBIN):
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
-ENVTEST_VERSION?=release-0.12
+ENVTEST_VERSION?=release-0.17
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v3.2.0
 CONTROLLER_TOOLS_VERSION ?= v0.8.0
+CONTROLLER_GEN_GOTOOLCHAIN ?= go1.19.13
 
 KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
 .PHONY: kustomize
@@ -149,7 +150,7 @@ $(KUSTOMIZE): $(LOCALBIN)
 .PHONY: controller-gen
 controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
 $(CONTROLLER_GEN): $(LOCALBIN)
-	GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
+	GOBIN=$(LOCALBIN) GOTOOLCHAIN=$(CONTROLLER_GEN_GOTOOLCHAIN) go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_TOOLS_VERSION)
 
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.

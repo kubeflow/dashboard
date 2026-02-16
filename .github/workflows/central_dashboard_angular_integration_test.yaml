@@ -65,7 +65,7 @@ jobs:
           | sed "s|ghcr.io/kubeflow/dashboard/access-management:[a-zA-Z0-9_.-]*|${ACCESS_MANAGEMENT_IMG}:${TAG}|g" \
           | kubectl apply -f -
         kubectl wait --for=condition=Available deployment -n kubeflow profiles-deployment --timeout=300s
-        kubectl wait --for=condition=Ready pods -n kubeflow -l kustomize.component=profiles --timeout=300s
+        kubectl wait --for=condition=Ready pods -n kubeflow -l app=profiles --timeout=300s
 
     - name: Deploy CentralDashboard-Angular Component
       run: |

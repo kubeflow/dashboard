@@ -123,7 +123,7 @@ make deploy
 
 Verify that the controller is running in the `profiles-system` namespace:
 ```sh
-kubectl get pods -l kustomize.component=profiles -n profiles-system
+kubectl get pods -l app=profiles -n profiles-system
 ```
 
 ### Clean-up
