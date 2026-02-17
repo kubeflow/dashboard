@@ -82,18 +82,18 @@ case "$OPERATION" in
 
     "check-logs")
         LINES="${6:-50}"
-        # Handle special case for profiles-deployment which uses app=profiles label
+        # Handle special case for profiles-deployment which uses app.kubernetes.io/component label
         if [ "${SERVICE_NAME}" = "profiles-deployment" ]; then
-            kubectl logs -n "${NAMESPACE}" -l app=profiles --tail="${LINES}"
+            kubectl logs -n "${NAMESPACE}" -l app.kubernetes.io/component=profile-controller --tail="${LINES}"
         else
             kubectl logs -n "${NAMESPACE}" -l app="${SERVICE_NAME}" --tail="${LINES}"
         fi
         ;;
 
     "check-errors")
-        # Handle special case for profiles-deployment which uses app=profiles label
+        # Handle special case for profiles-deployment which uses app.kubernetes.io/component label
         if [ "${SERVICE_NAME}" = "profiles-deployment" ]; then
-            kubectl logs -n "${NAMESPACE}" -l app=profiles --tail=100 | grep -i error || echo "No errors found"
+            kubectl logs -n "${NAMESPACE}" -l app.kubernetes.io/component=profile-controller --tail=100 | grep -i error || echo "No errors found"
         else
             kubectl logs -n "${NAMESPACE}" -l app="${SERVICE_NAME}" --tail=100 | grep -i error || echo "No errors found"
         fi

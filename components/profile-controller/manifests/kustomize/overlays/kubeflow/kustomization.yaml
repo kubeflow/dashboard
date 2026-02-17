@@ -1,31 +1,40 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+
 namespace: kubeflow
+
 resources:
   - ../../base
-  - service.yaml
+
 components:
   - ../../components/istio
+  - ../../components/kfam
 
-commonLabels:
-  app: profiles
-  app.kubernetes.io/component: profiles
-  app.kubernetes.io/name: profile-controller
-  app.kubernetes.io/part-of: kubeflow-dashboard
-  app.kubernetes.io/managed-by: kustomize
+labels:
+  - pairs:
+      app: profiles
+      app.kubernetes.io/name: profile-controller
+      app.kubernetes.io/part-of: kubeflow-dashboard
+      app.kubernetes.io/managed-by: kustomize
 
-patchesStrategicMerge:
-  - patches/kfam.yaml
-  - patches/remove-namespace.yaml
+patches:
+  - path: patches/kfam.yaml
+  - path: patches/remove-namespace.yaml
 
-vars:
-  - name: PROFILES_NAMESPACE
-    fieldref:
-      fieldpath: metadata.namespace
-    objref:
-      name: profiles-kfam
+replacements:
+  - source:
       kind: Service
-      apiVersion: v1
+      version: v1
+      name: profiles-kfam
+      fieldPath: metadata.namespace
+    targets:
+      - select:
+          kind: VirtualService
+        fieldPaths:
+          - spec.http.0.route.0.destination.host
+        options:
+          delimiter: "."
+          index: 1
 
 images:
   - name: ghcr.io/kubeflow/dashboard/access-management

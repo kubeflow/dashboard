@@ -4,11 +4,15 @@ metadata:
   name: profiles-kfam
 spec:
   action: ALLOW
+  selector:
+    matchLabels:
+      app: profiles
+      app.kubernetes.io/component: profile-controller
+      app.kubernetes.io/name: profile-controller
+      app.kubernetes.io/part-of: kubeflow-dashboard
+      app.kubernetes.io/managed-by: kustomize
   rules:
     - from:
         - source:
             principals:
               - cluster.local/ns/kubeflow/sa/dashboard
-  selector:
-    matchLabels:
-      app: profiles

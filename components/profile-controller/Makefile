@@ -30,9 +30,11 @@ help: ## Display this help.
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) crd paths="./..." output:crd:artifacts:config=manifests/kustomize/base/crd/bases
+	$(CONTROLLER_GEN) crd paths="./..." output:crd:artifacts:config=manifests/kustomize/base/crd
 	# Uncomment when we remove the permissive ClusterRoleBinding to cluster-admin
-	# $(CONTROLLER_GEN) rbac:roleName=cluster-role-binding webhook paths="./..."
+	# $(CONTROLLER_GEN) rbac:roleName=manager-role webhook paths="./..." \
+	#	output:webhook:artifacts:config=manifests/kustomize/base/webhook \
+	#	output:rbac:artifacts:config=manifests/kustomize/base/manager
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
@@ -59,7 +61,7 @@ build: generate fmt vet ## Build manager binary.
 
 .PHONY: run
 run: manifests generate fmt vet ## Run a controller from your host.
-	go run ./main.go -namespace-labels-path ./manifests/kustomize/base/namespace-labels.yaml
+	go run ./main.go -namespace-labels-path ./manifests/kustomize/base/manager/namespace-labels.yaml
 
 .PHONY: docker-build
 docker-build: ## Build docker image with the manager.
@@ -134,7 +136,7 @@ $(LOCALBIN):
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
-ENVTEST_VERSION?=release-0.17
+ENVTEST_VERSION?=release-0.12
 
 ## Tool Versions
 KUSTOMIZE_VERSION ?= v3.2.0

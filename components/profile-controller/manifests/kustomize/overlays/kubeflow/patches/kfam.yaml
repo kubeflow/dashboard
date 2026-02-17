@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: deployment
+  name: profiles-deployment
 spec:
   template:
     metadata:
@@ -12,34 +12,34 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       containers:
-      - command:
-        - /access-management
-        - "-cluster-admin"
-        - $(ADMIN)
-        - "-userid-header"
-        - $(USERID_HEADER)
-        - "-userid-prefix"
-        - $(USERID_PREFIX)
-        envFrom:
-          - configMapRef:
-              name: config
-        image: ghcr.io/kubeflow/dashboard/access-management
-        imagePullPolicy: IfNotPresent
-        name: access-management
-        livenessProbe:
-          httpGet:
-            path: /metrics
-            port: 8081
-          initialDelaySeconds: 30
-          periodSeconds: 30
-        ports:
-        - containerPort: 8081
-          name: kfam-http
-          protocol: TCP
-        securityContext:
-          allowPrivilegeEscalation: false
-          runAsNonRoot: true
-          capabilities:
-            drop:
-            - ALL
-      serviceAccountName: controller-service-account
+        - command:
+            - /access-management
+            - "-cluster-admin"
+            - $(ADMIN)
+            - "-userid-header"
+            - $(USERID_HEADER)
+            - "-userid-prefix"
+            - $(USERID_PREFIX)
+          envFrom:
+            - configMapRef:
+                name: profiles-config
+          image: ghcr.io/kubeflow/dashboard/access-management
+          imagePullPolicy: IfNotPresent
+          name: access-management
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: 8081
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          ports:
+            - containerPort: 8081
+              name: kfam-http
+              protocol: TCP
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
+      serviceAccountName: profiles-controller-service-account

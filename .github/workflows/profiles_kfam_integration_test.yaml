@@ -22,156 +22,155 @@ jobs:
   integration-test:
     runs-on: ubuntu-22.04
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Setup Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: Install KinD
-      run: ./testing/gh-actions/install_kind.sh
+      - name: Install KinD
+        run: ./testing/gh-actions/install_kind.sh
 
-    - name: Create KinD Cluster
-      run: kind create cluster --config testing/gh-actions/kind-1-33.yaml
+      - name: Create KinD Cluster
+        run: kind create cluster --config testing/gh-actions/kind-1-33.yaml
 
-    - name: Install kustomize
-      run: ./testing/gh-actions/install_kustomize.sh
+      - name: Install kustomize
+        run: ./testing/gh-actions/install_kustomize.sh
 
-    - name: Install Istio
-      run: ./testing/gh-actions/install_istio.sh
+      - name: Install Istio
+        run: ./testing/gh-actions/install_istio.sh
 
-    - name: Create Kubeflow Namespace
-      run: kubectl create namespace kubeflow
+      - name: Create Kubeflow Namespace
+        run: kubectl create namespace kubeflow
 
-    - name: Build KFAM Image
-      run: |
-        cd components/access-management
-        make docker-build-multi-arch IMG="${ACCESS_MANAGEMENT_IMG}" TAG="${TAG}"
-        kind load docker-image "${ACCESS_MANAGEMENT_IMG}:${TAG}"
-        cd ../..
+      - name: Build KFAM Image
+        run: |
+          cd components/access-management
+          make docker-build-multi-arch IMG="${ACCESS_MANAGEMENT_IMG}" TAG="${TAG}"
+          kind load docker-image "${ACCESS_MANAGEMENT_IMG}:${TAG}"
+          cd ../..
 
-    - name: Deploy Profile Controller Component
-      run: |
-        cd components/profile-controller
-        make docker-build-multi-arch IMG="${PROFILE_IMG}" TAG="${TAG}"
-        kind load docker-image "${PROFILE_IMG}:${TAG}"
-        cd manifests/kustomize
-        kustomize build overlays/kubeflow \
-          | sed "s|ghcr.io/kubeflow/dashboard/profile-controller:[a-zA-Z0-9_.-]*|${PROFILE_IMG}:${TAG}|g" \
-          | sed "s|ghcr.io/kubeflow/dashboard/access-management:[a-zA-Z0-9_.-]*|${ACCESS_MANAGEMENT_IMG}:${TAG}|g" \
-          | kubectl apply -f -
-        kubectl wait --for=condition=Ready pods -n kubeflow -l app=profiles --timeout=300s
-        kubectl wait --for=condition=Available deployment -n kubeflow profiles-deployment --timeout=300s
+      - name: Deploy Profile Controller Component
+        run: |
+          cd components/profile-controller
+          make docker-build-multi-arch IMG="${PROFILE_IMG}" TAG="${TAG}"
+          kind load docker-image "${PROFILE_IMG}:${TAG}"
+          cd manifests/kustomize
+          kustomize build overlays/kubeflow \
+            | sed "s|ghcr.io/kubeflow/dashboard/profile-controller:[a-zA-Z0-9_.-]*|${PROFILE_IMG}:${TAG}|g" \
+            | sed "s|ghcr.io/kubeflow/dashboard/access-management:[a-zA-Z0-9_.-]*|${ACCESS_MANAGEMENT_IMG}:${TAG}|g" \
+            | kubectl apply -f -
+          kubectl wait --for=condition=Ready pods -n kubeflow -l app.kubernetes.io/component=profile-controller --timeout=300s
+          kubectl wait --for=condition=Available deployment -n kubeflow profiles-deployment --timeout=300s
 
-    - name: Wait for Profile CRD to be Available
-      run: |
-        timeout=300
-        interval=5
-        elapsed=0
-        while ! kubectl get crd profiles.kubeflow.org >/dev/null 2>&1; do
-          if [ $elapsed -ge $timeout ]; then
-            exit 1
+      - name: Wait for Profile CRD to be Available
+        run: |
+          timeout=300
+          interval=5
+          elapsed=0
+          while ! kubectl get crd profiles.kubeflow.org >/dev/null 2>&1; do
+            if [ $elapsed -ge $timeout ]; then
+              exit 1
+            fi
+            sleep $interval
+            elapsed=$((elapsed + interval))
+          done
+          kubectl wait --for condition=established --timeout=60s crd/profiles.kubeflow.org
+
+      - name: Wait for KFAM to be Ready
+        run: |
+          kubectl get service profiles-kfam -n kubeflow || {
+            echo "KFAM service not found, KFAM might be deployed as part of profiles deployment"
+            kubectl wait --for=condition=Ready pods -n kubeflow -l app.kubernetes.io/component=profile-controller --timeout=300s
+          }
+
+      - name: Test Profile CRD Installation
+        run: |
+          kubectl get crd profiles.kubeflow.org
+          kubectl describe crd profiles.kubeflow.org
+
+      - name: Create Test Profile with Resource Quotas
+        run: |
+          ./components/profile-controller/integration/test_profile.sh create test-profile-user test-user@example.com
+
+      - name: Validate Test Profile Resources
+        run: |
+          ./components/profile-controller/integration/test_profile.sh validate test-profile-user
+
+      - name: Test Profile Update
+        run: |
+          ./components/profile-controller/integration/test_profile.sh update test-profile-user
+
+      - name: Create Simple Test Profile
+        run: |
+          ./components/profile-controller/integration/test_profile.sh create-simple simple-profile simple-user@example.com
+
+      - name: Validate Simple Profile Resources
+        run: |
+          ./components/profile-controller/integration/test_profile.sh validate simple-profile
+
+      - name: Test KFAM Service Health
+        run: |
+          kubectl get services -n kubeflow | grep kfam 
+          kubectl get services -n kubeflow -l app.kubernetes.io/component=profile-controller 
+
+          POD_NAME=$(kubectl get pods -n kubeflow -l app.kubernetes.io/component=profile-controller -o jsonpath="{.items[0].metadata.name}")
+          if [ -z "$POD_NAME" ]; then exit 1; fi
+
+          kubectl port-forward -n kubeflow pod/$POD_NAME 8081:8081 &
+          PF_PID=$!
+          echo $PF_PID > /tmp/kfam_pf.pid
+          sleep 5
+
+          curl -v http://localhost:8081/kfam/ || curl -v http://localhost:8081/metrics || curl -v http://localhost:8081/kfam/v1/bindings
+
+          if [ -f "/tmp/kfam_pf.pid" ]; then
+            kill $(cat /tmp/kfam_pf.pid)
+            rm -f /tmp/kfam_pf.pid
           fi
-          sleep $interval
-          elapsed=$((elapsed + interval))
-        done
-        kubectl wait --for condition=established --timeout=60s crd/profiles.kubeflow.org
 
+      - name: Test KFAM API with User Context
+        run: |
+          POD_NAME=$(kubectl get pods -n kubeflow -l app.kubernetes.io/component=profile-controller -o jsonpath="{.items[0].metadata.name}")
+          if [ -z "$POD_NAME" ]; then exit 1; fi
 
-    - name: Wait for KFAM to be Ready
-      run: |
-        kubectl get service profiles-kfam -n kubeflow || {
-          echo "KFAM service not found, KFAM might be deployed as part of profiles deployment"
-          kubectl wait --for=condition=Ready pods -n kubeflow -l app=profiles --timeout=300s
-        }
+          kubectl port-forward -n kubeflow pod/$POD_NAME 8081:8081 &
+          PF_PID=$!
+          echo $PF_PID > /tmp/kfam_pf.pid
+          sleep 5
 
-    - name: Test Profile CRD Installation
-      run: |
-        kubectl get crd profiles.kubeflow.org
-        kubectl describe crd profiles.kubeflow.org
+          curl -v -H "kubeflow-userid: test-user@example.com" http://localhost:8081/kfam/v1/bindings?namespace=test-profile-user
 
-    - name: Create Test Profile with Resource Quotas
-      run: |
-        ./components/profile-controller/integration/test_profile.sh create test-profile-user test-user@example.com
+          if [ -f "/tmp/kfam_pf.pid" ]; then
+            kill $(cat /tmp/kfam_pf.pid)
+            rm -f /tmp/kfam_pf.pid
+          fi
 
-    - name: Validate Test Profile Resources
-      run: |
-        ./components/profile-controller/integration/test_profile.sh validate test-profile-user
+      - name: Test Profile Status and Conditions
+        run: |
+          kubectl get profile test-profile-user -o yaml
+          kubectl get profile simple-profile -o yaml
 
-    - name: Test Profile Update
-      run: |
-        ./components/profile-controller/integration/test_profile.sh update test-profile-user
+      - name: List All Profiles
+        run: |
+          ./components/profile-controller/integration/test_profile.sh list
 
-    - name: Create Simple Test Profile
-      run: |
-        ./components/profile-controller/integration/test_profile.sh create-simple simple-profile simple-user@example.com
+      - name: Check KFAM Logs
+        run: |
+          kubectl logs -n kubeflow -l app.kubernetes.io/component=profile-controller -c access-management --tail=50 || kubectl logs -n kubeflow -l app.kubernetes.io/component=profile-controller --tail=50
 
-    - name: Validate Simple Profile Resources
-      run: |
-        ./components/profile-controller/integration/test_profile.sh validate simple-profile
+      - name: Check Profile Controller Logs
+        run: |
+          kubectl logs -n kubeflow -l app.kubernetes.io/component=profile-controller --tail=50
 
-    - name: Test KFAM Service Health
-      run: |
-        kubectl get services -n kubeflow | grep kfam 
-        kubectl get services -n kubeflow -l app=profiles 
-        
-        POD_NAME=$(kubectl get pods -n kubeflow -l app=profiles -o jsonpath="{.items[0].metadata.name}")
-        if [ -z "$POD_NAME" ]; then exit 1; fi
-        
-        kubectl port-forward -n kubeflow pod/$POD_NAME 8081:8081 &
-        PF_PID=$!
-        echo $PF_PID > /tmp/kfam_pf.pid
-        sleep 5
-        
-        curl -v http://localhost:8081/kfam/ || curl -v http://localhost:8081/metrics || curl -v http://localhost:8081/kfam/v1/bindings
-        
-        if [ -f "/tmp/kfam_pf.pid" ]; then
-          kill $(cat /tmp/kfam_pf.pid)
-          rm -f /tmp/kfam_pf.pid
-        fi
+      - name: Check for Errors in Logs
+        run: |
+          kubectl logs -n kubeflow -l app.kubernetes.io/component=profile-controller -c access-management --tail=100 | grep -i error  || echo "No errors found in KFAM logs"
+          kubectl logs -n kubeflow -l app.kubernetes.io/component=profile-controller --tail=100 | grep -i error  || echo "No errors found in Profile Controller logs"
 
-    - name: Test KFAM API with User Context
-      run: |
-        POD_NAME=$(kubectl get pods -n kubeflow -l app=profiles -o jsonpath="{.items[0].metadata.name}")
-        if [ -z "$POD_NAME" ]; then exit 1; fi
-        
-        kubectl port-forward -n kubeflow pod/$POD_NAME 8081:8081 &
-        PF_PID=$!
-        echo $PF_PID > /tmp/kfam_pf.pid
-        sleep 5
-        
-        curl -v -H "kubeflow-userid: test-user@example.com" http://localhost:8081/kfam/v1/bindings?namespace=test-profile-user
-        
-        if [ -f "/tmp/kfam_pf.pid" ]; then
-          kill $(cat /tmp/kfam_pf.pid)
-          rm -f /tmp/kfam_pf.pid
-        fi
-
-    - name: Test Profile Status and Conditions
-      run: |
-        kubectl get profile test-profile-user -o yaml
-        kubectl get profile simple-profile -o yaml
-
-    - name: List All Profiles
-      run: |
-        ./components/profile-controller/integration/test_profile.sh list
-
-    - name: Check KFAM Logs
-      run: |
-        kubectl logs -n kubeflow -l app=profiles -c access-management --tail=50 || kubectl logs -n kubeflow -l app=kfam --tail=50
-
-    - name: Check Profile Controller Logs
-      run: |
-        kubectl logs -n kubeflow -l app=profiles --tail=50
-
-    - name: Check for Errors in Logs
-      run: |
-        kubectl logs -n kubeflow -l app=profiles -c access-management --tail=100 | grep -i error  || echo "No errors found in KFAM logs"
-        kubectl logs -n kubeflow -l app=profiles --tail=100 | grep -i error  || echo "No errors found in Profile Controller logs"
-
-    - name: Cleanup Test Resources
-      run: |
-        ./components/profile-controller/integration/test_profile.sh delete test-profile-user
-        ./components/profile-controller/integration/test_profile.sh delete simple-profile
+      - name: Cleanup Test Resources
+        run: |
+          ./components/profile-controller/integration/test_profile.sh delete test-profile-user
+          ./components/profile-controller/integration/test_profile.sh delete simple-profile

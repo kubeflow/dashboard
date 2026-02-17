@@ -3,8 +3,8 @@ on:
   pull_request:
     paths:
       - components/centraldashboard-angular/**
-      - components/access-management/**  
-      - components/profile-controller/** 
+      - components/access-management/**
+      - components/profile-controller/**
       - releasing/version/VERSION
     branches:
       - main
@@ -24,143 +24,143 @@ jobs:
   integration-test:
     runs-on: ubuntu-22.04
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Setup Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: Install KinD
-      run: ./testing/gh-actions/install_kind.sh
+      - name: Install KinD
+        run: ./testing/gh-actions/install_kind.sh
 
-    - name: Create KinD Cluster
-      run: kind create cluster --config testing/gh-actions/kind-1-33.yaml
+      - name: Create KinD Cluster
+        run: kind create cluster --config testing/gh-actions/kind-1-33.yaml
 
-    - name: Install kustomize
-      run: ./testing/gh-actions/install_kustomize.sh
+      - name: Install kustomize
+        run: ./testing/gh-actions/install_kustomize.sh
 
-    - name: Install Istio
-      run: ./testing/gh-actions/install_istio.sh
+      - name: Install Istio
+        run: ./testing/gh-actions/install_istio.sh
 
-    - name: Create Kubeflow Namespace
-      run: kubectl create namespace kubeflow
+      - name: Create Kubeflow Namespace
+        run: kubectl create namespace kubeflow
 
-    - name: Build Access Management Image
-      run: |
-        cd components/access-management
-        make docker-build-multi-arch IMG="${ACCESS_MANAGEMENT_IMG}" TAG="${TAG}"
-        kind load docker-image "${ACCESS_MANAGEMENT_IMG}:${TAG}"
-        cd ../..
+      - name: Build Access Management Image
+        run: |
+          cd components/access-management
+          make docker-build-multi-arch IMG="${ACCESS_MANAGEMENT_IMG}" TAG="${TAG}"
+          kind load docker-image "${ACCESS_MANAGEMENT_IMG}:${TAG}"
+          cd ../..
 
-    - name: Build and Deploy Profile Controller with KFAM
-      run: |
-        cd components/profile-controller
-        make docker-build-multi-arch IMG="${PROFILE_CONTROLLER_IMG}" TAG="${TAG}"
-        kind load docker-image "${PROFILE_CONTROLLER_IMG}:${TAG}"
-        cd manifests/kustomize
-        kustomize build overlays/kubeflow \
-          | sed "s|ghcr.io/kubeflow/dashboard/profile-controller:[a-zA-Z0-9_.-]*|${PROFILE_CONTROLLER_IMG}:${TAG}|g" \
-          | sed "s|ghcr.io/kubeflow/dashboard/access-management:[a-zA-Z0-9_.-]*|${ACCESS_MANAGEMENT_IMG}:${TAG}|g" \
-          | kubectl apply -f -
-        kubectl wait --for=condition=Available deployment -n kubeflow profiles-deployment --timeout=300s
-        kubectl wait --for=condition=Ready pods -n kubeflow -l app=profiles --timeout=300s
+      - name: Build and Deploy Profile Controller with KFAM
+        run: |
+          cd components/profile-controller
+          make docker-build-multi-arch IMG="${PROFILE_CONTROLLER_IMG}" TAG="${TAG}"
+          kind load docker-image "${PROFILE_CONTROLLER_IMG}:${TAG}"
+          cd manifests/kustomize
+          kustomize build overlays/kubeflow \
+            | sed "s|ghcr.io/kubeflow/dashboard/profile-controller:[a-zA-Z0-9_.-]*|${PROFILE_CONTROLLER_IMG}:${TAG}|g" \
+            | sed "s|ghcr.io/kubeflow/dashboard/access-management:[a-zA-Z0-9_.-]*|${ACCESS_MANAGEMENT_IMG}:${TAG}|g" \
+            | kubectl apply -f -
+          kubectl wait --for=condition=Available deployment -n kubeflow profiles-deployment --timeout=300s
+          kubectl wait --for=condition=Ready pods -n kubeflow -l app.kubernetes.io/component=profile-controller --timeout=300s
 
-    - name: Deploy CentralDashboard-Angular Component
-      run: |
-        ./testing/shared/deploy_component.sh \
-          "components/centraldashboard-angular" \
-          "${DASHBOARD_IMG}" \
-          "${TAG}" \
-          "manifests/kustomize" \
-          "overlays/kserve"
-        kubectl wait --for=condition=Ready pods -n kubeflow -l app=dashboard-angular --timeout=300s
-        kubectl wait --for=condition=Available deployment -n kubeflow dashboard-angular --timeout=300s
+      - name: Deploy CentralDashboard-Angular Component
+        run: |
+          ./testing/shared/deploy_component.sh \
+            "components/centraldashboard-angular" \
+            "${DASHBOARD_IMG}" \
+            "${TAG}" \
+            "manifests/kustomize" \
+            "overlays/kserve"
+          kubectl wait --for=condition=Ready pods -n kubeflow -l app=dashboard-angular --timeout=300s
+          kubectl wait --for=condition=Available deployment -n kubeflow dashboard-angular --timeout=300s
 
-    - name: Create Test Profile for Dashboard Testing
-      run: |
-        cat <<EOF | kubectl apply -f -
-        apiVersion: kubeflow.org/v1
-        kind: Profile
-        metadata:
-          name: test-dashboard-profile
-        spec:
-          owner:
-            kind: User
-            name: dashboard-user@example.com
-        EOF
-        
-        for i in {1..60}; do
-          if kubectl get namespace test-dashboard-profile >/dev/null 2>&1; then
-            break
-          fi
-          echo "Waiting for namespace... (attempt $i/60)"
-          sleep 5
-        done
-        
-        if ! kubectl get namespace test-dashboard-profile >/dev/null 2>&1; then
-          exit 1
-        fi
-        
-        kubectl get profile test-dashboard-profile
-        kubectl get namespace test-dashboard-profile
+      - name: Create Test Profile for Dashboard Testing
+        run: |
+          cat <<EOF | kubectl apply -f -
+          apiVersion: kubeflow.org/v1
+          kind: Profile
+          metadata:
+            name: test-dashboard-profile
+          spec:
+            owner:
+              kind: User
+              name: dashboard-user@example.com
+          EOF
 
-    - name: Validate Service
-      run: |
-        ./testing/shared/test_service.sh validate-service dashboard-angular kubeflow
+          for i in {1..60}; do
+            if kubectl get namespace test-dashboard-profile >/dev/null 2>&1; then
+              break
+            fi
+            echo "Waiting for namespace... (attempt $i/60)"
+            sleep 5
+          done
 
-    - name: Start Port Forward for Dashboard Testing
-      run: |
-        ./testing/shared/test_service.sh port-forward dashboard-angular kubeflow 8080 80
-
-    - name: Test Dashboard Health
-      run: |
-        ./testing/shared/test_service.sh test-health dashboard-angular kubeflow 8080
-
-    - name: Test Dashboard Web Interface
-      run: |
-        curl -f "http://localhost:8080/" >/dev/null 2>&1 
-        
-        curl -f "http://localhost:8080/healthz" >/dev/null 2>&1 
-        
-        RESPONSE=$(curl -s "http://localhost:8080/" | head -c 100)
-        if [[ -n "$RESPONSE" ]]; then
-          echo "Dashboard is serving content: ${RESPONSE:0:50}..."
-        else
-          exit 1
-        fi
-        
-        kubectl get service dashboard-angular -n kubeflow
-        kubectl get pods -n kubeflow -l app=dashboard-angular
-
-    - name: Test Dashboard Performance
-      run: |
-        ./testing/shared/test_service.sh performance-test dashboard-angular kubeflow 8080 80 8
-
-    - name: Test Dashboard Metrics
-      run: |
-        ./testing/shared/test_service.sh test-metrics dashboard-angular kubeflow 8080
-
-    - name: Check Dashboard Logs
-      run: |
-        ./testing/shared/test_service.sh check-logs dashboard-angular kubeflow 50
-
-    - name: Check for Errors in Logs
-      run: |
-        ./testing/shared/test_service.sh check-errors dashboard-angular kubeflow
-
-    - name: Stop Port Forward
-      run: |
-        ./testing/shared/test_service.sh stop-port-forward dashboard-angular kubeflow 8080
-
-    - name: Cleanup Test Resources
-      run: |
-        kubectl delete profile test-dashboard-profile --ignore-not-found=true
-        for i in {1..30}; do
           if ! kubectl get namespace test-dashboard-profile >/dev/null 2>&1; then
-            break
+            exit 1
           fi
-          echo "Waiting for namespace deletion... (attempt $i/30)"
-          sleep 5
-        done
+
+          kubectl get profile test-dashboard-profile
+          kubectl get namespace test-dashboard-profile
+
+      - name: Validate Service
+        run: |
+          ./testing/shared/test_service.sh validate-service dashboard-angular kubeflow
+
+      - name: Start Port Forward for Dashboard Testing
+        run: |
+          ./testing/shared/test_service.sh port-forward dashboard-angular kubeflow 8080 80
+
+      - name: Test Dashboard Health
+        run: |
+          ./testing/shared/test_service.sh test-health dashboard-angular kubeflow 8080
+
+      - name: Test Dashboard Web Interface
+        run: |
+          curl -f "http://localhost:8080/" >/dev/null 2>&1 
+
+          curl -f "http://localhost:8080/healthz" >/dev/null 2>&1 
+
+          RESPONSE=$(curl -s "http://localhost:8080/" | head -c 100)
+          if [[ -n "$RESPONSE" ]]; then
+            echo "Dashboard is serving content: ${RESPONSE:0:50}..."
+          else
+            exit 1
+          fi
+
+          kubectl get service dashboard-angular -n kubeflow
+          kubectl get pods -n kubeflow -l app=dashboard-angular
+
+      - name: Test Dashboard Performance
+        run: |
+          ./testing/shared/test_service.sh performance-test dashboard-angular kubeflow 8080 80 8
+
+      - name: Test Dashboard Metrics
+        run: |
+          ./testing/shared/test_service.sh test-metrics dashboard-angular kubeflow 8080
+
+      - name: Check Dashboard Logs
+        run: |
+          ./testing/shared/test_service.sh check-logs dashboard-angular kubeflow 50
+
+      - name: Check for Errors in Logs
+        run: |
+          ./testing/shared/test_service.sh check-errors dashboard-angular kubeflow
+
+      - name: Stop Port Forward
+        run: |
+          ./testing/shared/test_service.sh stop-port-forward dashboard-angular kubeflow 8080
+
+      - name: Cleanup Test Resources
+        run: |
+          kubectl delete profile test-dashboard-profile --ignore-not-found=true
+          for i in {1..30}; do
+            if ! kubectl get namespace test-dashboard-profile >/dev/null 2>&1; then
+              break
+            fi
+            echo "Waiting for namespace deletion... (attempt $i/30)"
+            sleep 5
+          done
