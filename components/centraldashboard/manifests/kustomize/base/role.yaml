@@ -9,7 +9,6 @@ rules:
     resources:
       - applications
       - pods
-      - pods/exec
       - pods/log
     verbs:
       - get
@@ -18,7 +17,6 @@ rules:
   - apiGroups:
       - ""
     resources:
-      - secrets
       - configmaps
     verbs:
       - get
