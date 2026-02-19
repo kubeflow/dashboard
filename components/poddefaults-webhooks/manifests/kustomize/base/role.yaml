@@ -1,3 +1,4 @@
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -8,10 +9,10 @@ rules:
   resources:
   - poddefaults
   verbs:
-  - get
-  - watch
-  - list
-  - update
   - create
-  - patch
   - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch

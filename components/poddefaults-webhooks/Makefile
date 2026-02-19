@@ -14,8 +14,9 @@ endif
 
 .PHONY: manifests
 manifests: controller-gen ## Generate CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) crd paths="./..." \
-		output:crd:artifacts:config=manifests/kustomize/base
+	$(CONTROLLER_GEN) rbac:roleName=poddefaults-webhook-cluster-role crd paths="./..." \
+		output:crd:artifacts:config=manifests/kustomize/base \
+		output:rbac:artifacts:config=manifests/kustomize/base
 
 	mv manifests/kustomize/base/kubeflow.org_poddefaults.yaml manifests/kustomize/base/crd.yaml
 

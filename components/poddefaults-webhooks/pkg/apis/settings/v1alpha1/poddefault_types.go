@@ -20,13 +20,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+// Important: Run "make" to regenerate code after modifying this file
+
+/*
+===============================================================================
+                               PodDefault - Spec
+===============================================================================
+*/
 
 // PodDefaultSpec defines the desired state of PodDefault
 type PodDefaultSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
 
 	// Selector is a label query over a set of resources, in this case pods.
 	// Required.
@@ -88,21 +91,28 @@ type PodDefaultSpec struct {
 	ImagePullSecrets []v1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
 }
 
+/*
+===============================================================================
+                              PodDefault - Status
+===============================================================================
+*/
+
 // PodDefaultStatus defines the observed state of PodDefault
 type PodDefaultStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
 }
 
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+/*
+===============================================================================
+                                   PodDefault
+===============================================================================
+*/
+
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=poddefaults
+// +kubebuilder:subresource:status
 
 // PodDefault is the Schema for the poddefaults API
-// +k8s:openapi-gen=true
-// +kubebuilder:resource:path=poddefaults
-// +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;watch;list;update
-// +kubebuilder:rbac:groups=,resources=events,verbs=create;patch;update
-// +kubebuilder:informers:group=apps,version=v1,kind=Deployment
 type PodDefault struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -111,7 +121,13 @@ type PodDefault struct {
 	Status PodDefaultStatus `json:"status,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+/*
+===============================================================================
+                                 PodDefaultList
+===============================================================================
+*/
+
+// +kubebuilder:object:root=true
 
 // PodDefaultList contains a list of PodDefault
 type PodDefaultList struct {
