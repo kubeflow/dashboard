@@ -4,11 +4,11 @@ kind: Kustomization
 namespace: kubeflow
 
 resources:
-  - cluster-role-binding.yaml
-  - cluster-role.yaml
   - crd.yaml
   - deployment.yaml
   - mutating-webhook-configuration.yaml
+  - role.yaml
+  - role_binding.yaml
   - service-account.yaml
   - service.yaml
   - user_cluster_roles.yaml

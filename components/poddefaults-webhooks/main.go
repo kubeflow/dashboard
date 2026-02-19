@@ -42,6 +42,8 @@ import (
 	"k8s.io/klog"
 )
 
+// +kubebuilder:rbac:groups=kubeflow.org,resources=poddefaults,verbs=create;delete;get;list;patch;update;watch
+
 const (
 	annotationPrefix        = "poddefault.admission.kubeflow.org"
 	istioProxyContainerName = "istio-proxy"
