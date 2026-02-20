@@ -5,7 +5,10 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
+  # TODO: we should replace 'cluster-admin' with generated one from controller-gen with less permissions,
+  #       but it's not critical because profile-controller is highly privileged no matter what.
   name: cluster-admin
 subjects:
   - kind: ServiceAccount
     name: profiles-controller-service-account
+    namespace: profiles-system

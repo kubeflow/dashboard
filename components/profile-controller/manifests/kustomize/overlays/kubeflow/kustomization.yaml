@@ -9,34 +9,81 @@ resources:
 components:
   - ../../components/istio
   - ../../components/kfam
-
-labels:
-  - pairs:
-      app: profiles
-      app.kubernetes.io/name: profile-controller
-      app.kubernetes.io/part-of: kubeflow-dashboard
-      app.kubernetes.io/managed-by: kustomize
+#  - ../../components/prometheus-noauth
+#  - ../../components/prometheus-authz
+  # NOTE: the common component should always be last, to ensure it labels all resources.
+  - ../../components/common
 
 patches:
-  - path: patches/kfam.yaml
   - path: patches/remove-namespace.yaml
+
+configMapGenerator:
+  - name: profiles-config
+    behavior: replace
+    envs:
+      - params.env
+
+  - name: profiles-namespace-labels-data
+    behavior: replace
+    files:
+      - namespace-labels.yaml
 
 replacements:
   - source:
+      fieldPath: metadata.name
       kind: Service
-      version: v1
       name: profiles-kfam
-      fieldPath: metadata.namespace
+      version: v1
     targets:
-      - select:
-          kind: VirtualService
-        fieldPaths:
+      - fieldPaths:
           - spec.http.0.route.0.destination.host
         options:
-          delimiter: "."
+          delimiter: .
+        select:
+          group: networking.istio.io
+          kind: VirtualService
+          name: profiles-kfam
+          version: v1alpha3
+  - source:
+      fieldPath: spec.ports.0.port
+      kind: Service
+      name: profiles-kfam
+      version: v1
+    targets:
+      - fieldPaths:
+          - spec.http.0.route.0.destination.port.number
+        select:
+          group: networking.istio.io
+          kind: VirtualService
+          name: profiles-kfam
+  - source:
+      fieldPath: metadata.namespace
+      kind: Service
+      name: profiles-kfam
+      version: v1
+    targets:
+      - fieldPaths:
+          - spec.http.0.route.0.destination.host
+        options:
+          delimiter: .
           index: 1
-
-images:
-  - name: ghcr.io/kubeflow/dashboard/access-management
-    newName: ghcr.io/kubeflow/dashboard/access-management
-    newTag: latest
+        select:
+          group: networking.istio.io
+          kind: VirtualService
+          name: profiles-kfam
+          version: v1alpha3
+  - source:
+      fieldPath: metadata.namespace
+      kind: ServiceAccount
+      name: profiles-controller-service-account
+    targets:
+      - fieldPaths:
+          - subjects.[kind=ServiceAccount].namespace
+        select:
+          kind: ClusterRoleBinding
+          name: profiles-cluster-rolebinding
+      - fieldPaths:
+          - subjects.[kind=ServiceAccount].namespace
+        select:
+          kind: ClusterRoleBinding
+          name: profiles-leader-election-rolebinding

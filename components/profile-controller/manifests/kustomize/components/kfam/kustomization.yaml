@@ -3,3 +3,11 @@ kind: Component
 
 resources:
   - service.yaml
+
+patches:
+  - path: manager_kfam_patch.yaml
+
+images:
+  - name: access-management
+    newName: ghcr.io/kubeflow/dashboard/access-management
+    newTag: latest

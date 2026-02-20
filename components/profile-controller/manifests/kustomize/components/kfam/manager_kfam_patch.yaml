@@ -8,9 +8,6 @@ spec:
       labels:
         sidecar.istio.io/inject: "true"
     spec:
-      securityContext:
-        seccompProfile:
-          type: RuntimeDefault
       containers:
         - command:
             - /access-management
@@ -23,18 +20,24 @@ spec:
           envFrom:
             - configMapRef:
                 name: profiles-config
-          image: ghcr.io/kubeflow/dashboard/access-management
+          image: access-management
           imagePullPolicy: IfNotPresent
           name: access-management
           livenessProbe:
             httpGet:
               path: /metrics
               port: 8081
-            initialDelaySeconds: 30
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /metrics
+              port: 8081
+            initialDelaySeconds: 15
             periodSeconds: 30
           ports:
-            - containerPort: 8081
-              name: kfam-http
+            - name: http-kfam
+              containerPort: 8081
               protocol: TCP
           securityContext:
             allowPrivilegeEscalation: false
@@ -42,4 +45,3 @@ spec:
             capabilities:
               drop:
                 - ALL
-      serviceAccountName: profiles-controller-service-account

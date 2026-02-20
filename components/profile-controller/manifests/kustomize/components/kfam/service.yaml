@@ -4,6 +4,8 @@ metadata:
   name: profiles-kfam
 spec:
   selector:
-    app.kubernetes.io/component: profile-controller
+    app.kubernetes.io/component: controller-manager
   ports:
     - port: 8081
+      protocol: TCP
+      targetPort: 8081

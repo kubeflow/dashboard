@@ -9,3 +9,4 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: profiles-controller-service-account
+    namespace: profiles-system

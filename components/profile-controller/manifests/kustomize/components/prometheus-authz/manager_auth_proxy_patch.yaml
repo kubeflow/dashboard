@@ -9,7 +9,7 @@ spec:
     spec:
       containers:
         - name: kube-rbac-proxy
-          image: quay.io/brancz/kube-rbac-proxy:v0.11.0
+          image: quay.io/brancz/kube-rbac-proxy:v0.20.2
           args:
             - "--secure-listen-address=0.0.0.0:8443"
             - "--upstream=http://127.0.0.1:8080/"
@@ -28,6 +28,8 @@ spec:
               memory: 64Mi
         - name: manager
           args:
-            - "--health-probe-bind-address=:8081"
-            - "--metrics-bind-address=127.0.0.1:8080"
             - "--leader-elect"
+            ## NOTE: we use 9876 for the health probe because 8081 is used by KFAM which is part of the same deployment.
+            - "--health-probe-bind-address=:9876"
+            ## NOTE: this only listens on link-local so it won't be exposed outside the pod, as the kube-rbac-proxy will be used.
+            - "--metrics-bind-address=127.0.0.1:8080"

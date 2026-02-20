@@ -65,20 +65,20 @@ applications = [
     },
     {
         "name": "Profile Controller",
-        "kustomization": "components/profile-controller/manifests/kustomize/base/kustomization.yaml",
+        "kustomization": "components/profile-controller/manifests/kustomize/base/manager/kustomization.yaml",
         "images": [
             {
-                "name": "ghcr.io/kubeflow/dashboard/profile-controller",
+                "name": "profile-controller",
                 "newName": "ghcr.io/kubeflow/dashboard/profile-controller",
             },
         ],
     },
     {
         "name": "Access Management",
-        "kustomization": "components/profile-controller/manifests/kustomize/overlays/kubeflow/kustomization.yaml",
+        "kustomization": "components/profile-controller/manifests/kustomize/components/kfam/kustomization.yaml",
         "images": [
             {
-                "name": "ghcr.io/kubeflow/dashboard/access-management",
+                "name": "access-management",
                 "newName": "ghcr.io/kubeflow/dashboard/access-management",
             },
         ],

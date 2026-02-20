@@ -4,10 +4,3 @@ kind: Component
 resources:
   - virtual-service.yaml
   - authorizationpolicy.yaml
-
-labels:
-  - pairs:
-      app.kubernetes.io/component: profile-controller
-
-configurations:
-  - params.yaml

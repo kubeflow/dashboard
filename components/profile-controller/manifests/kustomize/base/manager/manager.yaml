@@ -23,10 +23,15 @@ spec:
             - $(USERID_PREFIX)
             - "-workload-identity"
             - $(WORKLOAD_IDENTITY)
+          args:
+            - --leader-elect
+            ## NOTE: we use 9876 for the health probe because 8081 is used by KFAM which is part of the same deployment.
+            - --health-probe-bind-address=:9876
+            - --metrics-bind-address=0
           envFrom:
             - configMapRef:
                 name: profiles-config
-          image: ghcr.io/kubeflow/dashboard/profile-controller
+          image: profile-controller
           imagePullPolicy: IfNotPresent
           name: manager
           securityContext:
@@ -42,7 +47,7 @@ spec:
               path: /healthz
               port: 9876
             initialDelaySeconds: 15
-            periodSeconds: 20
+            periodSeconds: 30
           readinessProbe:
             httpGet:
               path: /readyz
@@ -50,7 +55,9 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 10
           ports:
-            - containerPort: 9876
+            - name: http
+              containerPort: 9876
+              protocol: TCP
           volumeMounts:
             - name: namespace-labels
               mountPath: /etc/profile-controller

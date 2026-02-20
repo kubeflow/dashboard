@@ -16,3 +16,8 @@ spec:
             - containerPort: 8080
               name: metrics
               protocol: TCP
+          args:
+            - "--leader-elect"
+            ## NOTE: we use 9876 for the health probe because 8081 is used by KFAM which is part of the same deployment.
+            - "--health-probe-bind-address=:9876"
+            - "--metrics-bind-address=:8080"

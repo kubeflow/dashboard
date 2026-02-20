@@ -9,5 +9,4 @@ resources:
   - monitor.yaml
 
 patches:
-  # This patch enables Prometheus scraping for the manager pod
-  - path: manager_prometheus_metrics_patch.yaml
+  - path: manager_auth_proxy_patch.yaml

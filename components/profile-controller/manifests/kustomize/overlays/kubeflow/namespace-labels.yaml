@@ -13,3 +13,6 @@
 #    4. Apply new ConfigMap
 #
 app.kubernetes.io/part-of: "kubeflow-profile"
+katib.kubeflow.org/metrics-collector-injection: "enabled"
+pipelines.kubeflow.org/enabled: "true"
+serving.kubeflow.org/inferenceservice: "enabled"

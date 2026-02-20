@@ -8,17 +8,13 @@ spec:
   hosts:
   - '*'
   http:
-  - headers:
-      request:
-        add:
-          x-forwarded-prefix: /kfam
-    match:
+  - match:
     - uri:
         prefix: /kfam/
     rewrite:
       uri: /kfam/
     route:
     - destination:
-        host: profiles-kfam.$(PROFILES_NAMESPACE).svc.cluster.local
+        host: KFAM_SERVICE_NAME.KFAM_SERVICE_NAMESPACE.svc.cluster.local
         port:
           number: 8081
