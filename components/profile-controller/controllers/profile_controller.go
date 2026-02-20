@@ -32,6 +32,7 @@ import (
 	"gopkg.in/fsnotify.v1"
 	"gopkg.in/yaml.v2"
 	istioSecurity "istio.io/api/security/v1beta1"
+	istioApi "istio.io/api/type/v1beta1"
 	istioSecurityClient "istio.io/client-go/pkg/apis/security/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -46,6 +47,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+	gatewayv1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 )
 
 const AUTHZPOLICYISTIO = "ns-owner-access-istio"
@@ -91,6 +93,10 @@ type ProfileReconciler struct {
 	UserIdPrefix               string
 	WorkloadIdentity           string
 	DefaultNamespaceLabelsPath string
+	ServiceMeshMode            string
+	WaypointName               string
+	WaypointNamespace          string
+	CreateWaypoint             bool
 }
 
 // +kubebuilder:rbac:groups=core,resources=namespaces,verbs="*"
@@ -127,14 +133,13 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, request ctrl.Request)
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{"owner": instance.Spec.Owner.Name},
-			// inject istio sidecar to all pods in target namespace by default.
-			Labels: map[string]string{
-				istioInjectionLabel: "enabled",
-			},
-			Name: instance.Name,
+			Labels:      map[string]string{},
+			Name:        instance.Name,
 		},
 	}
-	setNamespaceLabels(ns, defaultKubeflowNamespaceLabels)
+
+	// Set namespace labels and service mesh labels in one call
+	r.setNamespaceLabelsAndServiceMesh(ns, instance, defaultKubeflowNamespaceLabels)
 	logger.Info("List of labels to be added to namespace", "labels", ns.Labels)
 	if err := controllerutil.SetControllerReference(instance, ns, r.Scheme); err != nil {
 		IncRequestErrorCounter("error setting ControllerReference", SEVERITY_MAJOR)
@@ -178,8 +183,10 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, request ctrl.Request)
 			for k, v := range foundNs.Labels {
 				oldLabels[k] = v
 			}
-			setNamespaceLabels(foundNs, defaultKubeflowNamespaceLabels)
-			logger.Info("List of labels to be added to found namespace", "labels", ns.Labels)
+
+			// Apply namespace labels and service mesh mode labels to existing namespace
+			r.setNamespaceLabelsAndServiceMesh(foundNs, instance, defaultKubeflowNamespaceLabels)
+			logger.Info("List of labels to be added to found namespace", "labels", foundNs.Labels)
 			if !reflect.DeepEqual(oldLabels, foundNs.Labels) {
 				err = r.Update(ctx, foundNs)
 				if err != nil {
@@ -203,6 +210,23 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, request ctrl.Request)
 		logger.Error(err, "error Updating Istio AuthorizationPolicy permission", "namespace", instance.Name)
 		IncRequestErrorCounter("error updating Istio AuthorizationPolicy permission", SEVERITY_MAJOR)
 		return reconcile.Result{}, err
+	}
+
+	// Create waypoint and L4 AuthorizationPolicy in ambient mode
+	if r.ServiceMeshMode == "istio-ambient" {
+		if r.CreateWaypoint {
+			if err = r.createWaypoint(instance); err != nil {
+				logger.Error(err, "error creating waypoint", "namespace", instance.Name)
+				IncRequestErrorCounter("error creating waypoint", SEVERITY_MAJOR)
+				return reconcile.Result{}, err
+			}
+		}
+
+		if err = r.updateL4AuthorizationPolicy(instance); err != nil {
+			logger.Error(err, "error updating L4 AuthorizationPolicy", "namespace", instance.Name)
+			IncRequestErrorCounter("error updating L4 AuthorizationPolicy", SEVERITY_MAJOR)
+			return reconcile.Result{}, err
+		}
 	}
 
 	// Update service accounts
@@ -416,7 +440,7 @@ func (r *ProfileReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return nil
 }
 
-func (r *ProfileReconciler) getAuthorizationPolicy(profileIns *profilev1.Profile) istioSecurity.AuthorizationPolicy {
+func (r *ProfileReconciler) getAuthorizationPolicy(profileIns *profilev1.Profile) *istioSecurity.AuthorizationPolicy {
 	nbControllerPrincipal := GetEnvDefault(
 		"NOTEBOOK_CONTROLLER_PRINCIPAL",
 		"cluster.local/ns/kubeflow/sa/notebook-controller-service-account")
@@ -429,7 +453,11 @@ func (r *ProfileReconciler) getAuthorizationPolicy(profileIns *profilev1.Profile
 		"KFP_UI_PRINCIPAL",
 		"cluster.local/ns/kubeflow/sa/ml-pipeline-ui")
 
-	return istioSecurity.AuthorizationPolicy{
+	katibControllerPrincipal := GetEnvDefault(
+		"KFP_UI_PRINCIPAL",
+		"cluster.local/ns/kubeflow/sa/katib-controller")
+
+	policy := &istioSecurity.AuthorizationPolicy{
 		Action: istioSecurity.AuthorizationPolicy_ALLOW,
 		// Empty selector == match all workloads in namespace
 		Selector: nil,
@@ -481,6 +509,16 @@ func (r *ProfileReconciler) getAuthorizationPolicy(profileIns *profilev1.Profile
 				},
 			},
 			{
+				// allow katib-controller to talk to suggestion server
+				From: []*istioSecurity.Rule_From{{
+					Source: &istioSecurity.Source{
+						Principals: []string{
+							katibControllerPrincipal,
+						},
+					},
+				}},
+			},
+			{
 				// allow the notebook-controller in the kubeflow namespace to
 				// access the api/kernels endpoint of the notebook servers.
 				From: []*istioSecurity.Rule_From{
@@ -501,6 +539,20 @@ func (r *ProfileReconciler) getAuthorizationPolicy(profileIns *profilev1.Profile
 			},
 		},
 	}
+
+	if r.ServiceMeshMode == "istio-ambient" {
+		targetRefs := []*istioApi.PolicyTargetReference{
+			{
+				Kind:  "Gateway",
+				Group: "gateway.networking.k8s.io",
+				Name:  r.WaypointName,
+			},
+		}
+
+		policy.TargetRefs = targetRefs
+	}
+
+	return policy
 }
 
 // updateIstioAuthorizationPolicy create or update Istio AuthorizationPolicy
@@ -515,7 +567,7 @@ func (r *ProfileReconciler) updateIstioAuthorizationPolicy(profileIns *profilev1
 			Name:        AUTHZPOLICYISTIO,
 			Namespace:   profileIns.Name,
 		},
-		Spec: r.getAuthorizationPolicy(profileIns),
+		Spec: *r.getAuthorizationPolicy(profileIns),
 	}
 
 	if err := controllerutil.SetControllerReference(profileIns, istioAuth, r.Scheme); err != nil {
@@ -751,12 +803,14 @@ func removeString(slice []string, s string) (result []string) {
 	return
 }
 
-func setNamespaceLabels(ns *corev1.Namespace, newLabels map[string]string) {
+// setServiceMeshLabels sets the appropriate service mesh labels based on the mode
+func (r *ProfileReconciler) setNamespaceLabelsAndServiceMesh(ns *corev1.Namespace, profileIns *profilev1.Profile, defaultLabels map[string]string) {
 	if ns.Labels == nil {
 		ns.Labels = make(map[string]string)
 	}
 
-	for k, v := range newLabels {
+	// Apply default Kubeflow namespace labels first
+	for k, v := range defaultLabels {
 		_, ok := ns.Labels[k]
 		if len(v) == 0 {
 			// When there is an empty value, k should be removed.
@@ -769,6 +823,29 @@ func setNamespaceLabels(ns *corev1.Namespace, newLabels map[string]string) {
 				ns.Labels[k] = v
 			}
 		}
+	}
+
+	// Apply service mesh specific labels
+	if r.ServiceMeshMode == "istio-ambient" {
+		// In ambient mode, disable sidecar injection but enable ambient mesh
+		ns.Labels[istioInjectionLabel] = "disabled"
+		ns.Labels["istio.io/dataplane-mode"] = "ambient"
+		// Add waypoint labels for ambient mode
+		waypointNamespace := r.WaypointNamespace
+		if waypointNamespace == "" {
+			waypointNamespace = profileIns.Name
+		}
+		ns.Labels["istio.io/use-waypoint"] = r.WaypointName
+		ns.Labels["istio.io/use-waypoint-namespace"] = waypointNamespace
+		ns.Labels["istio.io/ingress-use-waypoint"] = "true"
+	} else {
+		// In sidecar mode (default), inject istio sidecar to all pods in target namespace
+		ns.Labels[istioInjectionLabel] = "enabled"
+		// Remove ambient mode labels if they exist
+		delete(ns.Labels, "istio.io/dataplane-mode")
+		delete(ns.Labels, "istio.io/use-waypoint")
+		delete(ns.Labels, "istio.io/use-waypoint-namespace")
+		delete(ns.Labels, "istio.io/ingress-use-waypoint")
 	}
 }
 
@@ -787,6 +864,134 @@ func (r *ProfileReconciler) readDefaultLabelsFromFile(path string) map[string]st
 		os.Exit(1)
 	}
 	return labels
+}
+
+// createWaypoint creates a waypoint proxy in the profile namespace for ambient mode
+func (r *ProfileReconciler) createWaypoint(profileIns *profilev1.Profile) error {
+	logger := r.Log.WithValues("profile", profileIns.Name)
+
+	waypointNamespace := r.WaypointNamespace
+	if waypointNamespace == "" {
+		waypointNamespace = profileIns.Name
+	}
+
+	// Create waypoint using Gateway API with waypoint gateway class
+	// This creates an Istio waypoint proxy that handles L7 policies in ambient mode
+	gatewayClassName := "istio-waypoint"
+
+	waypoint := &gatewayv1beta1.Gateway{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      r.WaypointName,
+			Namespace: waypointNamespace,
+			Labels: map[string]string{
+				"gateway.istio.io/managed": "Istio",
+			},
+		},
+		Spec: gatewayv1beta1.GatewaySpec{
+			GatewayClassName: gatewayv1beta1.ObjectName(gatewayClassName),
+			Listeners: []gatewayv1beta1.Listener{
+				{
+					Name:     "mesh",
+					Port:     15008,
+					Protocol: "HBONE",
+				},
+			},
+		},
+	}
+
+	if err := controllerutil.SetControllerReference(profileIns, waypoint, r.Scheme); err != nil {
+		return err
+	}
+
+	// Check if the waypoint already exists
+	foundWaypoint := &gatewayv1beta1.Gateway{}
+	err := r.Get(context.TODO(), types.NamespacedName{Name: waypoint.Name, Namespace: waypoint.Namespace}, foundWaypoint)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			logger.Info("Creating waypoint", "waypoint", waypoint.Name, "namespace", waypoint.Namespace)
+			err = r.Create(context.TODO(), waypoint)
+			if err != nil {
+				return fmt.Errorf("failed to create waypoint: %w", err)
+			}
+		} else {
+			return fmt.Errorf("failed to get waypoint: %w", err)
+		}
+	} else {
+		// Waypoint already exists, check if update is needed
+		if !reflect.DeepEqual(waypoint.Spec, foundWaypoint.Spec) {
+			logger.Info("Updating waypoint", "waypoint", waypoint.Name, "namespace", waypoint.Namespace)
+			foundWaypoint.Spec = waypoint.Spec
+			err = r.Update(context.TODO(), foundWaypoint)
+			if err != nil {
+				return fmt.Errorf("failed to update waypoint: %w", err)
+			}
+		}
+	}
+
+	logger.Info("Waypoint reconciled successfully", "waypoint", r.WaypointName, "namespace", waypointNamespace)
+	return nil
+}
+
+// updateL4AuthorizationPolicy creates L4 AuthorizationPolicy to allow traffic from waypoint to services
+func (r *ProfileReconciler) updateL4AuthorizationPolicy(profileIns *profilev1.Profile) error {
+	logger := r.Log.WithValues("profile", profileIns.Name)
+
+	waypointNamespace := r.WaypointNamespace
+	if waypointNamespace == "" {
+		waypointNamespace = profileIns.Name
+	}
+
+	waypointPrincipal := fmt.Sprintf("cluster.local/ns/%s/sa/%s", waypointNamespace, r.WaypointName)
+
+	l4Policy := &istioSecurityClient.AuthorizationPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "waypoint-l4-access",
+			Namespace: profileIns.Name,
+		},
+		Spec: istioSecurity.AuthorizationPolicy{
+			Action:   istioSecurity.AuthorizationPolicy_ALLOW,
+			Selector: nil, // Match all workloads in namespace
+			Rules: []*istioSecurity.Rule{
+				{
+					From: []*istioSecurity.Rule_From{
+						{
+							Source: &istioSecurity.Source{
+								Principals: []string{waypointPrincipal},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if err := controllerutil.SetControllerReference(profileIns, l4Policy, r.Scheme); err != nil {
+		return err
+	}
+
+	foundL4Policy := &istioSecurityClient.AuthorizationPolicy{}
+	err := r.Get(context.TODO(), types.NamespacedName{Name: l4Policy.Name, Namespace: l4Policy.Namespace}, foundL4Policy)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			logger.Info("Creating L4 AuthorizationPolicy", "namespace", l4Policy.Namespace, "name", l4Policy.Name)
+			err = r.Create(context.TODO(), l4Policy)
+			if err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+	} else {
+		if !reflect.DeepEqual(*l4Policy.Spec.DeepCopy(), *foundL4Policy.Spec.DeepCopy()) {
+			foundL4Policy.Spec = *l4Policy.Spec.DeepCopy()
+			logger.Info("Updating L4 AuthorizationPolicy", "namespace", l4Policy.Namespace, "name", l4Policy.Name)
+			err = r.Update(context.TODO(), foundL4Policy)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func GetEnvDefault(variable string, defaultVal string) string {

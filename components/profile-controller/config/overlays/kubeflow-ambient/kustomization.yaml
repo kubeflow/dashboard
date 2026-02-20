@@ -5,7 +5,7 @@ namespace: kubeflow
 
 resources:
 - ../../base
-- virtual-service.yaml
+- httproute.yaml
 
 components:
 - ../../components/remove-system-namespace
@@ -14,14 +14,5 @@ components:
 commonLabels:
   kustomize.component: profiles
 
-configurations:
-- params.yaml
-
-vars:
-- name: PROFILES_NAMESPACE
-  fieldref:
-    fieldpath: metadata.namespace
-  objref:
-    name: profiles-kfam
-    kind: Service
-    apiVersion: v1
+patchesStrategicMerge:
+- patches/manager.yaml

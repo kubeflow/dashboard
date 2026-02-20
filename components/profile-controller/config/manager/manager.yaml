@@ -25,6 +25,14 @@ spec:
         - $(USERID_PREFIX)
         - "-workload-identity"
         - $(WORKLOAD_IDENTITY)
+        - "-service-mesh-mode"
+        - $(SERVICE_MESH_MODE)
+        - "-waypoint-name"
+        - $(WAYPOINT_NAME)
+        - "-waypoint-namespace"
+        - $(WAYPOINT_NAMESPACE)
+        - "-create-waypoint"
+        - $(CREATE_WAYPOINT)
         envFrom:
           - configMapRef:
               name: config
