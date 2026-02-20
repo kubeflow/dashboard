@@ -9,6 +9,14 @@ COPY go.sum go.sum
 # and so that source changes don't invalidate our downloaded layer
 RUN go mod download
 
+# Force download and extract all HashiCorp modules so they exist under /go/pkg/mod
+RUN set -e; cd /workspace; \
+  for m in $(go list -m all | awk '/^github.com\/hashicorp\// {print $1 "@" $2}'); do \
+    go mod download "$m"; \
+    pkg="${m%@*}"; \
+    go list "$pkg/..." >/dev/null 2>&1 || true; \
+  done
+
 # Copy the go source
 COPY main.go main.go
 COPY api/ api/
