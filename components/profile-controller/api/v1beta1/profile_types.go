@@ -19,18 +19,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// Plugin is for customize actions on different platform.
-type Plugin struct {
-	metav1.TypeMeta `json:",inline"`
-	// +kubebuilder:pruning:PreserveUnknownFields
-	Spec *runtime.RawExtension `json:"spec,omitempty"`
-}
-
-type ProfileCondition struct {
-	Type    string `json:"type,omitempty"`
-	Status  string `json:"status,omitempty" description:"status of the condition, one of True, False, Unknown"`
-	Message string `json:"message,omitempty"`
-}
+/*
+===============================================================================
+                               Profile - Spec
+===============================================================================
+*/
 
 // ProfileSpec defines the desired state of Profile
 type ProfileSpec struct {
@@ -43,16 +36,41 @@ type ProfileSpec struct {
 	ResourceQuotaSpec v1.ResourceQuotaSpec `json:"resourceQuotaSpec,omitempty"`
 }
 
+// Plugin is for customize actions on different platform.
+type Plugin struct {
+	metav1.TypeMeta `json:",inline"`
+	// +kubebuilder:pruning:PreserveUnknownFields
+	Spec *runtime.RawExtension `json:"spec,omitempty"`
+}
+
+/*
+===============================================================================
+                              Profile - Status
+===============================================================================
+*/
+
+// ProfileStatus defines the observed state of Profile
+type ProfileStatus struct {
+	Conditions []ProfileCondition `json:"conditions,omitempty"`
+}
+
+type ProfileCondition struct {
+	Type    string `json:"type,omitempty"`
+	Status  string `json:"status,omitempty" description:"status of the condition, one of True, False, Unknown"`
+	Message string `json:"message,omitempty"`
+}
+
 const (
 	ProfileSucceed = "Successful"
 	ProfileFailed  = "Failed"
 	ProfileUnknown = "Unknown"
 )
 
-// ProfileStatus defines the observed state of Profile
-type ProfileStatus struct {
-	Conditions []ProfileCondition `json:"conditions,omitempty"`
-}
+/*
+===============================================================================
+                                   Profile
+===============================================================================
+*/
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
@@ -65,6 +83,12 @@ type Profile struct {
 	Spec   ProfileSpec   `json:"spec,omitempty"`
 	Status ProfileStatus `json:"status,omitempty"`
 }
+
+/*
+===============================================================================
+                                 ProfileList
+===============================================================================
+*/
 
 // +kubebuilder:object:root=true
 

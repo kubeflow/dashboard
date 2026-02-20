@@ -58,7 +58,7 @@ func init() {
 }
 
 func main() {
-	var metricsAddr, leaderElectionNamespace string
+	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
 	var userIdHeader string
@@ -70,8 +70,6 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.StringVar(&leaderElectionNamespace, "leader-election-namespace", "",
-		"Determines the namespace in which the leader election configmap will be created.")
 	flag.StringVar(&userIdHeader, USERIDHEADER, "x-goog-authenticated-user-email", "Key of request header containing user id")
 	flag.StringVar(&userIdPrefix, USERIDPREFIX, "accounts.google.com:", "Request header user id common prefix")
 	flag.StringVar(&workloadIdentity, WORKLOADIDENTITY, "", "Default identity (GCP service account) for workload_identity plugin")

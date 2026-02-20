@@ -18,10 +18,26 @@ jobs:
     - name: Install Go
       uses: actions/setup-go@v5
       with:
-        go-version: "1.19"
+        go-version-file: components/profile-controller/go.mod
         check-latest: true
+        cache-dependency-path: components/profile-controller/go.sum
+
+    - name: Build
+      working-directory: components/profile-controller
+      run: make build
 
     - name: Run unit tests
+      working-directory: components/profile-controller
+      run: make test
+
+    - name: Check if there are uncommitted file changes
+      working-directory: components/profile-controller
       run: |
-        cd components/profile-controller
-        make test
+        clean=$(git status --porcelain)
+        if [[ -z "$clean" ]]; then
+            echo "Empty git status --porcelain: $clean"
+        else
+            echo "Uncommitted file changes detected: $clean"
+            git diff
+            exit 1
+        fi

@@ -17,7 +17,9 @@ limitations under the License.
 package controllers
 
 import (
+	"fmt"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -37,9 +39,15 @@ import (
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
-var cfg *rest.Config
-var k8sClient client.Client
-var testEnv *envtest.Environment
+var (
+	testEnv *envtest.Environment
+	cfg     *rest.Config
+
+	k8sClient client.Client
+
+	//ctx    context.Context
+	//cancel context.CancelFunc
+)
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -51,15 +59,21 @@ func TestAPIs(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
+	//ctx, cancel = context.WithCancel(context.Background())
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths:     []string{filepath.Join("..", "manifests", "kustomize", "base", "crd")},
 		ErrorIfCRDPathMissing: true,
+
+		// The BinaryAssetsDirectory is only required if you want to run the tests directly without call the makefile target test.
+		// If not informed it will look for the default path defined in controller-runtime which is /usr/local/kubebuilder/.
+		// Note that you must have the required binaries setup under the bin directory to perform the tests directly.
+		// When we run make test it will be setup and used automatically.
+		BinaryAssetsDirectory: filepath.Join("..", "..", "bin", "k8s", fmt.Sprintf("1.31.0-%s-%s", runtime.GOOS, runtime.GOARCH)),
 	}
 
 	var err error
-	// cfg is defined in this file globally.
 	cfg, err = testEnv.Start()
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
@@ -73,9 +87,27 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
 
+	//By("setting up the controller manager")
+	//k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
+	//	Scheme: scheme.Scheme,
+	//	Metrics: metricsserver.Options{
+	//		BindAddress: "0", // disable metrics serving
+	//	},
+	//})
+	//Expect(err).NotTo(HaveOccurred())
+
+	//go func() {
+	//	defer GinkgoRecover()
+	//	err = k8sManager.Start(ctx)
+	//	Expect(err).NotTo(HaveOccurred(), "failed to run manager")
+	//}()
+
 }, 60)
 
 var _ = AfterSuite(func() {
+	//By("stopping the manager context")
+	//cancel()
+
 	By("tearing down the test environment")
 	err := testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())
