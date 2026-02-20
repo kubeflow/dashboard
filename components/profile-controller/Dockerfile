@@ -1,5 +1,5 @@
 # Build the manager binary
-FROM golang:1.17 as builder
+FROM golang:1.22 as builder
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
@@ -8,6 +8,14 @@ COPY go.sum go.sum
 # cache deps before building and copying source so that we don't need to re-download as much
 # and so that source changes don't invalidate our downloaded layer
 RUN go mod download
+
+# Force download and extract all HashiCorp modules so they exist under /go/pkg/mod
+RUN set -e; cd /workspace; \
+  for m in $(go list -m all | awk '/^github.com\/hashicorp\// {print $1 "@" $2}'); do \
+    go mod download "$m"; \
+    pkg="${m%@*}"; \
+    go list "$pkg/..." >/dev/null 2>&1 || true; \
+  done
 
 # Copy the go source
 COPY main.go main.go

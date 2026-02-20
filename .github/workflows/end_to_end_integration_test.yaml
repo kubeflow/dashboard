@@ -29,199 +29,199 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 60
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Install KinD
-      run: ./testing/gh-actions/install_kind.sh
+      - name: Install KinD
+        run: ./testing/gh-actions/install_kind.sh
 
-    - name: Create KinD Cluster
-      run: kind create cluster --config testing/gh-actions/kind-1-33.yaml
+      - name: Create KinD Cluster
+        run: kind create cluster --config testing/gh-actions/kind-1-33.yaml
 
-    - name: Install kustomize
-      run: ./testing/gh-actions/install_kustomize.sh
+      - name: Install kustomize
+        run: ./testing/gh-actions/install_kustomize.sh
 
-    - name: Install cert-manager
-      run: ./testing/gh-actions/install_cert_manager.sh
+      - name: Install cert-manager
+        run: ./testing/gh-actions/install_cert_manager.sh
 
-    - name: Install Istio
-      run: ./testing/gh-actions/install_istio.sh
+      - name: Install Istio
+        run: ./testing/gh-actions/install_istio.sh
 
-    - name: Create Kubeflow Namespace
-      run: kubectl create namespace kubeflow
+      - name: Create Kubeflow Namespace
+        run: kubectl create namespace kubeflow
 
-    - name: Deploy Profile Controller with KFAM
-      run: ./testing/shared/install_profile_controller.sh
+      - name: Deploy Profile Controller with KFAM
+        run: ./testing/shared/install_profile_controller.sh
 
-    - name: Wait for Profile CRD to be Available
-      run: |
-        timeout=300
-        interval=5
-        elapsed=0
-        while ! kubectl get crd profiles.kubeflow.org >/dev/null 2>&1; do
-          if [ $elapsed -ge $timeout ]; then
-            exit 1
+      - name: Wait for Profile CRD to be Available
+        run: |
+          timeout=300
+          interval=5
+          elapsed=0
+          while ! kubectl get crd profiles.kubeflow.org >/dev/null 2>&1; do
+            if [ $elapsed -ge $timeout ]; then
+              exit 1
+            fi
+            sleep $interval
+            elapsed=$((elapsed + interval))
+          done
+          kubectl wait --for condition=established --timeout=60s crd/profiles.kubeflow.org
+
+      - name: Deploy Poddefault Webhook Component
+        run: ./testing/shared/install_poddefaults_webhook.sh
+
+      - name: Deploy CentralDashboard Angular Component
+        run: |
+          # Set required environment variables for domain name substitution
+          export CD_NAMESPACE=kubeflow
+          export CD_CLUSTER_DOMAIN=cluster.local
+
+          ./testing/shared/install_centraldashboard_angular.sh
+
+      - name: Deploy CentralDashboard Component
+        run: |
+          export CD_NAMESPACE=kubeflow
+          export CD_CLUSTER_DOMAIN=cluster.local
+          export CD_NAMESPACE_PLACEHOLDER=kubeflow
+          export CD_CLUSTER_DOMAIN_PLACEHOLDER=cluster.local
+
+          ./testing/shared/install_centraldashboard.sh
+
+      - name: Create Test Profiles
+        run: |
+          ./components/profile-controller/integration/test_profile.sh create e2e-admin admin@example.com
+          ./components/profile-controller/integration/test_profile.sh create-simple e2e-user user@example.com
+
+      - name: Validate Profile Integration
+        run: |
+          ./components/profile-controller/integration/test_profile.sh validate e2e-admin
+          ./components/profile-controller/integration/test_profile.sh validate e2e-user
+
+      - name: Test PodDefault Integration
+        run: |
+          ./components/poddefaults-webhooks/integration/test_poddefault.sh create-namespace e2e-test
+          ./components/poddefaults-webhooks/integration/test_poddefault.sh create-poddefault e2e-test e2e-poddefault
+          ./components/poddefaults-webhooks/integration/test_poddefault.sh test-mutation e2e-test e2e-poddefault e2e-test-pod
+
+      - name: Test KFAM Service Integration
+        run: |
+          kubectl get services -n kubeflow | grep kfam 
+          kubectl get services -n kubeflow -l app.kubernetes.io/name=profile-controller
+
+          POD_NAME=$(kubectl get pods -n kubeflow -l app.kubernetes.io/name=profile-controller -o jsonpath="{.items[0].metadata.name}")
+          if [ -z "$POD_NAME" ]; then exit 1; fi
+
+          kubectl port-forward -n kubeflow pod/$POD_NAME 8081:8081 &
+          PF_PID=$!
+          echo $PF_PID > /tmp/kfam_pf.pid
+          sleep 5
+
+          curl -v --max-time 10 http://localhost:8081/kfam/ || \
+          curl -v --max-time 10 http://localhost:8081/metrics || \
+          curl -v --max-time 10 http://localhost:8081/kfam/v1/bindings
+
+          curl -v --max-time 10 -H "kubeflow-userid: admin@example.com" \
+               http://localhost:8081/kfam/v1/bindings?namespace=e2e-admin
+
+          if [ -f "/tmp/kfam_pf.pid" ]; then
+            kill $(cat /tmp/kfam_pf.pid)
+            rm -f /tmp/kfam_pf.pid
           fi
-          sleep $interval
-          elapsed=$((elapsed + interval))
-        done
-        kubectl wait --for condition=established --timeout=60s crd/profiles.kubeflow.org
 
-    - name: Deploy Poddefault Webhook Component
-      run: ./testing/shared/install_poddefaults_webhook.sh
+      - name: Test CentralDashboard Angular Integration
+        run: |
+          POD_NAME=$(kubectl get pods -n kubeflow -l app=dashboard-angular -o jsonpath="{.items[0].metadata.name}")
+          if [ -z "$POD_NAME" ]; then exit 1; fi
 
-    - name: Deploy CentralDashboard Angular Component
-      run: |
-        # Set required environment variables for domain name substitution
-        export CD_NAMESPACE=kubeflow
-        export CD_CLUSTER_DOMAIN=cluster.local
-        
-        ./testing/shared/install_centraldashboard_angular.sh
+          kubectl port-forward -n kubeflow pod/$POD_NAME 8082:8082 &
+          PF_PID=$!
+          echo $PF_PID > /tmp/angular_pf.pid
+          sleep 5
 
-    - name: Deploy CentralDashboard Component
-      run: |
-        export CD_NAMESPACE=kubeflow
-        export CD_CLUSTER_DOMAIN=cluster.local
-        export CD_NAMESPACE_PLACEHOLDER=kubeflow
-        export CD_CLUSTER_DOMAIN_PLACEHOLDER=cluster.local
-        
-        ./testing/shared/install_centraldashboard.sh
+          curl -v --max-time 10 http://localhost:8082/
 
-    - name: Create Test Profiles
-      run: |
-        ./components/profile-controller/integration/test_profile.sh create e2e-admin admin@example.com
-        ./components/profile-controller/integration/test_profile.sh create-simple e2e-user user@example.com
+          if [ -f "/tmp/angular_pf.pid" ]; then
+            kill $(cat /tmp/angular_pf.pid)
+            rm -f /tmp/angular_pf.pid
+          fi
 
-    - name: Validate Profile Integration
-      run: |
-        ./components/profile-controller/integration/test_profile.sh validate e2e-admin
-        ./components/profile-controller/integration/test_profile.sh validate e2e-user
+      - name: Test CentralDashboard Integration
+        run: |
+          POD_NAME=$(kubectl get pods -n kubeflow -l app=dashboard -o jsonpath="{.items[0].metadata.name}")
+          if [ -z "$POD_NAME" ]; then exit 1; fi
 
-    - name: Test PodDefault Integration
-      run: |
-        ./components/poddefaults-webhooks/integration/test_poddefault.sh create-namespace e2e-test
-        ./components/poddefaults-webhooks/integration/test_poddefault.sh create-poddefault e2e-test e2e-poddefault
-        ./components/poddefaults-webhooks/integration/test_poddefault.sh test-mutation e2e-test e2e-poddefault e2e-test-pod
+          kubectl port-forward -n kubeflow pod/$POD_NAME 8083:8082 &
+          PF_PID=$!
+          echo $PF_PID > /tmp/dashboard_pf.pid
+          sleep 5
 
-    - name: Test KFAM Service Integration
-      run: |
-        kubectl get services -n kubeflow | grep kfam 
-        kubectl get services -n kubeflow -l kustomize.component=profiles
-        
-        POD_NAME=$(kubectl get pods -n kubeflow -l kustomize.component=profiles -o jsonpath="{.items[0].metadata.name}")
-        if [ -z "$POD_NAME" ]; then exit 1; fi
-        
-        kubectl port-forward -n kubeflow pod/$POD_NAME 8081:8081 &
-        PF_PID=$!
-        echo $PF_PID > /tmp/kfam_pf.pid
-        sleep 5
-        
-        curl -v --max-time 10 http://localhost:8081/kfam/ || \
-        curl -v --max-time 10 http://localhost:8081/metrics || \
-        curl -v --max-time 10 http://localhost:8081/kfam/v1/bindings
-        
-        curl -v --max-time 10 -H "kubeflow-userid: admin@example.com" \
-             http://localhost:8081/kfam/v1/bindings?namespace=e2e-admin
-        
-        if [ -f "/tmp/kfam_pf.pid" ]; then
-          kill $(cat /tmp/kfam_pf.pid)
-          rm -f /tmp/kfam_pf.pid
-        fi
+          curl -v --max-time 10 http://localhost:8083/
 
-    - name: Test CentralDashboard Angular Integration
-      run: |
-        POD_NAME=$(kubectl get pods -n kubeflow -l app=dashboard-angular -o jsonpath="{.items[0].metadata.name}")
-        if [ -z "$POD_NAME" ]; then exit 1; fi
-        
-        kubectl port-forward -n kubeflow pod/$POD_NAME 8082:8082 &
-        PF_PID=$!
-        echo $PF_PID > /tmp/angular_pf.pid
-        sleep 5
-        
-        curl -v --max-time 10 http://localhost:8082/
-        
-        if [ -f "/tmp/angular_pf.pid" ]; then
-          kill $(cat /tmp/angular_pf.pid)
-          rm -f /tmp/angular_pf.pid
-        fi
+          for i in $(seq 1 5); do
+            curl -s --max-time 5 http://localhost:8083/ >/dev/null
+          done
 
-    - name: Test CentralDashboard Integration
-      run: |
-        POD_NAME=$(kubectl get pods -n kubeflow -l app=dashboard -o jsonpath="{.items[0].metadata.name}")
-        if [ -z "$POD_NAME" ]; then exit 1; fi
-        
-        kubectl port-forward -n kubeflow pod/$POD_NAME 8083:8082 &
-        PF_PID=$!
-        echo $PF_PID > /tmp/dashboard_pf.pid
-        sleep 5
-        
-        curl -v --max-time 10 http://localhost:8083/
-        
-        for i in $(seq 1 5); do
-          curl -s --max-time 5 http://localhost:8083/ >/dev/null
-        done
-        
-        if [ -f "/tmp/dashboard_pf.pid" ]; then
-          kill $(cat /tmp/dashboard_pf.pid)
-          rm -f /tmp/dashboard_pf.pid
-        fi
+          if [ -f "/tmp/dashboard_pf.pid" ]; then
+            kill $(cat /tmp/dashboard_pf.pid)
+            rm -f /tmp/dashboard_pf.pid
+          fi
 
-    - name: Test Profile Update with Dashboard Access
-      run: |
-        ./components/profile-controller/integration/test_profile.sh update e2e-admin
-        
-        kubectl wait --for=condition=available deployment -n kubeflow dashboard --timeout=300s
-        
-        POD_NAME=$(kubectl get pods -n kubeflow -l app=dashboard -o jsonpath="{.items[0].metadata.name}")
-        if [ -z "$POD_NAME" ]; then exit 1; fi
-        
-        kubectl port-forward -n kubeflow pod/$POD_NAME 8085:8082 &
-        PF_PID=$!
-        echo $PF_PID > /tmp/dashboard_update_pf.pid
-        sleep 5
-        
-        curl -v -H "kubeflow-userid: e2e-admin" --max-time 10 http://localhost:8085/
-        
-        if [ -f "/tmp/dashboard_update_pf.pid" ]; then
-          kill $(cat /tmp/dashboard_update_pf.pid)
-          rm -f /tmp/dashboard_update_pf.pid
-        fi
+      - name: Test Profile Update with Dashboard Access
+        run: |
+          ./components/profile-controller/integration/test_profile.sh update e2e-admin
 
-    - name: Check Component Health and Logs
-      run: |
-        ./testing/shared/test_service.sh check-logs profiles-deployment kubeflow 30
-        
-        kubectl logs -n kubeflow -l kustomize.component=profiles -c access-management --tail=30 || kubectl logs -n kubeflow -l app=profiles-kfam --tail=30
-      
-        ./testing/shared/test_service.sh check-logs poddefaults-webhook-deployment kubeflow 30
-        
-        ./testing/shared/test_service.sh check-logs dashboard-angular kubeflow 30
-        
-        ./testing/shared/test_service.sh check-logs dashboard kubeflow 30
+          kubectl wait --for=condition=available deployment -n kubeflow dashboard --timeout=300s
 
-    - name: Check for Component Errors
-      run: |
-        ./testing/shared/test_service.sh check-errors profiles-deployment kubeflow
-        kubectl logs -n kubeflow -l kustomize.component=profiles -c access-management --tail=100 | grep -i error || true
-        ./testing/shared/test_service.sh check-errors poddefaults-webhook-deployment kubeflow
-        ./testing/shared/test_service.sh check-errors dashboard-angular kubeflow
-        ./testing/shared/test_service.sh check-errors dashboard kubeflow
+          POD_NAME=$(kubectl get pods -n kubeflow -l app=dashboard -o jsonpath="{.items[0].metadata.name}")
+          if [ -z "$POD_NAME" ]; then exit 1; fi
 
-    - name: Final Integration Validation
-      run: |
-        ./components/profile-controller/integration/test_profile.sh list
-        
-        kubectl get services -n kubeflow
-        
-        kubectl get deployments -n kubeflow
-        
-        kubectl get nodes
-        kubectl get pods -A
+          kubectl port-forward -n kubeflow pod/$POD_NAME 8085:8082 &
+          PF_PID=$!
+          echo $PF_PID > /tmp/dashboard_update_pf.pid
+          sleep 5
 
-    - name: Cleanup Test Resources
-      run: |
-        ./components/poddefaults-webhooks/integration/test_poddefault.sh cleanup e2e-test
-        ./components/profile-controller/integration/test_profile.sh delete e2e-admin
-        ./components/profile-controller/integration/test_profile.sh delete e2e-user
+          curl -v -H "kubeflow-userid: e2e-admin" --max-time 10 http://localhost:8085/
+
+          if [ -f "/tmp/dashboard_update_pf.pid" ]; then
+            kill $(cat /tmp/dashboard_update_pf.pid)
+            rm -f /tmp/dashboard_update_pf.pid
+          fi
+
+      - name: Check Component Health and Logs
+        run: |
+          ./testing/shared/test_service.sh check-logs profiles-deployment kubeflow 30
+
+          kubectl logs -n kubeflow -l app.kubernetes.io/name=profile-controller -c access-management --tail=30 || kubectl logs -n kubeflow -l app.kubernetes.io/name=profile-controller --tail=30
+
+          ./testing/shared/test_service.sh check-logs poddefaults-webhook-deployment kubeflow 30
+
+          ./testing/shared/test_service.sh check-logs dashboard-angular kubeflow 30
+
+          ./testing/shared/test_service.sh check-logs dashboard kubeflow 30
+
+      - name: Check for Component Errors
+        run: |
+          ./testing/shared/test_service.sh check-errors profiles-deployment kubeflow
+          kubectl logs -n kubeflow -l app.kubernetes.io/name=profile-controller -c access-management --tail=100 | grep -i error || true
+          ./testing/shared/test_service.sh check-errors poddefaults-webhook-deployment kubeflow
+          ./testing/shared/test_service.sh check-errors dashboard-angular kubeflow
+          ./testing/shared/test_service.sh check-errors dashboard kubeflow
+
+      - name: Final Integration Validation
+        run: |
+          ./components/profile-controller/integration/test_profile.sh list
+
+          kubectl get services -n kubeflow
+
+          kubectl get deployments -n kubeflow
+
+          kubectl get nodes
+          kubectl get pods -A
+
+      - name: Cleanup Test Resources
+        run: |
+          ./components/poddefaults-webhooks/integration/test_poddefault.sh cleanup e2e-test
+          ./components/profile-controller/integration/test_profile.sh delete e2e-admin
+          ./components/profile-controller/integration/test_profile.sh delete e2e-user
