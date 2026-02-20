@@ -108,9 +108,9 @@ jobs:
       - name: Test KFAM Service Integration
         run: |
           kubectl get services -n kubeflow | grep kfam 
-          kubectl get services -n kubeflow -l app.kubernetes.io/component=profile-controller
+          kubectl get services -n kubeflow -l app.kubernetes.io/name=profile-controller
 
-          POD_NAME=$(kubectl get pods -n kubeflow -l app.kubernetes.io/component=profile-controller -o jsonpath="{.items[0].metadata.name}")
+          POD_NAME=$(kubectl get pods -n kubeflow -l app.kubernetes.io/name=profile-controller -o jsonpath="{.items[0].metadata.name}")
           if [ -z "$POD_NAME" ]; then exit 1; fi
 
           kubectl port-forward -n kubeflow pod/$POD_NAME 8081:8081 &
@@ -193,7 +193,7 @@ jobs:
         run: |
           ./testing/shared/test_service.sh check-logs profiles-deployment kubeflow 30
 
-          kubectl logs -n kubeflow -l app.kubernetes.io/component=profile-controller -c access-management --tail=30 || kubectl logs -n kubeflow -l app.kubernetes.io/component=profile-controller --tail=30
+          kubectl logs -n kubeflow -l app.kubernetes.io/name=profile-controller -c access-management --tail=30 || kubectl logs -n kubeflow -l app.kubernetes.io/name=profile-controller --tail=30
 
           ./testing/shared/test_service.sh check-logs poddefaults-webhook-deployment kubeflow 30
 
@@ -204,7 +204,7 @@ jobs:
       - name: Check for Component Errors
         run: |
           ./testing/shared/test_service.sh check-errors profiles-deployment kubeflow
-          kubectl logs -n kubeflow -l app.kubernetes.io/component=profile-controller -c access-management --tail=100 | grep -i error || true
+          kubectl logs -n kubeflow -l app.kubernetes.io/name=profile-controller -c access-management --tail=100 | grep -i error || true
           ./testing/shared/test_service.sh check-errors poddefaults-webhook-deployment kubeflow
           ./testing/shared/test_service.sh check-errors dashboard-angular kubeflow
           ./testing/shared/test_service.sh check-errors dashboard kubeflow

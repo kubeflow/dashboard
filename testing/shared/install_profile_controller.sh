@@ -27,4 +27,4 @@ kustomize build components/profile-controller/manifests/kustomize/overlays/kubef
     | kubectl apply -f -
 
 kubectl wait --for=condition=Available deployment -n kubeflow profiles-deployment --timeout=300s
-kubectl wait pods -n kubeflow -l app.kubernetes.io/component=profile-controller --for=condition=Ready --timeout=300s
+kubectl wait pods -n kubeflow -l app.kubernetes.io/name=profile-controller --for=condition=Ready --timeout=300s
