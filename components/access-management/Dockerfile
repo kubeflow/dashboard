@@ -1,4 +1,4 @@
-ARG GOLANG_VERSION=1.17
+ARG GOLANG_VERSION=1.26
 FROM golang:${GOLANG_VERSION} AS builder
 
 WORKDIR /workspace
@@ -11,7 +11,7 @@ RUN if [ "$(uname -m)" = "aarch64" ]; then \
         git config --global http.sslVerify false &&  go mod download; \
     fi
 
-RUN CGO_ENABLED=0 GOOS=linux go build -gcflags 'all=-N -l' -o access-management main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o access-management main.go
 
 RUN chmod a+rx access-management
 
