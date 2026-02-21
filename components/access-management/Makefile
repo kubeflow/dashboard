@@ -18,7 +18,7 @@ bin/swagger:
 docker-build:
 	docker build -t $(IMG):$(TAG) .
 
-docker-push: 
+docker-push:
 	docker push $(IMG):$(TAG)
 
 .PHONY: docker-build-multi-arch
@@ -29,4 +29,16 @@ docker-build-multi-arch: ##  Build multi-arch docker images with docker buildx
 docker-build-push-multi-arch: ## Build multi-arch docker images with docker buildx and push to docker registry 
 	docker buildx build --platform ${ARCH} --tag ${IMG}:${TAG} --push .
 
-image: docker-build docker-push 
+image: docker-build docker-push
+
+.PHONY: fmt
+fmt: ## Run go fmt against code.
+	go fmt ./...
+
+.PHONY: vet
+vet: ## Run go vet against code.
+	go vet ./...
+
+.PHONY: test
+test: fmt vet ## Run tests.
+	go test ./... -coverprofile cover.out
