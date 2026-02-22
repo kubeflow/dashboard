@@ -23,6 +23,7 @@ FROM nginx:1.25-alpine AS serve
 # Copy built static assets from build stage
 COPY --from=build --chown=nginx:nginx /centraldashboard/public /usr/share/nginx/html
 COPY --from=build --chown=nginx:nginx /centraldashboard/app.bundle.js /centraldashboard/app.css /usr/share/nginx/html/
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 8082
 
