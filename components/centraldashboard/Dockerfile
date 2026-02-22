@@ -16,16 +16,14 @@ RUN npm ci \
  && npm run build \
  && npm prune --production
 
-# Step 2: Packages assets for serving
-FROM node:16.20.2-alpine AS serve
 
-RUN apk add --no-cache tini
+# Step 2: Serve static assets with nginx (smaller, secure)
+FROM nginx:1.25-alpine AS serve
 
-USER node
-
-ENV NODE_ENV=production
-WORKDIR /usr/src/app
-COPY --from=build --chown=node:node /centraldashboard .
+# Copy built static assets from build stage
+COPY --from=build --chown=nginx:nginx /centraldashboard/public /usr/share/nginx/html
+COPY --from=build --chown=nginx:nginx /centraldashboard/app.bundle.js /centraldashboard/app.css /usr/share/nginx/html/
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 8082
-ENTRYPOINT ["/sbin/tini", "--" , "npm", "start"]
+
