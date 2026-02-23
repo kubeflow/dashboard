@@ -3,7 +3,14 @@ kind: Deployment
 metadata:
   name: poddefaults-webhook-deployment
 spec:
+  replicas: 1
+  selector:
+    matchLabels: {}
   template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: poddefaults-webhook
+      labels: {}
     spec:
       containers:
       - image: ghcr.io/kubeflow/dashboard/poddefaults-webhook

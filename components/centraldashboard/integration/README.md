@@ -41,7 +41,6 @@ kubectl apply -f components/profile-controller/integration/resources/profile-das
 ./testing/shared/test_service.sh test-health centraldashboard kubeflow 8082
 ./testing/shared/test_service.sh performance-test centraldashboard kubeflow 8082 80 10
 ./testing/shared/test_service.sh test-metrics centraldashboard kubeflow 8082
-./testing/shared/test_service.sh check-logs centraldashboard kubeflow 50
 ./testing/shared/test_service.sh check-errors centraldashboard kubeflow
 ```
 

@@ -1,6 +1,6 @@
 module github.com/kubeflow/dashboard/components/profile-controller
 
-go 1.17
+go 1.22.12
 
 require (
 	github.com/aws/aws-sdk-go v1.44.22
