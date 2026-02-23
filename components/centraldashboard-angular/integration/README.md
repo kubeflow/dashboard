@@ -38,7 +38,6 @@ From the repository root:
 ./testing/shared/test_service.sh test-health centraldashboard-angular kubeflow 8080
 ./testing/shared/test_service.sh performance-test centraldashboard-angular kubeflow 8080 80 8
 ./testing/shared/test_service.sh test-metrics centraldashboard-angular kubeflow 8080
-./testing/shared/test_service.sh check-logs centraldashboard-angular kubeflow 50
 ./testing/shared/test_service.sh check-errors centraldashboard-angular kubeflow
 ```
 

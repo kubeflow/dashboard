@@ -159,13 +159,13 @@ jobs:
 
       - name: Check KFAM Logs
         run: |
-          kubectl logs -n kubeflow -l app=profile-controller -c access-management --tail=100
-          kubectl logs -n kubeflow -l app=profile-controller -c access-management --tail=100 | grep -i error || echo "No errors found in KFAM logs"
+          # NOTE: we dont fail on the word "error" because these logs can contain error messages as part of normal operation.
+          kubectl logs --tail=100 --prefix -n kubeflow -l app=profile-controller -c access-management
 
       - name: Check Profile Controller Logs
         run: |
-          kubectl logs -n kubeflow -l app=profile-controller -c manager --tail=100
-          kubectl logs -n kubeflow -l app=profile-controller -c manager --tail=100 | grep -i error || echo "No errors found in Profile Controller logs"
+          # NOTE: we dont fail on the word "error" because these logs can contain error messages as part of normal operation.
+          kubectl logs --tail=100 --prefix -n kubeflow -l app=profile-controller -c manager
 
       - name: Cleanup Test Resources
         run: |

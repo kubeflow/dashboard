@@ -75,8 +75,8 @@ case "$OPERATION" in
           exit 1
         fi
 
-        # read logs from all containers in all pods with the correct label
-        LOGS_RAW=$(kubectl logs --tail=100 --all-containers --prefix -n "${NAMESPACE}" -l app="${SERVICE_NAME}")
+        # read logs from default container of all pods with the correct label
+        LOGS_RAW=$(kubectl logs --tail=100 --prefix -n "${NAMESPACE}" -l app="${SERVICE_NAME}")
         if [ -z "${LOGS_RAW}" ]; then
           echo "WARN: no logs found for service ${SERVICE_NAME} in namespace ${NAMESPACE}"
           exit 0

@@ -144,7 +144,7 @@ jobs:
 
       - name: Check for Errors in Logs
         run: |
-           kubectl logs --tail=100 --all-containers --prefix -n kubeflow -l app=dashboard-angular
+           kubectl logs --tail=100 --prefix -n kubeflow -l app=dashboard-angular
           ./testing/shared/test_service.sh check-errors dashboard-angular kubeflow
 
       - name: Stop Port Forward

@@ -8,6 +8,8 @@ spec:
     matchLabels: {}
   template:
     metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: dashboard
       labels: {}
     spec:
       containers:
@@ -18,10 +20,17 @@ spec:
             httpGet:
               path: /healthz
               port: 8082
-            initialDelaySeconds: 30
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8082
+            initialDelaySeconds: 15
             periodSeconds: 30
           ports:
-            - containerPort: 8082
+            - name: http
+              containerPort: 8082
               protocol: TCP
           envFrom:
             - configMapRef:
