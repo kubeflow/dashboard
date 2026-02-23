@@ -44,7 +44,7 @@ jobs:
         with:
           node-version: 16
 
-      - name: Install dependecies
+      - name: Install dependencies
         run: |
           BASE="${{ github.workspace }}/components/centraldashboard-angular"
           cd "$BASE/frontend"
@@ -83,24 +83,29 @@ jobs:
       - name: Install Istio
         run: ./testing/gh-actions/install_istio.sh
 
-      - name: Apply KF Controllers
+      - name: Create Kubeflow Namespace
         run: |
-          cd components
           kubectl create namespace kubeflow
-          kustomize build profile-controller/manifests/kustomize/overlays/kubeflow | kubectl apply -f -
-          kustomize build https://github.com/kubeflow/kubeflow//components/notebook-controller/config/overlays/kubeflow?ref=master | kubectl apply -f -
-          kubectl wait pods -n kubeflow -l app.kubernetes.io/name=profile-controller --for=condition=Ready --timeout=300s
+
+      - name: Apply Profile Controller + KFAM
+        run: |          
+          kustomize apply -k components/profile-controller/manifests/kustomize/overlays/kubeflow
+          kubectl wait pods -n kubeflow -l app=profile-controller --for=condition=Ready --timeout=300s
+
+      - name: Apply Notebooks Controller
+        run: |
+          kubectl apply -k "https://github.com/kubeflow/kubeflow/components/notebook-controller/config/overlays/kubeflow?ref=v1.10.0"
           kubectl wait pods -n kubeflow -l app=notebook-controller --for=condition=Ready --timeout=300s
 
-      - name: Apply JWA manifests
+      - name: Apply Jupyter Web App manifests
         run: |
-          kustomize build https://github.com/kubeflow/kubeflow//components/crud-web-apps/jupyter/manifests/overlays/istio?ref=master | kubectl apply -f -
+          kubectl apply -k "https://github.com/kubeflow/kubeflow/components/crud-web-apps/jupyter/manifests/overlays/istio?ref=v1.10.0"
           kubectl wait pods -n kubeflow -l app=jupyter-web-app --for=condition=Ready --timeout=300s
           kubectl port-forward -n kubeflow svc/jupyter-web-app-service 8085:80 &
 
-      - name: Apply VWA manifests
+      - name: Apply Volumes Web App manifests
         run: |
-          kustomize build https://github.com/kubeflow/kubeflow//components/crud-web-apps/volumes/manifests/overlays/istio?ref=master | kubectl apply -f -
+          kubectl apply -k "https://github.com/kubeflow/kubeflow/components/crud-web-apps/volumes/manifests/overlays/istio?ref=v1.10.0"
           kubectl wait pods -n kubeflow -l app=volumes-web-app --for=condition=Ready --timeout=300s
           kubectl port-forward -n kubeflow svc/volumes-web-app-service 8087:80 &
 
@@ -117,7 +122,7 @@ jobs:
           curl -H "kubeflow-userid: user" localhost:8085
           curl -H "kubeflow-userid: user" localhost:8087
 
-      - name: Install dependecies
+      - name: Install dependencies
         run: |
           BASE="${{ github.workspace }}/components/centraldashboard-angular"
           cd "$BASE/frontend"

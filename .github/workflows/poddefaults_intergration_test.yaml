@@ -88,21 +88,20 @@ jobs:
       run: |
         ./components/poddefaults-webhooks/integration/test_poddefault.sh test-error-handling test-poddefaults
 
-    - name: Check Webhook Logs
+    - name: Check Logs for Errors
       run: |
-        kubectl logs -n kubeflow -l app=poddefaults --tail=100
-
-    - name: Check for Errors in Webhook Logs
-      run: |
-        if ! kubectl logs -n kubeflow -l app=poddefaults --tail=100 \
-          | egrep -i "^(E[0-9]{4})|unable to|traceback|error:" \
-          | egrep -vi "ErrorLog:\(|nextProtoErr:"; then
-          echo "No errors found in webhook logs"
+        kubectl logs --tail=100 --all-containers --prefix -n kubeflow -l app=poddefaults
+        
+        # NOTE: we exclude lines with "ErrorLog:" because there is 
+        #       always a line at startup containing that string, but it doesn't indicate an actual error.
+        if ! kubectl logs --tail=100 -n kubeflow -l app=poddefaults \
+          | egrep -i "^(E[0-9]{4})|unable to|traceback|error" \
+          | egrep -vi "ErrorLog:"; then
+            echo "No errors found in webhook logs"
+        else
+            echo "Errors found in webhook logs"
+            exit 1
         fi
-      
-    # - name: Check for Errors in Webhook Logs  
-    #   run: |
-    #     kubectl logs -n kubeflow -l app=poddefaults --tail=100 | grep -i error || echo "No errors found in webhook logs"
 
     - name: Cleanup Test Resources
       run: |

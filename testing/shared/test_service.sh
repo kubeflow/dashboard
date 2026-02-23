@@ -50,19 +50,6 @@ case "$OPERATION" in
         echo $OUTPUT | grep "Connection timed out after"
         ;;
 
-    "test-kfam")
-        curl -f "http://localhost:${PORT}/healthz" >/dev/null 2>&1
-        curl "http://localhost:${PORT}/version" 2>/dev/null
-        ;;
-
-    "test-api-with-user")
-        USER_EMAIL="${6:-test-user@example.com}"
-        PROFILE_NAMESPACE="${7:-test-profile}"
-        curl -H "kubeflow-userid: ${USER_EMAIL}" \
-             "http://localhost:${PORT}/kfam/v1/bindings?namespace=${PROFILE_NAMESPACE}" \
-             2>/dev/null
-        ;;
-
     "performance-test")
         REQUESTS="${6:-10}"
         for i in $(seq 1 "${REQUESTS}"); do
@@ -76,32 +63,39 @@ case "$OPERATION" in
         ;;
 
     "validate-service")
-        kubectl get service "${SERVICE_NAME}" -n "${NAMESPACE}"
+        kubectl get service      "${SERVICE_NAME}" -n "${NAMESPACE}"
         kubectl describe service "${SERVICE_NAME}" -n "${NAMESPACE}"
         ;;
 
-    "check-logs")
-        LINES="${6:-50}"
-        # Handle special case for profiles-deployment which uses app.kubernetes.io/name=profile-controller label
-        if [ "${SERVICE_NAME}" = "profiles-deployment" ]; then
-            kubectl logs -n "${NAMESPACE}" -l app.kubernetes.io/name=profile-controller --tail="${LINES}"
-        else
-            kubectl logs -n "${NAMESPACE}" -l app="${SERVICE_NAME}" --tail="${LINES}"
-        fi
-        ;;
-
     "check-errors")
-        # Handle special case for profiles-deployment which uses app.kubernetes.io/name=profile-controller label
-        if [ "${SERVICE_NAME}" = "profiles-deployment" ]; then
-            kubectl logs -n "${NAMESPACE}" -l app.kubernetes.io/name=profile-controller --tail=100 | grep -i error || echo "No errors found"
+        # ensure there are pods with the correct label before trying to get logs
+        NUM_PODS=$(kubectl get pods -n "${NAMESPACE}" -l app="${SERVICE_NAME}" -o name | wc -l)
+        if [ "${NUM_PODS}" -eq 0 ]; then
+          echo "ERROR: no pods with label app=${SERVICE_NAME} found in namespace ${NAMESPACE}"
+          exit 1
+        fi
+
+        # read logs from all containers in all pods with the correct label
+        LOGS_RAW=$(kubectl logs --tail=100 --all-containers --prefix -n "${NAMESPACE}" -l app="${SERVICE_NAME}")
+        if [ -z "${LOGS_RAW}" ]; then
+          echo "WARN: no logs found for service ${SERVICE_NAME} in namespace ${NAMESPACE}"
+          exit 0
+        fi
+
+        # check for errors in logs (case-insensitive)
+        LOGS_ERRORS=$(echo "${LOGS_RAW}" | grep -i error || true)
+        if [ -n "${LOGS_ERRORS}" ]; then
+          echo "ERROR: found errors in logs for service ${SERVICE_NAME} in namespace ${NAMESPACE}:"
+          echo "${LOGS_ERRORS}"
+          exit 1
         else
-            kubectl logs -n "${NAMESPACE}" -l app="${SERVICE_NAME}" --tail=100 | grep -i error || echo "No errors found"
+          echo "INFO: no errors found in logs for service ${SERVICE_NAME} in namespace ${NAMESPACE}"
         fi
         ;;
 
     *)
         echo "Invalid operation: ${OPERATION}"
-        echo "Valid operations: port-forward, stop-port-forward, test-health, test-dashboard, test-kfam, test-api-with-user, performance-test, test-metrics, validate-service, check-logs, check-errors"
+        echo "Valid operations: port-forward, stop-port-forward, test-health, test-dashboard, performance-test, test-metrics, validate-service, check-errors"
         exit 1
         ;;
 esac

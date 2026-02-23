@@ -69,24 +69,15 @@ jobs:
           done
           kubectl wait --for condition=established --timeout=60s crd/profiles.kubeflow.org
 
-      - name: Deploy Poddefault Webhook Component
+      - name: Deploy PodDefaults Webhook Component
         run: ./testing/shared/install_poddefaults_webhook.sh
 
       - name: Deploy CentralDashboard Angular Component
         run: |
-          # Set required environment variables for domain name substitution
-          export CD_NAMESPACE=kubeflow
-          export CD_CLUSTER_DOMAIN=cluster.local
-
           ./testing/shared/install_centraldashboard_angular.sh
 
       - name: Deploy CentralDashboard Component
         run: |
-          export CD_NAMESPACE=kubeflow
-          export CD_CLUSTER_DOMAIN=cluster.local
-          export CD_NAMESPACE_PLACEHOLDER=kubeflow
-          export CD_CLUSTER_DOMAIN_PLACEHOLDER=cluster.local
-
           ./testing/shared/install_centraldashboard.sh
 
       - name: Create Test Profiles
@@ -99,7 +90,7 @@ jobs:
           ./components/profile-controller/integration/test_profile.sh validate e2e-admin
           ./components/profile-controller/integration/test_profile.sh validate e2e-user
 
-      - name: Test PodDefault Integration
+      - name: Test PodDefaults Integration
         run: |
           ./components/poddefaults-webhooks/integration/test_poddefault.sh create-namespace e2e-test
           ./components/poddefaults-webhooks/integration/test_poddefault.sh create-poddefault e2e-test e2e-poddefault
@@ -107,11 +98,13 @@ jobs:
 
       - name: Test KFAM Service Integration
         run: |
-          kubectl get services -n kubeflow | grep kfam 
-          kubectl get services -n kubeflow -l app.kubernetes.io/name=profile-controller
+          kubectl get service profiles-kfam -n kubeflow
 
-          POD_NAME=$(kubectl get pods -n kubeflow -l app.kubernetes.io/name=profile-controller -o jsonpath="{.items[0].metadata.name}")
-          if [ -z "$POD_NAME" ]; then exit 1; fi
+          POD_NAME=$(kubectl get pods -n kubeflow -l app=profile-controller -o jsonpath="{.items[0].metadata.name}")
+          if [ -z "$POD_NAME" ]; then
+            echo "Profile Controller/KFAM pod not found"; 
+            exit 1;
+          fi
 
           kubectl port-forward -n kubeflow pod/$POD_NAME 8081:8081 &
           PF_PID=$!
@@ -189,24 +182,34 @@ jobs:
             rm -f /tmp/dashboard_update_pf.pid
           fi
 
-      - name: Check Component Health and Logs
+      - name: Check Profile Controller + KFAM Logs for Errors
         run: |
-          ./testing/shared/test_service.sh check-logs profiles-deployment kubeflow 30
+          kubectl logs --tail=100 --all-containers --prefix -n kubeflow -l app=profile-controller
+          ./testing/shared/test_service.sh check-errors profile-controller kubeflow
 
-          kubectl logs -n kubeflow -l app.kubernetes.io/name=profile-controller -c access-management --tail=30 || kubectl logs -n kubeflow -l app.kubernetes.io/name=profile-controller --tail=30
-
-          ./testing/shared/test_service.sh check-logs poddefaults-webhook-deployment kubeflow 30
-
-          ./testing/shared/test_service.sh check-logs dashboard-angular kubeflow 30
-
-          ./testing/shared/test_service.sh check-logs dashboard kubeflow 30
-
-      - name: Check for Component Errors
+      - name: Check PodDefaults Webhook Logs for Errors
         run: |
-          ./testing/shared/test_service.sh check-errors profiles-deployment kubeflow
-          kubectl logs -n kubeflow -l app.kubernetes.io/name=profile-controller -c access-management --tail=100 | grep -i error || true
-          ./testing/shared/test_service.sh check-errors poddefaults-webhook-deployment kubeflow
+          kubectl logs --tail=100 --all-containers --prefix -n kubeflow -l app=poddefaults
+          
+          # NOTE: we exclude lines with "ErrorLog:" because there is 
+          #       always a line at startup containing that string, but it doesn't indicate an actual error.
+          if ! kubectl logs --tail=100 -n kubeflow -l app=poddefaults \
+            | egrep -i "^(E[0-9]{4})|unable to|traceback|error" \
+            | egrep -vi "ErrorLog:"; then
+              echo "No errors found in webhook logs"
+          else
+              echo "Errors found in webhook logs"
+              exit 1
+          fi
+
+      - name: Check CentralDashboard Angular Logs for Errors
+        run: |
+          kubectl logs --tail=100 --all-containers --prefix -n kubeflow -l app=dashboard-angular
           ./testing/shared/test_service.sh check-errors dashboard-angular kubeflow
+
+      - name: Check CentralDashboard Logs for Errors
+        run: |
+          kubectl logs --tail=100 --all-containers --prefix -n kubeflow -l app=dashboard
           ./testing/shared/test_service.sh check-errors dashboard kubeflow
 
       - name: Final Integration Validation

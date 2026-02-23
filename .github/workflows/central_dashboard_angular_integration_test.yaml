@@ -65,7 +65,7 @@ jobs:
             | sed "s|ghcr.io/kubeflow/dashboard/access-management:[a-zA-Z0-9_.-]*|${ACCESS_MANAGEMENT_IMG}:${TAG}|g" \
             | kubectl apply -f -
           kubectl wait --for=condition=Available deployment -n kubeflow profiles-deployment --timeout=300s
-          kubectl wait --for=condition=Ready pods -n kubeflow -l app.kubernetes.io/name=profile-controller --timeout=300s
+          kubectl wait --for=condition=Ready pods -n kubeflow -l app=profile-controller --timeout=300s
 
       - name: Deploy CentralDashboard-Angular Component
         run: |
@@ -142,12 +142,9 @@ jobs:
         run: |
           ./testing/shared/test_service.sh test-metrics dashboard-angular kubeflow 8080
 
-      - name: Check Dashboard Logs
-        run: |
-          ./testing/shared/test_service.sh check-logs dashboard-angular kubeflow 50
-
       - name: Check for Errors in Logs
         run: |
+           kubectl logs --tail=100 --all-containers --prefix -n kubeflow -l app=dashboard-angular
           ./testing/shared/test_service.sh check-errors dashboard-angular kubeflow
 
       - name: Stop Port Forward

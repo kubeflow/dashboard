@@ -85,5 +85,5 @@ replacements:
       - fieldPaths:
           - subjects.[kind=ServiceAccount].namespace
         select:
-          kind: ClusterRoleBinding
+          kind: RoleBinding
           name: profiles-leader-election-rolebinding

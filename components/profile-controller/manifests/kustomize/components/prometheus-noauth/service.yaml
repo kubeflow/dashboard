@@ -6,9 +6,9 @@ metadata:
   name: profiles-controller-manager-metrics-service
 spec:
   ports:
-    - name: https
-      port: 8443
+    - name: metrics
+      port: 8080
       protocol: TCP
-      targetPort: https
+      targetPort: metrics
   selector:
     app.kubernetes.io/component: controller-manager

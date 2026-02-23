@@ -137,7 +137,7 @@ make deploy
 Verify that the controller is running in the `profiles-system` namespace:
 
 ```sh
-kubectl get pods -l app.kubernetes.io/name=profile-controller -n profiles-system
+kubectl get pods -l app=profile-controller -n profiles-system
 ```
 
 ### Clean-up

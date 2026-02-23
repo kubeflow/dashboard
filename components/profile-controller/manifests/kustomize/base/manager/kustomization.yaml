@@ -13,6 +13,7 @@ resources:
 labels:
   - includeSelectors: true
     pairs:
+      app: profile-controller
       app.kubernetes.io/component: controller-manager
 
 configMapGenerator:
