@@ -14,7 +14,7 @@ export class NamespaceNeededPageComponent implements OnInit, OnDestroy {
   constructor(private route: ActivatedRoute, private location: Location) {}
 
   ngOnInit(): void {
-    const queryParam = this.route.snapshot.queryParams.path;
+    const queryParam = this.route.snapshot.queryParams['path'];
     if (queryParam) {
       this.location.replaceState(queryParam);
     }

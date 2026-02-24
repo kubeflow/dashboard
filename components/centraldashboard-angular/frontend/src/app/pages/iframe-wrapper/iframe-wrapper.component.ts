@@ -120,8 +120,8 @@ export class IframeWrapperComponent implements AfterViewInit, OnDestroy {
          * namespace and we want to prevent it from discarding this infromation from
          * the Browser's URL.
          */
-        if (!queryParams.ns) {
-          queryParams.ns = this.currentNamespace;
+        if (!queryParams['ns']) {
+          queryParams['ns'] = this.currentNamespace;
         }
 
         /**

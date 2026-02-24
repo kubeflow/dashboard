@@ -47,8 +47,8 @@ export function appendBackslash(url: string): string {
 
 function removeNamespaceParam(url: URL): URL {
   const queryParams = getQueryParams(url.search);
-  if (queryParams.ns) {
-    delete queryParams.ns;
+  if (queryParams['ns']) {
+    delete queryParams['ns'];
   }
   const search = convertQueryParamsToString(queryParams);
   url.search = search;
