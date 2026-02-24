@@ -1,0 +1,36 @@
+# GitHub Labeler Configuration
+# This file consolidates all area label assignments previously scattered across
+# individual OWNERS files in each component directory.
+#
+# Used by: .github/workflows/labeler.yaml (actions/labeler)
+# Docs: https://github.com/actions/labeler
+
+area/kfam:
+  - changed-files:
+    - any-glob-to-any-file: "components/access-management/**"
+
+area/dashboard:
+  - changed-files:
+    - any-glob-to-any-file: "components/centraldashboard/**"
+
+area/dashboard-angular:
+  - changed-files:
+    - any-glob-to-any-file: "components/centraldashboard-angular/**"
+
+area/poddefaults:
+  - changed-files:
+    - any-glob-to-any-file: "components/poddefaults-webhooks/**"
+
+area/profiles:
+  - changed-files:
+    - any-glob-to-any-file: "components/profile-controller/**"
+
+area/release:
+  - changed-files:
+    - any-glob-to-any-file: "releasing/**"
+
+area/ci:
+  - changed-files:
+    - any-glob-to-any-file:
+      - ".github/workflows/**"
+      - "testing/**"

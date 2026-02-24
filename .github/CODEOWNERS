@@ -1,0 +1,40 @@
+# CODEOWNERS
+# Single source of truth for code ownership in this repository.
+# Replaces all per-directory OWNERS files (which were Prow-bot conventions
+# incompatible with GitHub Actions — this repo uses GitHub Actions only).
+#
+# Area labels are managed separately in .github/labeler.yml
+#
+# GitHub uses this file to automatically request reviews on pull requests.
+# Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# Emeritus (past maintainers, listed for historical reference only):
+#   @elikatsis, @StefanoFioravanzo, @yanniszark  — access-management, centraldashboard, poddefaults, profiles
+#   @discordianfish                               — poddefaults-webhooks
+#   @kunmingg                                    — profile-controller
+#   @tasos-ale                                   — centraldashboard-angular
+
+# Global / default owners
+*                                             @juliusvonkohout @kimwnasptd @thesuperzapper @andyatmiami
+
+# Access Management (kfam)
+components/access-management/                @kimwnasptd @thesuperzapper
+
+# Central Dashboard (classic)
+components/centraldashboard/                 @kimwnasptd @thesuperzapper
+
+# Central Dashboard (Angular)
+components/centraldashboard-angular/         @orfeas-k @kimwnasptd
+
+# PodDefaults Webhook
+components/poddefaults-webhooks/             @kimwnasptd @thesuperzapper
+
+# Profile Controller
+components/profile-controller/               @kimwnasptd @thesuperzapper
+
+# Releasing
+releasing/                                   @juliusvonkohout @kimwnasptd @thesuperzapper
+
+# CI / GitHub workflows & test infrastructure
+.github/                                     @juliusvonkohout @kimwnasptd @thesuperzapper
+testing/                                     @juliusvonkohout @kimwnasptd @thesuperzapper
