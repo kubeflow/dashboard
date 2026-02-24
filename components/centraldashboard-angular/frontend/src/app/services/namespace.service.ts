@@ -105,7 +105,7 @@ export class CDBNamespaceService {
     }
 
     // See if namespace is set through the query parameters of current URL
-    const newNamespaceName = this.route.snapshot.queryParams.ns;
+    const newNamespaceName = this.route.snapshot.queryParams['ns'];
     const newNamespace = this.getNamespaceObject(newNamespaceName, namespaces);
     if (this.validateSelectedNamespaces(newNamespace)) {
       return newNamespace;
@@ -192,7 +192,7 @@ export class CDBNamespaceService {
     const urlWithoutFragment = url.pathname;
     const fragment = getUrlFragment(path);
 
-    queryParams.ns = namespace;
+    queryParams['ns'] = namespace;
     this.router.navigate([urlWithoutFragment], {
       queryParams,
       fragment,

@@ -8,10 +8,12 @@ body {
   font-family: Roboto, 'Helvetica Neue', sans-serif;
 }
 
-@import '../../node_modules/kubeflow/styles/fonts.scss';
+// Kubeflow fonts - imported from kubeflow-common-lib in production builds
+// For local development without the kubeflow library, we include Google Fonts
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap');
 
 // Use the material icons offline
-@import '~material-icons/iconfont/material-icons.scss';
+@import 'material-icons/iconfont/material-icons.scss';
 
 .cdb-snackbar {
   .snack-container {

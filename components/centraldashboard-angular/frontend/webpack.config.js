@@ -27,23 +27,11 @@ module.exports = {
         path: DESTINATION,
         library: 'centraldashboard',
         libraryTarget: 'umd',
+        clean: true,
     },
-    devtool: 'cheap-source-map',
+    devtool: 'source-map',
     module: {
         rules: [
-            {
-                enforce: 'pre',
-                test: /\.js$/,
-                exclude: NODE_MODULES,
-                use: {
-                    loader: 'eslint-loader',
-                    options: {
-                        extends: ['eslint:recommended', 'google'],
-                        failOnError: true,
-                        fix: true,
-                    },
-                },
-            },
             {
                 test: /\.js$/,
                 exclude: NODE_MODULES,
@@ -54,7 +42,7 @@ module.exports = {
                         presets: [[
                             '@babel/preset-env',
                             {
-                                corejs: '2',
+                                corejs: '3',
                                 useBuiltIns: 'entry',
                                 targets: {
                                     browsers: [

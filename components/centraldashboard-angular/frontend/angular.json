@@ -139,8 +139,10 @@
       }
     }
   },
-  "defaultProject": "frontend",
   "cli": {
-    "defaultCollection": "@angular-eslint/schematics"
+    "schematicCollections": [
+      "@angular-eslint/schematics"
+    ],
+    "analytics": "1c41d9cd-4c11-42d5-b5e7-a594a31643ca"
   }
 }
