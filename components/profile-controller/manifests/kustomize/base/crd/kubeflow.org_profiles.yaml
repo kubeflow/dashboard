@@ -3,11 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-<<<<<<< HEAD:components/profile-controller/manifests/kustomize/base/crd/kubeflow.org_profiles.yaml
     controller-gen.kubebuilder.io/version: v0.16.4
-=======
-    controller-gen.kubebuilder.io/version: v0.17.0
->>>>>>> 9024371 (feat: Add ambient mode support to profile-controller):components/profile-controller/config/crd/bases/kubeflow.org_profiles.yaml
   name: profiles.kubeflow.org
 spec:
   group: kubeflow.org

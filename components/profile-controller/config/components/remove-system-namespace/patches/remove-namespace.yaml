@@ -1,9 +1,0 @@
-$patch: delete
-apiVersion: v1
-kind: Namespace
-metadata:
-<<<<<<<< HEAD:components/profile-controller/manifests/kustomize/overlays/kubeflow/patches/remove-namespace.yaml
-  name: profiles-system
-========
-  name: system
->>>>>>>> 9024371 (feat: Add ambient mode support to profile-controller):components/profile-controller/config/components/remove-system-namespace/patches/remove-namespace.yaml
