@@ -8,15 +8,16 @@ resources:
 
 components:
   - ../../components/istio-common
-  - ../../components/istio-sidecar
+  - ../../components/istio-ambient
   - ../../components/kfam
-#  - ../../components/prometheus-noauth
-#  - ../../components/prometheus-authz
+  # - ../../components/prometheus-noauth
+  # - ../../components/prometheus-authz
   # NOTE: the common component should always be last, to ensure it labels all resources.
   - ../../components/common
 
 patches:
   - path: patches/remove-namespace.yaml
+  - path: patches/deployment.yaml
 
 configMapGenerator:
   - name: profiles-config
@@ -30,6 +31,7 @@ configMapGenerator:
       - namespace-labels.yaml
 
 replacements:
+  # Replace KFAM host in HTTPRoute
   - source:
       fieldPath: metadata.name
       kind: Service
@@ -37,26 +39,12 @@ replacements:
       version: v1
     targets:
       - fieldPaths:
-          - spec.http.0.route.0.destination.host
-        options:
-          delimiter: .
+          - spec.rules.0.backendRefs.0.name
         select:
-          group: networking.istio.io
-          kind: VirtualService
+          group: gateway.networking.k8s.io
+          kind: HTTPRoute
           name: profiles-kfam
-          version: v1alpha3
-  - source:
-      fieldPath: spec.ports.0.port
-      kind: Service
-      name: profiles-kfam
-      version: v1
-    targets:
-      - fieldPaths:
-          - spec.http.0.route.0.destination.port.number
-        select:
-          group: networking.istio.io
-          kind: VirtualService
-          name: profiles-kfam
+          version: v1beta1
   - source:
       fieldPath: metadata.namespace
       kind: Service
@@ -64,15 +52,26 @@ replacements:
       version: v1
     targets:
       - fieldPaths:
-          - spec.http.0.route.0.destination.host
-        options:
-          delimiter: .
-          index: 1
+          - spec.rules.0.backendRefs.0.namespace
         select:
-          group: networking.istio.io
-          kind: VirtualService
+          group: gateway.networking.k8s.io
+          kind: HTTPRoute
           name: profiles-kfam
-          version: v1alpha3
+          version: v1beta1
+  - source:
+      fieldPath: spec.ports.0.port
+      kind: Service
+      name: profiles-kfam
+      version: v1
+    targets:
+      - fieldPaths:
+          - spec.rules.0.backendRefs.0.port
+        select:
+          group: gateway.networking.k8s.io
+          kind: HTTPRoute
+          name: profiles-kfam
+          version: v1beta1
+  # Update the ServiceAccount
   - source:
       fieldPath: metadata.namespace
       kind: ServiceAccount
