@@ -62,3 +62,104 @@
 .active {
   background-color: #ececec;
 }
+.sidenav-container {
+  height: 100%;
+  background: white;
+}
+
+.sidenav {
+  width: 200px;
+  // Mat toolbar row has a min-height of 64px
+  margin-bottom: 64px;
+}
+
+.sidenav .mat-toolbar {
+  background: white;
+}
+
+.main-page-content {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.menu-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.nav-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.footer {
+  position: fixed;
+  bottom: 0;
+  width: 200px;
+  border-right: solid 1px rgba(0, 0, 0, 0.12);
+}
+
+.footer-text {
+  height: auto;
+  background-color: white;
+  white-space: normal;
+  word-break: break-all;
+  position: absolute;
+  bottom: 0;
+
+  .buildId {
+    display: none;
+  }
+
+  &:hover .buildVersion {
+    display: none;
+  }
+
+  &:hover .buildId {
+    display: block;
+  }
+}
+
+// NEW: Make buttons look clickable
+.mat-icon-button {
+  cursor: pointer !important;
+  transition: all 0.2s ease;
+
+  &:hover:not([disabled]) {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    transform: scale(1.1);
+  }
+
+  &:active:not([disabled]) {
+    transform: scale(0.95);
+  }
+}
+
+.mat-list-item {
+  cursor: pointer !important;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+  margin: 2px 8px;
+
+  &:hover:not(.active) {
+    background-color: rgba(0, 0, 0, 0.04) !important;
+    transform: translateX(4px);
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  }
+
+  &.active {
+    background-color: rgba(63, 81, 181, 0.1) !important;
+    border-left: 4px solid #3f51b5;
+  }
+
+  &:active {
+    transform: translateX(2px);
+  }
+}
+
+.menu-toolbar {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
