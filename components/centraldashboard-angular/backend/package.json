@@ -31,7 +31,7 @@
   "homepage": "https://github.com/kubeflow/kubeflow#readme",
   "dependencies": {
     "@google-cloud/monitoring": "^2.3.5",
-    "@kubernetes/client-node": "^0.8.2",
+    "@kubernetes/client-node": "^1.4.0",
     "express": "^4.17.1",
     "node-fetch": "^2.6.7"
   },
