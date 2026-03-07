@@ -1,0 +1,7 @@
+# Vendored from kubeflow/manifests:
+#   https://github.com/kubeflow/manifests/tree/master/common/oauth2-proxy/components/central-dashboard
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+patches:
+  - path: patches/deployment.logout-url.yaml

@@ -1,0 +1,13 @@
+# This file duplicates the namespace-labels configuration from the profile-controller
+# and merges it with PSS labels for deployment.
+#
+# Guidelines for managing labels:
+# - Add labels using key: 'value' format
+# - Remove labels by setting key: '' (empty string)
+# - The profile controller won't override existing labels without removal first
+
+katib.kubeflow.org/metrics-collector-injection: "enabled"
+serving.kubeflow.org/inferenceservice: "enabled"
+pipelines.kubeflow.org/enabled: "true"
+app.kubernetes.io/part-of: "kubeflow-profile"
+pod-security.kubernetes.io/enforce: "baseline"

@@ -8,6 +8,7 @@ resources:
 
 components:
   - ../../components/istio
+  - ../../components/oauth2-proxy
   - ../../components/common
 
 patches:

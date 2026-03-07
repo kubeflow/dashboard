@@ -19,6 +19,7 @@ env:
   ACCESS_MANAGEMENT_IMG: ghcr.io/kubeflow/dashboard/access-management
   PROFILE_CONTROLLER_IMG: ghcr.io/kubeflow/dashboard/profile-controller
   TAG: integration-test
+  APP_LABEL: kubeflow-dashboard-angular
 
 jobs:
   integration-test:
@@ -75,7 +76,7 @@ jobs:
             "${TAG}" \
             "manifests/kustomize" \
             "overlays/kserve"
-          kubectl wait --for=condition=Ready pods -n kubeflow -l app=dashboard-angular --timeout=300s
+          kubectl wait --for=condition=Ready pods -n kubeflow -l app=${APP_LABEL} --timeout=300s
           kubectl wait --for=condition=Available deployment -n kubeflow dashboard-angular --timeout=300s
 
       - name: Create Test Profile for Dashboard Testing
@@ -132,7 +133,7 @@ jobs:
           fi
 
           kubectl get service dashboard-angular -n kubeflow
-          kubectl get pods -n kubeflow -l app=dashboard-angular
+          kubectl get pods -n kubeflow -l app=${APP_LABEL}
 
       - name: Test Dashboard Performance
         run: |
@@ -144,7 +145,7 @@ jobs:
 
       - name: Check for Errors in Logs
         run: |
-           kubectl logs --tail=100 --prefix -n kubeflow -l app=dashboard-angular
+          kubectl logs --tail=100 --prefix -n kubeflow -l app=${APP_LABEL}
           ./testing/shared/test_service.sh check-errors dashboard-angular kubeflow
 
       - name: Stop Port Forward

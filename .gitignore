@@ -33,6 +33,9 @@ Sessionx.vim
 *.elc
 .\#*
 
+## Claude Code
+.claude/
+
 ## macOS
 .DS_Store
 .AppleDouble

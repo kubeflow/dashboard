@@ -1,0 +1,16 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: poddefaults
+  labels: {}
+spec:
+  podSelector:
+    matchLabels:
+      app: poddefaults
+      app.kubernetes.io/component: poddefaults
+  ingress:
+    - ports:
+        - protocol: TCP
+          port: 4443
+  policyTypes:
+    - Ingress

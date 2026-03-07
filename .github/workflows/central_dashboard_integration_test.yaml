@@ -14,6 +14,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.number }}
   cancel-in-progress: true
 
+env:
+  APP_LABEL: kubeflow-dashboard
+
 jobs:
   integration-test:
     runs-on: ubuntu-22.04
@@ -81,14 +84,14 @@ jobs:
     - name: Integration Tests
       run: |
         kubectl get service dashboard -n kubeflow
-        kubectl get pods -n kubeflow -l app=dashboard
+        kubectl get pods -n kubeflow -l app=${APP_LABEL}
         ./testing/shared/test_service.sh test-dashboard dashboard kubeflow 8082
         ./testing/shared/test_service.sh performance-test dashboard kubeflow 8082 80 10
         ./testing/shared/test_service.sh test-metrics dashboard kubeflow 8082
 
     - name: Check Logs for Errors
       run: |
-        kubectl logs --tail=100 --prefix -n kubeflow -l app=dashboard
+        kubectl logs --tail=100 --prefix -n kubeflow -l app=${APP_LABEL}
         ./testing/shared/test_service.sh check-errors dashboard kubeflow
 
     - name: Test Dashboard Configuration
