@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: dashboard
-          image: ghcr.io/kubeflow/dashboard/dashboard
+          image: dashboard
           imagePullPolicy: IfNotPresent
           livenessProbe:
             httpGet:
