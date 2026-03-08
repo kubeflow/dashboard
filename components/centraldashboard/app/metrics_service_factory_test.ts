@@ -76,4 +76,30 @@ describe('Metrics Service Factory getMetricsService', () => {
 
     expect(await getMetricsService(mockK8sService)).toBe(null);
   });
+
+  it('Returns null for azure platform without a console.warn', async () => {
+    const nodes = [{
+      apiVersion: 'v1',
+      kind: 'Node',
+      metadata: {name: 'aks-node-1'},
+      spec: {
+        podCIDR: '10.244.0.0/24',
+        providerID:
+            'azure:///subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Compute/virtualMachines/aks-node-1'
+      },
+    }] as k8s.V1Node[];
+    mockK8sService.getNodes.and.returnValue(Promise.resolve(nodes));
+    mockK8sService.getPlatformInfo.and.returnValue(Promise.resolve({
+      provider:
+          'azure:///subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg/providers/Microsoft.Compute/virtualMachines/aks-node-1',
+      providerName: 'azure',
+      kubeflowVersion: '1.0.0'
+    }));
+
+    const warnSpy = spyOn(console, 'warn');
+    const metricsService = await getMetricsService(mockK8sService);
+
+    expect(metricsService).toBe(null);
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
 });
