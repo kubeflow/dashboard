@@ -35,30 +35,30 @@ yaml = YAML()
 applications = [
     {
         "name": "Pod Defaults Webhook",
-        "kustomization": "components/poddefaults-webhooks/manifests/base/kustomization.yaml",
+        "kustomization": "components/poddefaults-webhooks/manifests/kustomize/base/kustomization.yaml",
         "images": [
             {
-                "name": "ghcr.io/kubeflow/dashboard/poddefaults-webhook",
+                "name": "poddefaults-webhook",
                 "newName": "ghcr.io/kubeflow/dashboard/poddefaults-webhook",
             },
         ],
     },
     {
         "name": "Central Dashboard",
-        "kustomization": "components/centraldashboard/manifests/base/kustomization.yaml",
+        "kustomization": "components/centraldashboard/manifests/kustomize/base/kustomization.yaml",
         "images": [
             {
-                "name": "ghcr.io/kubeflow/dashboard/dashboard",
+                "name": "dashboard",
                 "newName": "ghcr.io/kubeflow/dashboard/dashboard",
             },
         ],
     },
     {
         "name": "Central Dashboard Angular",
-        "kustomization": "components/centraldashboard-angular/manifests/base/kustomization.yaml",
+        "kustomization": "components/centraldashboard-angular/manifests/kustomize/base/kustomization.yaml",
         "images": [
             {
-                "name": "ghcr.io/kubeflow/dashboard/dashboard-angular",
+                "name": "dashboard-angular",
                 "newName": "ghcr.io/kubeflow/dashboard/dashboard-angular",
             },
         ],

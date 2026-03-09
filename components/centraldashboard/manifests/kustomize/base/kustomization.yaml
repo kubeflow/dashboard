@@ -14,7 +14,7 @@ resources:
   - configmap.yaml
 
 images:
-  - name: ghcr.io/kubeflow/dashboard/dashboard
+  - name: dashboard
     newName: ghcr.io/kubeflow/dashboard/dashboard
     newTag: latest
 

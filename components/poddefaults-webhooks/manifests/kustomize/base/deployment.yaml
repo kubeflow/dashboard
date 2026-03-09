@@ -13,7 +13,7 @@ spec:
       labels: {}
     spec:
       containers:
-      - image: ghcr.io/kubeflow/dashboard/poddefaults-webhook
+      - image: poddefaults-webhook
         name: poddefaults-webhook
         ports:
         - name: https-webhook

@@ -14,7 +14,7 @@ resources:
   - user_cluster_roles.yaml
 
 images:
-  - name: ghcr.io/kubeflow/dashboard/poddefaults-webhook
+  - name: poddefaults-webhook
     newName: ghcr.io/kubeflow/dashboard/poddefaults-webhook
     newTag: latest
 
