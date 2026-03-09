@@ -1,0 +1,10 @@
+# Vendored from kubeflow/manifests:
+#   https://github.com/kubeflow/manifests/tree/master/applications/profiles/pss
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+configMapGenerator:
+  - name: profiles-namespace-labels-data
+    behavior: merge
+    files:
+      - namespace-labels.yaml

@@ -23,6 +23,8 @@ env:
   ACCESS_MANAGEMENT_IMG: ghcr.io/kubeflow/dashboard/access-management
   ADMISSION_WEBHOOK_IMG: ghcr.io/kubeflow/dashboard/poddefaults-webhook
   TAG: e2e-test
+  DASHBOARD_APP_LABEL: kubeflow-dashboard
+  DASHBOARD_ANGULAR_APP_LABEL: kubeflow-dashboard-angular
 
 jobs:
   end-to-end-test:
@@ -125,7 +127,7 @@ jobs:
 
       - name: Test CentralDashboard Angular Integration
         run: |
-          POD_NAME=$(kubectl get pods -n kubeflow -l app=dashboard-angular -o jsonpath="{.items[0].metadata.name}")
+          POD_NAME=$(kubectl get pods -n kubeflow -l app=${DASHBOARD_ANGULAR_APP_LABEL} -o jsonpath="{.items[0].metadata.name}")
           if [ -z "$POD_NAME" ]; then exit 1; fi
 
           kubectl port-forward -n kubeflow pod/$POD_NAME 8082:8082 &
@@ -142,7 +144,7 @@ jobs:
 
       - name: Test CentralDashboard Integration
         run: |
-          POD_NAME=$(kubectl get pods -n kubeflow -l app=dashboard -o jsonpath="{.items[0].metadata.name}")
+          POD_NAME=$(kubectl get pods -n kubeflow -l app=${DASHBOARD_APP_LABEL} -o jsonpath="{.items[0].metadata.name}")
           if [ -z "$POD_NAME" ]; then exit 1; fi
 
           kubectl port-forward -n kubeflow pod/$POD_NAME 8083:8082 &
@@ -167,7 +169,7 @@ jobs:
 
           kubectl wait --for=condition=available deployment -n kubeflow dashboard --timeout=300s
 
-          POD_NAME=$(kubectl get pods -n kubeflow -l app=dashboard -o jsonpath="{.items[0].metadata.name}")
+          POD_NAME=$(kubectl get pods -n kubeflow -l app=${DASHBOARD_APP_LABEL} -o jsonpath="{.items[0].metadata.name}")
           if [ -z "$POD_NAME" ]; then exit 1; fi
 
           kubectl port-forward -n kubeflow pod/$POD_NAME 8085:8082 &
@@ -198,13 +200,17 @@ jobs:
           kubectl logs --tail=100 --prefix -n kubeflow -l app=poddefaults
 
       - name: Check CentralDashboard Angular Logs for Errors
+        env:
+          APP_LABEL: ${{ env.DASHBOARD_ANGULAR_APP_LABEL }}
         run: |
-          kubectl logs --tail=100 --prefix -n kubeflow -l app=dashboard-angular
+          kubectl logs --tail=100 --prefix -n kubeflow -l app=${APP_LABEL}
           ./testing/shared/test_service.sh check-errors dashboard-angular kubeflow
 
       - name: Check CentralDashboard Logs for Errors
+        env:
+          APP_LABEL: ${{ env.DASHBOARD_APP_LABEL }}
         run: |
-          kubectl logs --tail=100 --prefix -n kubeflow -l app=dashboard
+          kubectl logs --tail=100 --prefix -n kubeflow -l app=${APP_LABEL}
           ./testing/shared/test_service.sh check-errors dashboard kubeflow
 
       - name: Final Integration Validation

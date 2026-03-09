@@ -11,7 +11,7 @@ spec:
               - cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account
   selector:
     matchLabels:
-      app: dashboard
+      app: kubeflow-dashboard
       app.kubernetes.io/component: dashboard
       app.kubernetes.io/managed-by: kustomize
       app.kubernetes.io/name: centraldashboard

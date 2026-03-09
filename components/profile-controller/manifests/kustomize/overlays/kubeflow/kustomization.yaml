@@ -9,6 +9,7 @@ resources:
 components:
   - ../../components/istio
   - ../../components/kfam
+  - ../../components/pss
 #  - ../../components/prometheus-noauth
 #  - ../../components/prometheus-authz
   # NOTE: the common component should always be last, to ensure it labels all resources.
