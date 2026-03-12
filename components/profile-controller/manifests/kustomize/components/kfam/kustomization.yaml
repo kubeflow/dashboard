@@ -11,7 +11,3 @@ images:
 - name: access-management
   newName: ghcr.io/kubeflow/dashboard/access-management
   newTag: latest
-
-labels:
-- pairs:
-    app.kubernetes.io/component: controller-manager

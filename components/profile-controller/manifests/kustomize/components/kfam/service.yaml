@@ -6,7 +6,6 @@ spec:
   selector:
     app.kubernetes.io/component: controller-manager
   ports:
-    - name: http-kfam
-      port: 8081
+    - port: 8081
       protocol: TCP
       targetPort: 8081

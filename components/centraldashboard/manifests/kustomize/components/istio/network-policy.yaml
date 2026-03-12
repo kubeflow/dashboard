@@ -2,12 +2,14 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: dashboard
-  labels: {}
 spec:
   podSelector:
     matchLabels:
-      app: kubeflow-dashboard
+      app: dashboard
       app.kubernetes.io/component: dashboard
+      app.kubernetes.io/managed-by: kustomize
+      app.kubernetes.io/name: centraldashboard
+      app.kubernetes.io/part-of: kubeflow-dashboard
   ingress:
     - from:
         - namespaceSelector:

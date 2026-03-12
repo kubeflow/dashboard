@@ -19,12 +19,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  APP_LABEL: kubeflow-dashboard-angular
-
   # only build AMD64 (the runner arch) images for integration tests.
   # we already test/release multi-arch builds in separate workflows so there is no need to build all architectures here.
   ARCH: linux/amd64
-
 
 jobs:
   integration-test:
@@ -101,7 +98,7 @@ jobs:
           fi
 
           kubectl get service dashboard-angular -n kubeflow
-          kubectl get pods -n kubeflow -l app=${APP_LABEL}
+          kubectl get pods -n kubeflow -l app=dashboard-angular
 
       - name: Test Dashboard Performance
         run: |
@@ -113,7 +110,7 @@ jobs:
 
       - name: Check for Errors in Logs
         run: |
-          kubectl logs --tail=100 --prefix -n kubeflow -l app=${APP_LABEL}
+           kubectl logs --tail=100 --prefix -n kubeflow -l app=dashboard-angular
           ./testing/shared/test_service.sh check-errors dashboard-angular kubeflow
 
       - name: Stop Port Forward
