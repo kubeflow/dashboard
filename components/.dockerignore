@@ -1,0 +1,9 @@
+# NOTE: This file is used when building Docker images with context `..`
+# Primarily intended for access-management/Dockerfile builds
+
+# Exclude frontend code, node_modules, and unnecessary binaries
+access-management/bin/
+centraldashboard/
+centraldashboard-angular/
+poddefaults-webhooks/bin/
+profile-controller/bin/

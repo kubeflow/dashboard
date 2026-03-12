@@ -1,7 +1,7 @@
 # Image URL to use all building/pushing image targets
 IMG ?= ghcr.io/kubeflow/dashboard/profile-controller
 TAG ?= $(shell git describe --tags --always --dirty)
-ARCH ?= linux/amd64
+ARCH ?= linux/amd64,linux/ppc64le,linux/arm64/v8
 
 # The version of Kubernetes to use for envtest.
 # If updating, also update the version referenced in `BinaryAssetsDirectory` of suite_test.go files.
@@ -35,7 +35,7 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 		output:webhook:artifacts:config=manifests/kustomize/base/webhook
 
 	# TODO: generate RBAC rules with controller-gen instead of using ClusterRole/cluster-admin, we may need to give the
-    #       controller the "bind" permission on the `kubeflow-{view,edit,admin}` ClusterRoles
+	#       controller the "bind" permission on the `kubeflow-{view,edit,admin}` ClusterRoles
 	#       https://kubernetes.io/docs/reference/access-authn-authz/rbac/#restrictions-on-role-binding-creation-or-update
 	# $(CONTROLLER_GEN) rbac:roleName=profiles-manager-role ... output:rbac:artifacts:config=manifests/kustomize/base/manager
 

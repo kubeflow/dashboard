@@ -1,10 +1,8 @@
-name: KFAM Multi-Arch Build Test
+name: CentralDashboard-Angular Multi-Arch Build Test
 on:
   pull_request:
     paths:
-      - components/access-management/**
-      ## NOTE: we also build on changes to profile-controller as access-management depends on profile-controller
-      - components/profile-controller/**
+      - components/centraldashboard-angular/**
       - releasing/version/VERSION
     branches:
       - main
@@ -15,7 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  IMG: ghcr.io/kubeflow/dashboard/access-management
+  IMG: ghcr.io/kubeflow/dashboard/dashboard-angular
   ARCH: linux/amd64,linux/ppc64le,linux/arm64/v8
 
 jobs:
@@ -33,5 +31,5 @@ jobs:
 
     - name: Build multi-arch Image
       run: |
-        cd components/access-management
+        cd components/centraldashboard-angular
         make docker-build-multi-arch

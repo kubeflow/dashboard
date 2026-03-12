@@ -1,4 +1,4 @@
-name: Build & Publish dashboard-Angular Docker image
+name: Build & Publish CentralDashboard-Angular OCI image
 on:
   push:
     branches:
@@ -10,17 +10,19 @@ on:
 
 env:
   IMG: ghcr.io/kubeflow/dashboard/dashboard-angular
-  COMPONENT_PATH: components/centraldashboard-angular
+  ARCH: linux/amd64,linux/ppc64le,linux/arm64/v8
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   push_to_registry:
-    name: Build & Push image to GHCR
+    name: Build & Push OCI image to GHCR
     runs-on: ubuntu-22.04
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
 
     - uses: dorny/paths-filter@v3
       id: filter
@@ -37,22 +39,29 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Run CentralDashboard-Angular build/push
+    - name: Setup QEMU
+      uses: docker/setup-qemu-action@v3
+
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build and push multi-architecture OCI image (commit tag)
       run: |
-        cd ${{ env.COMPONENT_PATH }}
-        make docker-build docker-push
-    
-    - name: Run CentralDashboard-Angular build/push latest
+        cd components/centraldashboard-angular
+        make docker-build-multi-arch
+        make docker-build-push-multi-arch
+
+    - name: Build and push multi-architecture OCI image (latest tag)
       if: github.ref == 'refs/heads/main'
       run: |
         export TAG=latest
-        cd ${{ env.COMPONENT_PATH }}
-        make docker-build docker-push
+        cd components/centraldashboard-angular
+        make docker-build-push-multi-arch
 
-    - name: Run CentralDashboard-Angular build/push on Version change
+    - name: Build and push multi-architecture OCI image (version tag)
       id: version
       if: steps.filter.outputs.version == 'true'
       run: |
         export TAG=$(cat releasing/version/VERSION)
-        cd ${{ env.COMPONENT_PATH }}
-        make docker-build docker-push
+        cd components/centraldashboard-angular
+        make docker-build-push-multi-arch

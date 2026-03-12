@@ -27,7 +27,6 @@ From the repository root:
 ```bash
 ./testing/shared/install_profile_controller.sh
 ./testing/shared/install_centraldashboard_angular.sh
-./testing/shared/install_notebook_controller.sh
 ```
 
 ## Backend Integration Tests

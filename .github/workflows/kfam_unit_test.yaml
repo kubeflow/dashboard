@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - components/access-management/**
+      ## NOTE: we also test on changes to profile-controller as access-management depends on profile-controller
+      - components/profile-controller/**
       - releasing/version/VERSION
     branches:
       - main

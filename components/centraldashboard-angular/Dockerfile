@@ -1,5 +1,5 @@
 # --- Build the backend ---
-FROM node:16.20.2-bullseye as backend
+FROM node:16.20.2-bullseye AS backend
 
 COPY ./backend/ ./src
 WORKDIR /src
@@ -9,7 +9,7 @@ RUN npm ci && \
     npm prune --production
 
 # --- Build the frontend kubeflow library ---
-FROM node:16.20.2-bullseye as frontend-kubeflow-lib
+FROM node:16.20.2-bullseye AS frontend-kubeflow-lib
 
 WORKDIR /src
 
@@ -24,7 +24,7 @@ COPY ./kubeflow-common-lib/tsconfig.json .
 RUN npm run build
 
 # --- Build the frontend ---
-FROM node:16.20.2-bullseye as frontend
+FROM node:16.20.2-bullseye AS frontend
 
 ARG kubeflowversion=unknown
 ENV BUILD_VERSION=$kubeflowversion

@@ -8,16 +8,12 @@ set -euo pipefail
 COMPONENT_PATH="$1"
 IMAGE_NAME="$2"
 TAG="$3"
-MANIFESTS_PATH="${4:-manifests}"
+MANIFESTS_PATH="${4:-manifests/kustomize}"
 OVERLAY="${5:-overlays/kubeflow}"
 
 cd "${COMPONENT_PATH}"
 if [ -f "Makefile" ]; then
-    if grep -q "docker-build-multi-arch" Makefile; then
-        make docker-build-multi-arch IMG="${IMAGE_NAME}" TAG="${TAG}"
-    else
-        make docker-build IMG="${IMAGE_NAME}" TAG="${TAG}"
-    fi
+    make docker-build-multi-arch IMG="${IMAGE_NAME}" TAG="${TAG}"
 else
     exit 1
 fi
@@ -26,9 +22,6 @@ kind load docker-image "${IMAGE_NAME}:${TAG}"
 
 if [ -d "${MANIFESTS_PATH}" ]; then
     cd "${MANIFESTS_PATH}"
-elif [ -d "config" ]; then
-    cd "config"
-    OVERLAY="overlays/kubeflow"
 else
     exit 1
 fi

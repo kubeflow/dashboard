@@ -14,6 +14,7 @@ concurrency:
 
 env:
   IMG: ghcr.io/kubeflow/dashboard/dashboard
+  ARCH: linux/amd64,linux/ppc64le,linux/arm64/v8
 
 jobs:
   build:
@@ -31,6 +32,4 @@ jobs:
     - name: Build multi-arch Image
       run: |
         cd components/centraldashboard
-        ARCH=linux/amd64 make docker-build-multi-arch
-        ARCH=linux/ppc64le make docker-build-multi-arch
-        ARCH=linux/arm64/v8 make docker-build-multi-arch
+        make docker-build-multi-arch

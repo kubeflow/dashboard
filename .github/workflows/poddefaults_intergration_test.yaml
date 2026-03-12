@@ -13,8 +13,9 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  IMG: ghcr.io/kubeflow/dashboard/poddefaults-webhook
-  TAG: integration-test
+  # only build AMD64 (the runner arch) images for integration tests.
+  # we already test/release multi-arch builds in separate workflows so there is no need to build all architectures here.
+  ARCH: linux/amd64
 
 jobs:
   integration-test:
@@ -47,18 +48,7 @@ jobs:
       run: kubectl create namespace kubeflow
 
     - name: Deploy PodDefaults Webhook Component
-      run: |
-        ./testing/shared/deploy_component.sh \
-          "components/poddefaults-webhooks" \
-          "${IMG}" \
-          "${TAG}" \
-          "manifests/kustomize" \
-          "overlays/cert-manager"
-
-    - name: Wait for Admission Webhook to be Ready
-      run: |
-        kubectl wait --for=condition=Ready pods -n kubeflow -l app=poddefaults --timeout=300s
-        kubectl wait --for=condition=Available deployment -n kubeflow poddefaults-webhook-deployment --timeout=300s
+      run: ./testing/shared/install_poddefaults_webhook.sh
 
     - name: Validate Webhook Configuration
       run: |

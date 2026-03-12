@@ -15,11 +15,12 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  DASHBOARD_IMG: ghcr.io/kubeflow/dashboard/dashboard-angular
-  ACCESS_MANAGEMENT_IMG: ghcr.io/kubeflow/dashboard/access-management
-  PROFILE_CONTROLLER_IMG: ghcr.io/kubeflow/dashboard/profile-controller
-  TAG: integration-test
   APP_LABEL: kubeflow-dashboard-angular
+
+  # only build AMD64 (the runner arch) images for integration tests.
+  # we already test/release multi-arch builds in separate workflows so there is no need to build all architectures here.
+  ARCH: linux/amd64
+
 
 jobs:
   integration-test:
@@ -48,49 +49,15 @@ jobs:
       - name: Create Kubeflow Namespace
         run: kubectl create namespace kubeflow
 
-      - name: Build Access Management Image
-        run: |
-          cd components/access-management
-          make docker-build-multi-arch IMG="${ACCESS_MANAGEMENT_IMG}" TAG="${TAG}"
-          kind load docker-image "${ACCESS_MANAGEMENT_IMG}:${TAG}"
-          cd ../..
+      - name: Deploy Profile Controller with KFAM
+        run: ./testing/shared/install_profile_controller.sh
 
-      - name: Build and Deploy Profile Controller with KFAM
-        run: |
-          cd components/profile-controller
-          make docker-build-multi-arch IMG="${PROFILE_CONTROLLER_IMG}" TAG="${TAG}"
-          kind load docker-image "${PROFILE_CONTROLLER_IMG}:${TAG}"
-          cd manifests/kustomize
-          kustomize build overlays/kubeflow \
-            | sed "s|ghcr.io/kubeflow/dashboard/profile-controller:[a-zA-Z0-9_.-]*|${PROFILE_CONTROLLER_IMG}:${TAG}|g" \
-            | sed "s|ghcr.io/kubeflow/dashboard/access-management:[a-zA-Z0-9_.-]*|${ACCESS_MANAGEMENT_IMG}:${TAG}|g" \
-            | kubectl apply -f -
-          kubectl wait --for=condition=Available deployment -n kubeflow profiles-deployment --timeout=300s
-          kubectl wait --for=condition=Ready pods -n kubeflow -l app=profile-controller --timeout=300s
-
-      - name: Deploy CentralDashboard-Angular Component
-        run: |
-          ./testing/shared/deploy_component.sh \
-            "components/centraldashboard-angular" \
-            "${DASHBOARD_IMG}" \
-            "${TAG}" \
-            "manifests/kustomize" \
-            "overlays/kserve"
-          kubectl wait --for=condition=Ready pods -n kubeflow -l app=${APP_LABEL} --timeout=300s
-          kubectl wait --for=condition=Available deployment -n kubeflow dashboard-angular --timeout=300s
+      - name: Deploy CentralDashboard Component
+        run: ./testing/shared/install_centraldashboard_angular.sh
 
       - name: Create Test Profile for Dashboard Testing
         run: |
-          cat <<EOF | kubectl apply -f -
-          apiVersion: kubeflow.org/v1
-          kind: Profile
-          metadata:
-            name: test-dashboard-profile
-          spec:
-            owner:
-              kind: User
-              name: dashboard-user@example.com
-          EOF
+          kubectl apply -f components/profile-controller/integration/resources/profile-dashboard-test.yaml
 
           for i in {1..60}; do
             if kubectl get namespace test-dashboard-profile >/dev/null 2>&1; then
