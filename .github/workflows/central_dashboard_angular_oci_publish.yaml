@@ -1,15 +1,15 @@
-name: Build & Publish PodDefaults OCI image
+name: Build & Publish CentralDashboard-Angular OCI image
 on:
   push:
     branches:
       - main
       - v*-branch
     paths:
-      - components/poddefaults-webhooks/**
+      - components/centraldashboard-angular/**
       - releasing/version/VERSION
 
 env:
-  IMG: ghcr.io/kubeflow/dashboard/poddefaults-webhook
+  IMG: ghcr.io/kubeflow/dashboard/dashboard-angular
   ARCH: linux/amd64,linux/ppc64le,linux/arm64/v8
 
 permissions:
@@ -47,7 +47,7 @@ jobs:
 
     - name: Build and push multi-architecture OCI image (commit tag)
       run: |
-        cd components/poddefaults-webhooks
+        cd components/centraldashboard-angular
         make docker-build-multi-arch
         make docker-build-push-multi-arch
 
@@ -55,7 +55,7 @@ jobs:
       if: github.ref == 'refs/heads/main'
       run: |
         export TAG=latest
-        cd components/poddefaults-webhooks
+        cd components/centraldashboard-angular
         make docker-build-push-multi-arch
 
     - name: Build and push multi-architecture OCI image (version tag)
@@ -63,5 +63,5 @@ jobs:
       if: steps.filter.outputs.version == 'true'
       run: |
         export TAG=$(cat releasing/version/VERSION)
-        cd components/poddefaults-webhooks
+        cd components/centraldashboard-angular
         make docker-build-push-multi-arch

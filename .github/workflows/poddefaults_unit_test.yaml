@@ -13,10 +13,10 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
     - name: Install Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version-file: components/poddefaults-webhooks/go.mod
         check-latest: true

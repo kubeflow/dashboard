@@ -11,20 +11,20 @@ on:
   push:
     branches:
       - main
+      - v*-branch
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.number }}
   cancel-in-progress: true
 
 env:
-  CENTRALDASHBOARD_IMG: ghcr.io/kubeflow/dashboard/dashboard
-  CENTRALDASHBOARD_ANGULAR_IMG: ghcr.io/kubeflow/dashboard/dashboard-angular
-  PROFILE_CONTROLLER_IMG: ghcr.io/kubeflow/dashboard/profile-controller
-  ACCESS_MANAGEMENT_IMG: ghcr.io/kubeflow/dashboard/access-management
-  ADMISSION_WEBHOOK_IMG: ghcr.io/kubeflow/dashboard/poddefaults-webhook
   TAG: e2e-test
   DASHBOARD_APP_LABEL: kubeflow-dashboard
   DASHBOARD_ANGULAR_APP_LABEL: kubeflow-dashboard-angular
+
+  # only build AMD64 (the runner arch) images for integration tests.
+  # we already test/release multi-arch builds in separate workflows so there is no need to build all architectures here.
+  ARCH: linux/amd64
 
 jobs:
   end-to-end-test:
@@ -32,7 +32,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -56,20 +56,6 @@ jobs:
 
       - name: Deploy Profile Controller with KFAM
         run: ./testing/shared/install_profile_controller.sh
-
-      - name: Wait for Profile CRD to be Available
-        run: |
-          timeout=300
-          interval=5
-          elapsed=0
-          while ! kubectl get crd profiles.kubeflow.org >/dev/null 2>&1; do
-            if [ $elapsed -ge $timeout ]; then
-              exit 1
-            fi
-            sleep $interval
-            elapsed=$((elapsed + interval))
-          done
-          kubectl wait --for condition=established --timeout=60s crd/profiles.kubeflow.org
 
       - name: Deploy PodDefaults Webhook Component
         run: ./testing/shared/install_poddefaults_webhook.sh

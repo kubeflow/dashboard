@@ -28,3 +28,16 @@ kustomize build components/profile-controller/manifests/kustomize/overlays/kubef
 
 kubectl wait --for=condition=Available deployment -n kubeflow profiles-deployment --timeout=300s
 kubectl wait pods -n kubeflow -l app=profile-controller --for=condition=Ready --timeout=300s
+
+# wait for Profile CRD to be available
+timeout=300
+interval=5
+elapsed=0
+while ! kubectl get crd profiles.kubeflow.org >/dev/null 2>&1; do
+  if [ $elapsed -ge $timeout ]; then
+    exit 1
+  fi
+  sleep $interval
+  elapsed=$((elapsed + interval))
+done
+kubectl wait --for condition=established --timeout=60s crd/profiles.kubeflow.org

@@ -26,20 +26,24 @@ import (
 	"reflect"
 	"strings"
 
-	settingsapi "github.com/kubeflow/dashboard/components/poddefaults-webhooks/pkg/apis/settings/v1alpha1"
 	"github.com/mattbaird/jsonpatch"
 	v1 "k8s.io/api/admission/v1"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/klog"
+	"github.com/kubeflow/dashboard/components/poddefaults-webhooks/pkg/apis"
+	settingsapi "github.com/kubeflow/dashboard/components/poddefaults-webhooks/pkg/apis/settings/v1alpha1"
 )
 
 // +kubebuilder:rbac:groups=kubeflow.org,resources=poddefaults,verbs=create;delete;get;list;patch;update;watch
@@ -48,6 +52,17 @@ const (
 	annotationPrefix        = "poddefault.admission.kubeflow.org"
 	istioProxyContainerName = "istio-proxy"
 )
+
+var (
+	scheme = runtime.NewScheme()
+	codecs = serializer.NewCodecFactory(scheme)
+)
+
+func init() {
+	utilruntime.Must(corev1.AddToScheme(scheme))
+	utilruntime.Must(admissionregistrationv1.AddToScheme(scheme))
+	utilruntime.Must(apis.AddToScheme(scheme))
+}
 
 // Config contains the server (the webhook) cert and key.
 type Config struct {

@@ -9,6 +9,10 @@ on:
     branches:
       - main
       - v*-branch
+  push:
+    branches:
+      - main
+      - v*-branch
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.number }}
@@ -17,17 +21,18 @@ concurrency:
 env:
   APP_LABEL: kubeflow-dashboard
 
+  # only build AMD64 (the runner arch) images for integration tests.
+  # we already test/release multi-arch builds in separate workflows so there is no need to build all architectures here.
+  ARCH: linux/amd64
+
 jobs:
   integration-test:
     runs-on: ubuntu-22.04
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         fetch-depth: 0
-
-    - name: Setup Docker Buildx
-      uses: docker/setup-buildx-action@v3
 
     - name: Install KinD
       run: ./testing/gh-actions/install_kind.sh

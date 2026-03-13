@@ -1,7 +1,10 @@
-# Build the manager binary
-FROM golang:1.22 as builder
+ARG GOLANG_VERSION=1.22
+FROM --platform=${BUILDPLATFORM} golang:${GOLANG_VERSION} AS builder
+ARG TARGETOS
+ARG TARGETARCH
 
 WORKDIR /workspace
+
 # Copy the Go Modules manifests
 COPY go.mod go.mod
 COPY go.sum go.sum
@@ -21,17 +24,18 @@ RUN set -e; cd /workspace; \
 COPY main.go main.go
 COPY api/ api/
 COPY controllers/ controllers/
-RUN cp /bin/dash /workspace/dash
 
-# Build
-RUN CGO_ENABLED=0 GOOS=linux GO111MODULE=on go build -a -o manager main.go;
+# Build the Go application
+# NOTE: we set the GOARCH to TARGETARCH, but the build stage's FROM sets --platform to BUILDPLATFORM.
+#       this lets us use go's cross-compilation ability to build for a forign architeture,
+#       which is much faster than building under emulation.
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o manager main.go
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM gcr.io/distroless/static:nonroot as serve
+FROM gcr.io/distroless/static:nonroot
 
 WORKDIR /
-COPY --from=builder /workspace/dash /bin/dash
 COPY third_party third_party
 COPY --from=builder /workspace/manager .
 COPY --from=builder /go/pkg/mod/github.com/hashicorp third_party/library/
@@ -41,4 +45,3 @@ USER 65532:65532
 EXPOSE 8080
 
 ENTRYPOINT ["/manager"]
-

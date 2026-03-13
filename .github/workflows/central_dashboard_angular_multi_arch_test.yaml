@@ -1,8 +1,8 @@
-name: Profile Controller Multi-Arch Build Test
+name: CentralDashboard-Angular Multi-Arch Build Test
 on:
   pull_request:
     paths:
-      - components/profile-controller/**
+      - components/centraldashboard-angular/**
       - releasing/version/VERSION
     branches:
       - main
@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  IMG: ghcr.io/kubeflow/dashboard/profile-controller
+  IMG: ghcr.io/kubeflow/dashboard/dashboard-angular
   ARCH: linux/amd64,linux/ppc64le,linux/arm64/v8
 
 jobs:
@@ -31,5 +31,5 @@ jobs:
 
     - name: Build multi-arch Image
       run: |
-        cd components/profile-controller
+        cd components/centraldashboard-angular
         make docker-build-multi-arch

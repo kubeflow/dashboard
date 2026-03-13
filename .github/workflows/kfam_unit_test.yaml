@@ -1,14 +1,17 @@
-name: Run Profile Controller unit tests
+name: Run the Access Management unit tests
 on:
   pull_request:
     paths:
-      - components/profile-controller/**
-      ## NOTE: we also test on changes to access-management as access-management depends on profile-controller
       - components/access-management/**
+      ## NOTE: we also test on changes to profile-controller as access-management depends on profile-controller
+      - components/profile-controller/**
       - releasing/version/VERSION
     branches:
       - main
       - v*-branch
+  push:
+    branches:
+      - main
 
 jobs:
   build:
@@ -20,20 +23,17 @@ jobs:
     - name: Install Go
       uses: actions/setup-go@v6
       with:
-        go-version-file: components/profile-controller/go.mod
+        go-version-file: components/access-management/go.mod
         check-latest: true
-        cache-dependency-path: components/profile-controller/go.sum
-
-    - name: Build
-      working-directory: components/profile-controller
-      run: make build
+        cache-dependency-path: components/access-management/go.sum
 
     - name: Run unit tests
-      working-directory: components/profile-controller
-      run: make test
+      run: |
+        cd components/access-management
+        make test
 
     - name: Check if there are uncommitted file changes
-      working-directory: components/profile-controller
+      working-directory: components/access-management
       run: |
         clean=$(git status --porcelain)
         if [[ -z "$clean" ]]; then

@@ -1,4 +1,4 @@
-name: CentralDashboard-angular Backend Tests
+name: CentralDashboard-Angular Backend Tests
 on:
   pull_request:
     paths:
@@ -13,9 +13,9 @@ jobs:
     name: Unit tests
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 16
 
@@ -29,9 +29,9 @@ jobs:
     name: TSLint
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 16
 

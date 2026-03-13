@@ -1,26 +1,47 @@
-ARG GOLANG_VERSION=1.17
-FROM golang:${GOLANG_VERSION} AS builder
+ARG GOLANG_VERSION=1.22
+FROM --platform=${BUILDPLATFORM} golang:${GOLANG_VERSION} AS builder
+ARG TARGETOS
+ARG TARGETARCH
 
 WORKDIR /workspace
 
-COPY . .
+# Copy the Go Modules manifests
+COPY access-management/go.mod go.mod
+COPY access-management/go.sum go.sum
 
-RUN if [ "$(uname -m)" = "aarch64" ]; then \
-        go mod download; \
-    elif [ "$(uname -m)" = "ppc64le" ]; then \
-        git config --global http.sslVerify false &&  go mod download; \
-    fi
+# Copy profile-controller directory
+COPY profile-controller /workspace/profile-controller
 
-RUN CGO_ENABLED=0 GOOS=linux go build -gcflags 'all=-N -l' -o access-management main.go
+# Rewrite the go.mod to update the replace directive and download dependencies
+RUN go mod edit -replace=github.com/kubeflow/dashboard/components/profile-controller=./profile-controller && \
+    go mod download
 
-RUN chmod a+rx access-management
+# Force download and extract all HashiCorp modules so they exist under /go/pkg/mod
+RUN set -e; cd /workspace; \
+  for m in $(go list -m all | awk '/^github.com\/hashicorp\// {print $1 "@" $2}'); do \
+    go mod download "$m"; \
+    pkg="${m%@*}"; \
+    go list "$pkg/..." >/dev/null 2>&1 || true; \
+  done
+
+# Copy the go source
+COPY access-management/main.go main.go
+COPY access-management/api/ api/
+COPY access-management/kfam/ kfam/
+COPY access-management/pkg/ pkg/
+
+# Build the Go application
+# NOTE: we set the GOARCH to TARGETARCH, but the build stage's FROM sets --platform to BUILDPLATFORM.
+#       this lets us use go's cross-compilation ability to build for a forign architeture,
+#       which is much faster than building under emulation.
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} go build -a -o access-management main.go
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 FROM gcr.io/distroless/static:nonroot AS serve
 
 WORKDIR /
-COPY third_party third_party
+COPY access-management/third_party third_party
 COPY --from=builder /workspace/access-management .
 COPY --from=builder /go/pkg/mod/github.com/hashicorp third_party/library/
 

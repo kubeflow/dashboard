@@ -1,4 +1,4 @@
-# Step 1: Builds and tests
+# ---------- Builder stage ----------
 FROM node:16.20.2-bullseye AS build
 
 ARG kubeflowversion
@@ -9,23 +9,38 @@ ENV BUILD_COMMIT=$commit
 ENV CHROME_BIN=/usr/bin/chromium
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
-COPY . /centraldashboard
-WORKDIR /centraldashboard
+WORKDIR /usr/src/app
 
-RUN npm ci \
- && npm run build \
+# Copy package files to the container
+COPY package*.json ./
+
+# Install dependencies
+RUN npm cache clean --force \
+ && npm ci
+
+# Copy source code
+COPY . .
+
+# Build the application
+RUN npm run build \
  && npm prune --production
 
-# Step 2: Packages assets for serving
+# ---------- Production stage ----------
 FROM node:16.20.2-alpine AS serve
+
+USER root
 
 RUN apk add --no-cache tini
 
-USER node
+USER node:node
 
 ENV NODE_ENV=production
+
 WORKDIR /usr/src/app
-COPY --from=build --chown=node:node /centraldashboard .
+
+# Copy built assets from builder stage
+COPY --from=build --chown=node:node /usr/src/app ./
 
 EXPOSE 8082
+
 ENTRYPOINT ["/sbin/tini", "--" , "npm", "start"]

@@ -5,9 +5,9 @@
 [Kubeflow Dashboard](https://www.kubeflow.org/docs/components/central-dash/overview/) is the web-based hub of a Kubeflow Platform.
 It exposes the access controlled web interfaces for Kubeflow components and more.
 
-> ⚠️ __Note__ ⚠️
+> [!NOTE]
 > 
-> We are currently moving the Kubeflow Dashboard codebase from [`kubeflow/kubeflow`](https://github.com/kubeflow/kubeflow) to this repository ([`kubeflow/dashboard`](https://github.com/kubeflow/dashboard)).
+> Historically, the dashboard code lived in the [`kubeflow/kubeflow`](https://github.com/kubeflow/kubeflow) repository.
 > Please see [`kubeflow/kubeflow#7549`](https://github.com/kubeflow/kubeflow/issues/7549) for more information.
 
 ## What is Kubeflow Dashboard?

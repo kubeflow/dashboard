@@ -1,10 +1,12 @@
 module github.com/kubeflow/dashboard/components/access-management
 
-go 1.20
+go 1.22.12
+
+replace github.com/kubeflow/dashboard/components/profile-controller => ../profile-controller
 
 require (
 	github.com/gorilla/mux v1.7.2
-	github.com/kubeflow/dashboard/components/profile-controller v0.0.0-20251008104113-dc123d01db8d
+	github.com/kubeflow/dashboard/components/profile-controller v0.0.0
 	github.com/prometheus/client_golang v1.12.1
 	github.com/sirupsen/logrus v1.8.1
 	istio.io/api v0.0.0-20220525153140-e3c48c9ac324

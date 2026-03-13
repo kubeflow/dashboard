@@ -6,11 +6,17 @@ on:
       - v*-branch
     paths:
       - components/access-management/**
+      ## NOTE: we also build on changes to profile-controller as access-management depends on profile-controller
+      - components/profile-controller/**
       - releasing/version/VERSION
 
 env:
   IMG: ghcr.io/kubeflow/dashboard/access-management
   ARCH: linux/amd64,linux/ppc64le,linux/arm64/v8
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   push_to_registry:
@@ -18,9 +24,9 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
 
-    - uses: dorny/paths-filter@v3
+    - uses: dorny/paths-filter@v4
       id: filter
       with:
         base: ${{ github.ref }}
@@ -29,34 +35,32 @@ jobs:
             - 'releasing/version/VERSION'
 
     - name: Login to GHCR
-      uses: docker/login-action@v3
+      uses: docker/login-action@v4
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Setup QEMU
-      uses: docker/setup-qemu-action@v3
+      uses: docker/setup-qemu-action@v4
 
     - name: Setup Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      uses: docker/setup-buildx-action@v4
 
-    - name: Build and push multi-architecture OCI image
+    - name: Build and push multi-architecture OCI image (commit tag)
       run: |
         cd components/access-management
-        ARCH=linux/amd64 make docker-build-multi-arch
-        ARCH=linux/ppc64le make docker-build-multi-arch
-        ARCH=linux/arm64/v8 make docker-build-multi-arch
+        make docker-build-multi-arch
         make docker-build-push-multi-arch
 
-    - name: Build and push latest multi-architecture OCI image
+    - name: Build and push multi-architecture OCI image (latest tag)
       if: github.ref == 'refs/heads/main'
       run: |
         export TAG=latest
         cd components/access-management
         make docker-build-push-multi-arch
 
-    - name: Build and push multi-architecture OCI image on Version change
+    - name: Build and push multi-architecture OCI image (version tag)
       id: version
       if: steps.filter.outputs.version == 'true'
       run: |
