@@ -8,6 +8,10 @@ on:
     branches:
       - main
       - v*-branch
+  push:
+    branches:
+      - main
+      - v*-branch
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.number }}

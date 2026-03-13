@@ -11,6 +11,7 @@ on:
   push:
     branches:
       - main
+      - v*-branch
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.number }}
