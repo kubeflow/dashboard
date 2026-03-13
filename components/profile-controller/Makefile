@@ -71,12 +71,11 @@ run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go -namespace-labels-path ./manifests/kustomize/base/manager/namespace-labels.yaml
 
 .PHONY: docker-build
-docker-build: ## Build docker image with the manager.
+docker-build:
 	docker build -t ${IMG}:${TAG} .
-	@echo Built ${IMG}:${TAG}.
 
 .PHONY: docker-push
-docker-push: ## Push docker image with the manager.
+docker-push:
 	docker push ${IMG}:${TAG}
 
 .PHONY: docker-build-multi-arch
