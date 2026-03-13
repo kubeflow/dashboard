@@ -26,12 +26,9 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         fetch-depth: 0
-
-    - name: Setup Docker Buildx
-      uses: docker/setup-buildx-action@v3
 
     - name: Install KinD
       run: ./testing/gh-actions/install_kind.sh
