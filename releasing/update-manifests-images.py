@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-import argparse
 import logging
+import os
 import sys
 import ruamel.yaml
 
@@ -32,14 +32,14 @@ class YAML(ruamel.yaml.YAML):
 
 yaml = YAML()
 
-applications = [
+components = [
     {
-        "name": "Pod Defaults Webhook",
-        "kustomization": "components/poddefaults-webhooks/manifests/kustomize/base/kustomization.yaml",
+        "name": "Access Management",
+        "kustomization": "components/profile-controller/manifests/kustomize/components/kfam/kustomization.yaml",
         "images": [
             {
-                "name": "poddefaults-webhook",
-                "newName": "ghcr.io/kubeflow/dashboard/poddefaults-webhook",
+                "name": "access-management",
+                "newName": "ghcr.io/kubeflow/dashboard/access-management",
             },
         ],
     },
@@ -64,6 +64,16 @@ applications = [
         ],
     },
     {
+        "name": "PodDefaults Webhooks",
+        "kustomization": "components/poddefaults-webhooks/manifests/kustomize/base/kustomization.yaml",
+        "images": [
+            {
+                "name": "poddefaults-webhook",
+                "newName": "ghcr.io/kubeflow/dashboard/poddefaults-webhook",
+            },
+        ],
+    },
+    {
         "name": "Profile Controller",
         "kustomization": "components/profile-controller/manifests/kustomize/base/manager/kustomization.yaml",
         "images": [
@@ -73,27 +83,17 @@ applications = [
             },
         ],
     },
-    {
-        "name": "Access Management",
-        "kustomization": "components/profile-controller/manifests/kustomize/components/kfam/kustomization.yaml",
-        "images": [
-            {
-                "name": "access-management",
-                "newName": "ghcr.io/kubeflow/dashboard/access-management",
-            },
-        ],
-    },
 ]
 
 
-def update_manifests_images(applications, tag):
-    for application in applications:
-        log.info("Updating manifests for application `%s`", application["name"])
-        with open(application["kustomization"], "r") as file:
+def update_manifests_images(components, tag):
+    for component in components:
+        log.info("Updating manifests for Dashboard component `%s`", component["name"])
+        with open(component["kustomization"], "r") as file:
             kustomize = yaml.load(file)
 
         images = kustomize.get("images", [])
-        for target_image in application["images"]:
+        for target_image in component["images"]:
             found = False
             for image in images:
                 if image["name"] == target_image["name"]:
@@ -102,26 +102,29 @@ def update_manifests_images(applications, tag):
                     found = True
                     break
             if not found:
-                images.append({
-                    "name": target_image["name"],
-                    "newName": target_image["newName"],
-                    "newTag": tag})
+                images.append(
+                    {
+                        "name": target_image["name"],
+                        "newName": target_image["newName"],
+                        "newTag": tag,
+                    }
+                )
         kustomize["images"] = images
 
-        with open(application["kustomization"], "w") as file:
+        with open(component["kustomization"], "w") as file:
             yaml.dump(kustomize, file)
-
-
-def parse_args():
-    parser = argparse.ArgumentParser("Update image tags in manifests.")
-    parser.add_argument("tag", type=str, help="Image tag to use.")
-    return parser.parse_args()
 
 
 def main():
     logging.basicConfig(level=logging.INFO)
-    args = parse_args()
-    update_manifests_images(applications, args.tag)
+
+    # read the tag from the VERSION file
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    version_file_path = os.path.join(base_dir, "./version/VERSION")
+    with open(version_file_path, "r") as file:
+        version = file.read().strip()
+
+    update_manifests_images(components, version)
 
 
 if __name__ == "__main__":
