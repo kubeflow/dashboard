@@ -23,6 +23,9 @@ export async function getMetricsService(k8sService: KubernetesService):
         const projectId = platformInfo.provider.split('/')[2];
         return new StackdriverMetricsService(
             new MetricServiceClient(), projectId, nodeNames);
+      case 'azure':
+        console.info('"azure" platform detected. Metrics disabled (use Prometheus for AKS).');
+        return null;    
       default:
         console.warn(`"${
             platformInfo
