@@ -98,7 +98,7 @@ jobs:
           fi
 
           kubectl get service dashboard-angular -n kubeflow
-          kubectl get pods -n kubeflow -l app=dashboard-angular
+          kubectl get pods -n kubeflow -l app=kubeflow-dashboard-angular
 
       - name: Test Dashboard Performance
         run: |
@@ -110,7 +110,7 @@ jobs:
 
       - name: Check for Errors in Logs
         run: |
-           kubectl logs --tail=100 --prefix -n kubeflow -l app=dashboard-angular
+          kubectl logs --tail=100 --prefix -n kubeflow -l app=kubeflow-dashboard-angular
           ./testing/shared/test_service.sh check-errors dashboard-angular kubeflow
 
       - name: Stop Port Forward

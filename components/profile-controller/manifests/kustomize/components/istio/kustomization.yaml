@@ -4,3 +4,4 @@ kind: Component
 resources:
   - virtual-service.yaml
   - authorizationpolicy.yaml
+  - network-policy.yaml

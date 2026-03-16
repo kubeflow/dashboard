@@ -87,10 +87,8 @@ jobs:
         run: |
           kubectl create namespace kubeflow
 
-      - name: Apply Profile Controller + KFAM
-        run: |          
-          kustomize apply -k components/profile-controller/manifests/kustomize/overlays/kubeflow
-          kubectl wait pods -n kubeflow -l app=profile-controller --for=condition=Ready --timeout=300s
+      - name: Deploy Profile Controller with KFAM
+        run: ./testing/shared/install_profile_controller.sh
 
       - name: Apply Notebooks Controller
         run: |

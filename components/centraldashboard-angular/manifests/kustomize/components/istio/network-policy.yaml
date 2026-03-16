@@ -5,19 +5,18 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      app: dashboard-angular
+      app: kubeflow-dashboard-angular
       app.kubernetes.io/component: dashboard-angular
-      app.kubernetes.io/managed-by: kustomize
-      app.kubernetes.io/name: centraldashboard-angular
-      app.kubernetes.io/part-of: kubeflow-dashboard
   ingress:
     - from:
+        ## allow traffic from istio namespace, which is where the istio ingress gateway pods typically run
         - namespaceSelector:
             matchExpressions:
               - key: kubernetes.io/metadata.name
                 operator: In
                 values:
                   - istio-system
+        ## allow traffic from pods in the same namespace
         - podSelector: {}
   policyTypes:
     - Ingress

@@ -26,7 +26,7 @@ configMapGenerator:
   - name: profiles-namespace-labels-data
     behavior: replace
     files:
-      - namespace-labels.yaml
+      - namespace-labels.yaml=namespace-labels-kubeflow.yaml
 
 replacements:
   - source:

@@ -26,5 +26,5 @@ configMapGenerator:
 labels:
 - includeSelectors: true
   pairs:
-    app: dashboard-angular
+    app: kubeflow-dashboard-angular
     app.kubernetes.io/component: dashboard-angular

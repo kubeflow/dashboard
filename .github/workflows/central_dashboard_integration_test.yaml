@@ -87,14 +87,14 @@ jobs:
     - name: Integration Tests
       run: |
         kubectl get service dashboard -n kubeflow
-        kubectl get pods -n kubeflow -l app=dashboard
+        kubectl get pods -n kubeflow -l app=kubeflow-dashboard
         ./testing/shared/test_service.sh test-dashboard dashboard kubeflow 8082
         ./testing/shared/test_service.sh performance-test dashboard kubeflow 8082 80 10
         ./testing/shared/test_service.sh test-metrics dashboard kubeflow 8082
 
     - name: Check Logs for Errors
       run: |
-        kubectl logs --tail=100 --prefix -n kubeflow -l app=dashboard
+        kubectl logs --tail=100 --prefix -n kubeflow -l app=kubeflow-dashboard
         ./testing/shared/test_service.sh check-errors dashboard kubeflow
 
     - name: Test Dashboard Configuration

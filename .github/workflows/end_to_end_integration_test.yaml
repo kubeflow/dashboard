@@ -111,7 +111,7 @@ jobs:
 
       - name: Test CentralDashboard Angular Integration
         run: |
-          POD_NAME=$(kubectl get pods -n kubeflow -l app=dashboard-angular -o jsonpath="{.items[0].metadata.name}")
+          POD_NAME=$(kubectl get pods -n kubeflow -l app=kubeflow-dashboard-angular -o jsonpath="{.items[0].metadata.name}")
           if [ -z "$POD_NAME" ]; then exit 1; fi
 
           kubectl port-forward -n kubeflow pod/$POD_NAME 8082:8082 &
@@ -128,7 +128,7 @@ jobs:
 
       - name: Test CentralDashboard Integration
         run: |
-          POD_NAME=$(kubectl get pods -n kubeflow -l app=dashboard -o jsonpath="{.items[0].metadata.name}")
+          POD_NAME=$(kubectl get pods -n kubeflow -l app=kubeflow-dashboard -o jsonpath="{.items[0].metadata.name}")
           if [ -z "$POD_NAME" ]; then exit 1; fi
 
           kubectl port-forward -n kubeflow pod/$POD_NAME 8083:8082 &
@@ -153,7 +153,7 @@ jobs:
 
           kubectl wait --for=condition=available deployment -n kubeflow dashboard --timeout=300s
 
-          POD_NAME=$(kubectl get pods -n kubeflow -l app=dashboard -o jsonpath="{.items[0].metadata.name}")
+          POD_NAME=$(kubectl get pods -n kubeflow -l app=kubeflow-dashboard -o jsonpath="{.items[0].metadata.name}")
           if [ -z "$POD_NAME" ]; then exit 1; fi
 
           kubectl port-forward -n kubeflow pod/$POD_NAME 8085:8082 &
@@ -185,12 +185,12 @@ jobs:
 
       - name: Check CentralDashboard Angular Logs for Errors
         run: |
-          kubectl logs --tail=100 --prefix -n kubeflow -l app=dashboard-angular
+          kubectl logs --tail=100 --prefix -n kubeflow -l app=kubeflow-dashboard-angular
           ./testing/shared/test_service.sh check-errors dashboard-angular kubeflow
 
       - name: Check CentralDashboard Logs for Errors
         run: |
-          kubectl logs --tail=100 --prefix -n kubeflow -l app=dashboard
+          kubectl logs --tail=100 --prefix -n kubeflow -l app=kubeflow-dashboard
           ./testing/shared/test_service.sh check-errors dashboard kubeflow
 
       - name: Final Integration Validation
