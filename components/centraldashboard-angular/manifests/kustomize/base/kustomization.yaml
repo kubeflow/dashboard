@@ -4,27 +4,27 @@ kind: Kustomization
 namespace: kubeflow
 
 resources:
-  - clusterrole-binding.yaml
-  - clusterrole.yaml
-  - deployment.yaml
-  - role-binding.yaml
-  - role.yaml
-  - service-account.yaml
-  - service.yaml
-  - configmap.yaml
+- clusterrole-binding.yaml
+- clusterrole.yaml
+- deployment.yaml
+- role-binding.yaml
+- role.yaml
+- service-account.yaml
+- service.yaml
+- configmap.yaml
 
 images:
-  - name: dashboard-angular
-    newName: ghcr.io/kubeflow/dashboard/dashboard-angular
-    newTag: latest
+- name: dashboard-angular
+  newName: ghcr.io/kubeflow/dashboard/dashboard-angular
+  newTag: latest
 
 configMapGenerator:
-  - envs:
-      - params.env
-    name: dashboard-angular-parameters
+- envs:
+  - params.env
+  name: dashboard-angular-parameters
 
 labels:
-  - includeSelectors: true
-    pairs:
-      app: kubeflow-dashboard-angular
-      app.kubernetes.io/component: dashboard-angular
+- includeSelectors: true
+  pairs:
+    app: kubeflow-dashboard-angular
+    app.kubernetes.io/component: dashboard-angular
