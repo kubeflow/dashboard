@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
-TAG="integration-test"
+TAG="${TAG:-integration-test}"
+
 PROFILE_IMG="ghcr.io/kubeflow/dashboard/profile-controller"
 KFAM_IMG="ghcr.io/kubeflow/dashboard/access-management"
 
-make -C components/profile-controller docker-build-multi-arch IMG="${PROFILE_IMG}" TAG="${TAG}"
-make -C components/access-management docker-build-multi-arch IMG="${KFAM_IMG}" TAG="${TAG}"
+make -C components/profile-controller docker-build IMG="${PROFILE_IMG}" TAG="${TAG}"
+make -C components/access-management docker-build IMG="${KFAM_IMG}" TAG="${TAG}"
 
 kind load docker-image "${PROFILE_IMG}:${TAG}"
 kind load docker-image "${KFAM_IMG}:${TAG}"

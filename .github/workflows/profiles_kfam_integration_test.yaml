@@ -17,11 +17,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.number }}
   cancel-in-progress: true
 
-env:
-  # only build AMD64 (the runner arch) images for integration tests.
-  # we already test/release multi-arch builds in separate workflows so there is no need to build all architectures here.
-  ARCH: linux/amd64
-
 jobs:
   integration-test:
     runs-on: ubuntu-22.04
