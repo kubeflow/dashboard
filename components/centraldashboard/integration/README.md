@@ -36,19 +36,19 @@ kubectl apply -f components/profile-controller/integration/resources/profile-das
 ## Run Integration Tests
 
 ```bash
-./testing/shared/test_service.sh validate-service centraldashboard kubeflow
-./testing/shared/test_service.sh port-forward centraldashboard kubeflow 8082 80
-./testing/shared/test_service.sh test-health centraldashboard kubeflow 8082
-./testing/shared/test_service.sh performance-test centraldashboard kubeflow 8082 80 10
-./testing/shared/test_service.sh test-metrics centraldashboard kubeflow 8082
-./testing/shared/test_service.sh check-errors centraldashboard kubeflow
+./testing/shared/test_service.sh validate-service dashboard kubeflow
+./testing/shared/test_service.sh port-forward dashboard kubeflow 8082 80
+./testing/shared/test_service.sh test-health dashboard kubeflow 8082
+./testing/shared/test_service.sh performance-test dashboard kubeflow 8082 80 10
+./testing/shared/test_service.sh test-metrics dashboard kubeflow 8082
+./testing/shared/test_service.sh check-errors dashboard kubeflow
 ```
 
 ## Cleanup (optional)
 
 ```bash
 # stop port-forward if running
-./testing/shared/test_service.sh stop-port-forward centraldashboard kubeflow 8082
+./testing/shared/test_service.sh stop-port-forward dashboard kubeflow 8082
 # delete KinD cluster
 kind delete cluster
 ```

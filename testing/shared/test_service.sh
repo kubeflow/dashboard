@@ -68,15 +68,22 @@ case "$OPERATION" in
         ;;
 
     "check-errors")
+        # get the app_label from the service selector
+        APP_LABEL=$(kubectl get service "${SERVICE_NAME}" -n "${NAMESPACE}" -o jsonpath='{.spec.selector.app}')
+        if [ -z "${APP_LABEL}" ]; then
+          echo "ERROR: service ${SERVICE_NAME} in namespace ${NAMESPACE} does not have an 'app' label in its selector"
+          exit 1
+        fi
+
         # ensure there are pods with the correct label before trying to get logs
-        NUM_PODS=$(kubectl get pods -n "${NAMESPACE}" -l app="${SERVICE_NAME}" -o name | wc -l)
+        NUM_PODS=$(kubectl get pods -n "${NAMESPACE}" -l app="${APP_LABEL}" -o name | wc -l)
         if [ "${NUM_PODS}" -eq 0 ]; then
           echo "ERROR: no pods with label app=${SERVICE_NAME} found in namespace ${NAMESPACE}"
           exit 1
         fi
 
         # read logs from default container of all pods with the correct label
-        LOGS_RAW=$(kubectl logs --tail=100 --prefix -n "${NAMESPACE}" -l app="${SERVICE_NAME}")
+        LOGS_RAW=$(kubectl logs --tail=100 --prefix -n "${NAMESPACE}" -l app="${APP_LABEL}")
         if [ -z "${LOGS_RAW}" ]; then
           echo "WARN: no logs found for service ${SERVICE_NAME} in namespace ${NAMESPACE}"
           exit 0
