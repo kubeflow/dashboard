@@ -5,7 +5,3 @@ resources:
   - virtual-service.yaml
   - authorizationpolicy.yaml
   - network-policy.yaml
-
-labels:
-  - pairs:
-      app.kubernetes.io/component: controller-manager

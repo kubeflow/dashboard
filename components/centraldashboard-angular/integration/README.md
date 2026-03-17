@@ -32,12 +32,12 @@ From the repository root:
 ## Backend Integration Tests
 
 ```bash
-./testing/shared/test_service.sh validate-service centraldashboard-angular kubeflow
-./testing/shared/test_service.sh port-forward centraldashboard-angular kubeflow 8080 80
-./testing/shared/test_service.sh test-health centraldashboard-angular kubeflow 8080
-./testing/shared/test_service.sh performance-test centraldashboard-angular kubeflow 8080 80 8
-./testing/shared/test_service.sh test-metrics centraldashboard-angular kubeflow 8080
-./testing/shared/test_service.sh check-errors centraldashboard-angular kubeflow
+./testing/shared/test_service.sh validate-service dashboard-angular kubeflow
+./testing/shared/test_service.sh port-forward dashboard-angular kubeflow 8080 80
+./testing/shared/test_service.sh test-health dashboard-angular kubeflow 8080
+./testing/shared/test_service.sh performance-test dashboard-angular kubeflow 8080 80 8
+./testing/shared/test_service.sh test-metrics dashboard-angular kubeflow 8080
+./testing/shared/test_service.sh check-errors dashboard-angular kubeflow
 ```
 
 # Apply necessary CRs
@@ -76,7 +76,7 @@ kill %1 #kill the background serve process
 
 ```bash
 # stop port-forward if running
-./testing/shared/test_service.sh stop-port-forward centraldashboard-angular kubeflow 8080
+./testing/shared/test_service.sh stop-port-forward dashboard-angular kubeflow 8080
 # delete KinD cluster
 kind delete cluster
 ```

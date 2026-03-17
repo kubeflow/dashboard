@@ -7,15 +7,7 @@ resources:
   - network-policy.yaml
 
 patches:
-  - patch: |-
-      - op: add
-        path: /spec/template/metadata/labels/sidecar.istio.io~1inject
-        value: "true"
-    target:
-      group: apps
-      version: v1
-      kind: Deployment
-      name: dashboard
+  - path: deployment.yaml
 
 labels:
   - pairs:

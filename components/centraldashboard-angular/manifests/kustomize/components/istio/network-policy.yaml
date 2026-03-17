@@ -2,7 +2,6 @@ apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: dashboard-angular
-  labels: {}
 spec:
   podSelector:
     matchLabels:
@@ -10,12 +9,14 @@ spec:
       app.kubernetes.io/component: dashboard-angular
   ingress:
     - from:
+        ## allow traffic from istio namespace, which is where the istio ingress gateway pods typically run
         - namespaceSelector:
             matchExpressions:
               - key: kubernetes.io/metadata.name
                 operator: In
                 values:
                   - istio-system
+        ## allow traffic from pods in the same namespace
         - podSelector: {}
   policyTypes:
     - Ingress

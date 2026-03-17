@@ -6,7 +6,3 @@ resources:
 
 patches:
   - path: deployment.yaml
-
-labels:
-  - pairs:
-      app.kubernetes.io/component: poddefaults

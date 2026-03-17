@@ -10,9 +10,6 @@ SERVICE_NAME="$2"
 NAMESPACE="${3:-kubeflow}"
 PORT="${4:-8080}"
 TARGET_PORT="${5:-80}"
-# APP_LABEL can be set as an environment variable when the app label
-# differs from the service name (e.g. service "dashboard" has app label "kubeflow-dashboard")
-APP_LABEL="${APP_LABEL:-${SERVICE_NAME}}"
 
 case "$OPERATION" in
     "port-forward")
@@ -71,6 +68,13 @@ case "$OPERATION" in
         ;;
 
     "check-errors")
+        # get the app_label from the service selector
+        APP_LABEL=$(kubectl get service "${SERVICE_NAME}" -n "${NAMESPACE}" -o jsonpath='{.spec.selector.app}')
+        if [ -z "${APP_LABEL}" ]; then
+          echo "ERROR: service ${SERVICE_NAME} in namespace ${NAMESPACE} does not have an 'app' label in its selector"
+          exit 1
+        fi
+
         # ensure there are pods with the correct label before trying to get logs
         NUM_PODS=$(kubectl get pods -n "${NAMESPACE}" -l app="${APP_LABEL}" -o name | wc -l)
         if [ "${NUM_PODS}" -eq 0 ]; then
