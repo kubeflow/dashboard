@@ -1,0 +1,10 @@
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+spec:
+  components:
+    cni:
+      ## NOTE: we use istio CNI mode because the kubeflow-pss overlay for profile-controller sets
+      ##       pod-security.kubernetes.io/enforce=baseline on profile namspaces, which would
+      ##       prevent any pod with an istio sidecar from running as the sidecar would be privileged.
+      enabled: true
+      namespace: kube-system

@@ -43,7 +43,7 @@ From the repository root:
 # Apply necessary CRs
 
 ```bash
-kustomize build https://github.com/kubeflow/manifests//common/kubeflow-roles/base?ref=master | kubectl apply -f -
+kubectl apply -k "https://github.com/kubeflow/manifests/common/kubeflow-roles/base?ref=v1.11.0"
 kubectl apply -f components/profile-controller/integration/resources/user-profile.yaml
 while ! kubectl get ns kubeflow-user; do sleep 1; done
 kubectl apply -f components/centraldashboard-angular/integration/resources/test-notebook.yaml

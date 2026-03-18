@@ -2,7 +2,7 @@ name: CentralDashboard-Angular Backend Tests
 on:
   pull_request:
     paths:
-      - components/centraldashboard-angular/backend/**
+      - components/centraldashboard-angular/**
       - releasing/version/VERSION
     branches:
       - main
