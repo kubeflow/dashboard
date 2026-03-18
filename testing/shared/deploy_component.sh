@@ -13,7 +13,7 @@ OVERLAY="${5:-overlays/kubeflow}"
 
 cd "${COMPONENT_PATH}"
 if [ -f "Makefile" ]; then
-    make docker-build-multi-arch IMG="${IMAGE_NAME}" TAG="${TAG}"
+    make docker-build IMG="${IMAGE_NAME}" TAG="${TAG}"
 else
     exit 1
 fi
