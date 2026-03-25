@@ -26,7 +26,6 @@ google/martian,https://github.com/google/martian/blob/master/LICENSE,Apache Lice
 google/pprof,https://github.com/google/pprof/blob/master/LICENSE,Apache License 2.0,https://raw.githubusercontent.com/google/pprof/master/LICENSE
 googleapis/gax-go,https://github.com/googleapis/gax-go/blob/master/LICENSE,BSD 3-Clause "New" or "Revised" License,https://raw.githubusercontent.com/googleapis/gax-go/master/LICENSE
 googleapis/gnostic,https://github.com/googleapis/gnostic/blob/master/LICENSE,Apache License 2.0,https://raw.githubusercontent.com/googleapis/gnostic/master/LICENSE
-hashicorp/golang-lru,https://github.com/hashicorp/golang-lru/blob/master/LICENSE,Mozilla Public License 2.0,https://raw.githubusercontent.com/hashicorp/golang-lru/master/LICENSE
 hpcloud/tail,https://github.com/hpcloud/tail/blob/master/LICENSE.txt,MIT,https://raw.githubusercontent.com/hpcloud/tail/master/LICENSE.txt
 imdario/mergo,https://github.com/imdario/mergo/blob/master/LICENSE,BSD 3-Clause "New" or "Revised" License,https://raw.githubusercontent.com/imdario/mergo/master/LICENSE
 inconshreveable/mousetrap,https://github.com/inconshreveable/mousetrap/blob/master/LICENSE,Apache License 2.0,https://raw.githubusercontent.com/inconshreveable/mousetrap/master/LICENSE
