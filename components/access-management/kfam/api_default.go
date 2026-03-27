@@ -114,7 +114,7 @@ func getRESTClient(group string, version string) (*rest.RESTClient, error) {
 	}
 	restconfig.ContentConfig.GroupVersion = &schema.GroupVersion{Group: group, Version: version}
 	restconfig.APIPath = "/apis"
-	restconfig.NegotiatedSerializer = serializer.DirectCodecFactory{CodecFactory: scheme.Codecs}
+	restconfig.NegotiatedSerializer = serializer.WithoutConversionCodecFactory{CodecFactory: scheme.Codecs}
 	restconfig.UserAgent = rest.DefaultKubernetesUserAgent()
 	return rest.RESTClientFor(restconfig)
 }
