@@ -53,7 +53,6 @@ github.com/gopherjs/gopherjs
 github.com/gorilla/mux
 github.com/gregjones/httpcache
 github.com/grpc-ecosystem/grpc-gateway
-github.com/hashicorp/golang-lru
 github.com/hpcloud/tail
 github.com/imdario/mergo
 github.com/inconshreveable/mousetrap

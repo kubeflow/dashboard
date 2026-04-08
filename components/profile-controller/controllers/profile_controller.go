@@ -25,11 +25,11 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/cenkalti/backoff"
+	"github.com/cenkalti/backoff/v4"
+	"github.com/fsnotify/fsnotify"
 	"github.com/go-logr/logr"
 	profilev1 "github.com/kubeflow/dashboard/components/profile-controller/api/v1"
 	"github.com/pkg/errors"
-	"gopkg.in/fsnotify.v1"
 	"gopkg.in/yaml.v2"
 	istioSecurity "istio.io/api/security/v1beta1"
 	istioSecurityClient "istio.io/client-go/pkg/apis/security/v1beta1"
@@ -347,10 +347,10 @@ func (r *ProfileReconciler) appendErrorConditionAndReturn(ctx context.Context, i
 }
 
 // mapEventToRequest maps an event to reconcile requests for all Profiles
-func (r *ProfileReconciler) mapEventToRequest(o client.Object) []reconcile.Request {
+func (r *ProfileReconciler) mapEventToRequest(ctx context.Context, o client.Object) []reconcile.Request {
 	req := []reconcile.Request{}
 	profileList := &profilev1.ProfileList{}
-	err := r.Client.List(context.TODO(), profileList)
+	err := r.Client.List(ctx, profileList)
 	if err != nil {
 		r.Log.Error(err, "Failed to list profiles in order to trigger reconciliation")
 		return req
@@ -404,10 +404,7 @@ func (r *ProfileReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&istioSecurityClient.AuthorizationPolicy{}).
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&rbacv1.RoleBinding{}).
-		Watches(
-			&source.Channel{Source: events},
-			handler.EnqueueRequestsFromMapFunc(r.mapEventToRequest),
-		)
+		WatchesRawSource(source.Channel(events, handler.EnqueueRequestsFromMapFunc(r.mapEventToRequest)))
 
 	err = c.Complete(r)
 	if err != nil {
