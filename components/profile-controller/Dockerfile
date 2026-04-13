@@ -1,7 +1,5 @@
-ARG GOLANG_VERSION=1.22
-FROM --platform=${BUILDPLATFORM} golang:${GOLANG_VERSION} AS builder
-ARG TARGETOS
-ARG TARGETARCH
+# Build the manager binary
+FROM golang:1.23 as builder
 
 WORKDIR /workspace
 
@@ -50,7 +48,6 @@ FROM gcr.io/distroless/static:nonroot
 WORKDIR /
 COPY third_party third_party
 COPY --from=builder /workspace/manager .
-COPY --from=builder /go/pkg/mod/github.com/hashicorp third_party/library/
 
 USER 65532:65532
 
