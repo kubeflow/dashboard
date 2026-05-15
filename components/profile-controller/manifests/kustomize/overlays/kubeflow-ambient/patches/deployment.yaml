@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: profiles-deployment
+spec:
+  template:
+    metadata:
+      labels:
+        sidecar.istio.io/inject: "false"
+    spec:
+      containers:
+      - name: manager
+        command:
+        - /manager
+        - -userid-header
+        - $(USERID_HEADER)
+        - -userid-prefix
+        - $(USERID_PREFIX)
+        - -workload-identity
+        - $(WORKLOAD_IDENTITY)
+        - -service-mesh-mode
+        - $(SERVICE_MESH_MODE)
+        - -waypoint-name
+        - $(WAYPOINT_NAME)
+        - -waypoint-namespace
+        - $(WAYPOINT_NAMESPACE)
+        - -create-waypoint
+        - $(CREATE_WAYPOINT)
