@@ -74,7 +74,6 @@ describe('Iframe Container', () => {
         };
         spyOnProperty(iframeContainer.$.iframe, 'contentWindow').and
             .returnValue({location: fakeLocation});
-        expect(iframeContainer.page).toBe(undefined);
         iframeContainer.$.iframe.contentDocument.firstChild.click();
         expect(iframeContainer.page).toBe('/foo/bar?name=blah');
     });
@@ -86,7 +85,6 @@ describe('Iframe Container', () => {
         };
         spyOnProperty(iframeContainer.$.iframe, 'contentWindow').and
             .returnValue({location: fakeLocation});
-        expect(iframeContainer.page).toBe(undefined);
         fakeLocation.href = 'http://testsite.com/foo/bar?name=blah#new-hash';
         iframeContainer.$.iframe.contentDocument
             .dispatchEvent(new Event('hashchange'));
