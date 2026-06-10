@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 
 	istioSecurity "istio.io/api/security/v1beta1"
@@ -32,9 +33,12 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-const AuthorizationPolicy = "authorizationpolicies"
-const USER = "user"
-const ROLE = "role"
+const (
+	AuthorizationPolicy = "authorizationpolicies"
+	USER                = "user"
+	GROUP               = "group"
+	ROLE                = "role"
+)
 
 // roleBindingNameMap maps frontend role names to k8s role names and vice-versa
 var roleBindingNameMap = map[string]string{
@@ -47,13 +51,13 @@ var roleBindingNameMap = map[string]string{
 }
 
 type BindingInterface interface {
-	Create(binding *Binding, userIdHeader string, userIdPrefix string) error
+	Create(binding *Binding, userIdHeader string, userIdPrefix string, groupsHeader string, groupsClaim string) error
 	Delete(binding *Binding) error
-	List(user string, namespaces []string, role string) (*BindingEntries, error)
+	List(user string, groups []string, namespaces []string, role string) (*BindingEntries, error)
 }
 
 type BindingClient struct {
-	restClient        rest.Interface
+	istioRestClient   rest.Interface
 	kubeClient        *clientset.Clientset
 	roleBindingLister v1.RoleBindingLister
 }
@@ -67,8 +71,8 @@ func getBindingName(binding *Binding) (string, error) {
 	}
 	nameRaw := strings.ToLower(
 		strings.Join([]string{
-			binding.User.Kind,
-			url.QueryEscape(reg.ReplaceAllString(binding.User.Name, "-")),
+			binding.Subject.Kind,
+			url.QueryEscape(reg.ReplaceAllString(binding.Subject.Name, "-")),
 			binding.RoleRef.Kind,
 			binding.RoleRef.Name,
 		}, "-"),
@@ -77,7 +81,7 @@ func getBindingName(binding *Binding) (string, error) {
 	return reg.ReplaceAllString(nameRaw, "-"), nil
 }
 
-func getAuthorizationPolicy(binding *Binding, userIdHeader string, userIdPrefix string) istioSecurity.AuthorizationPolicy {
+func getAuthorizationPolicy(whenRules []*istioSecurity.Condition) istioSecurity.AuthorizationPolicy {
 	istioIGWPrincipal := GetEnvDefault(
 		"ISTIO_INGRESS_GATEWAY_PRINCIPAL",
 		"cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account")
@@ -89,14 +93,7 @@ func getAuthorizationPolicy(binding *Binding, userIdHeader string, userIdPrefix 
 	return istioSecurity.AuthorizationPolicy{
 		Rules: []*istioSecurity.Rule{
 			{
-				When: []*istioSecurity.Condition{
-					{
-						Key: fmt.Sprintf("request.headers[%v]", userIdHeader),
-						Values: []string{
-							userIdPrefix + binding.User.Name,
-						},
-					},
-				},
+				When: whenRules,
 				From: []*istioSecurity.Rule_From{{
 					Source: &istioSecurity.Source{
 						Principals: []string{
@@ -110,15 +107,40 @@ func getAuthorizationPolicy(binding *Binding, userIdHeader string, userIdPrefix 
 	}
 }
 
-func (c *BindingClient) Create(binding *Binding, userIdHeader string, userIdPrefix string) error {
+func getIstioSecurityConditionUser(userIdHeader string, userIdPrefix string, binding *Binding) []*istioSecurity.Condition {
+	return []*istioSecurity.Condition{
+		{
+			Key: fmt.Sprintf("request.headers[%v]", userIdHeader),
+			Values: []string{
+				userIdPrefix + binding.Subject.Name,
+			},
+		},
+	}
+}
+
+// TODO: review this
+// see: https://istio.io/latest/docs/tasks/security/authorization/authz-jwt/#allow-requests-with-valid-jwt-and-list-typed-claims
+func getIstioSecurityConditionGroup(groupsClaim string, binding *Binding) []*istioSecurity.Condition {
+	return []*istioSecurity.Condition{
+		{
+			Key: fmt.Sprintf("request.auth.claims[%v]", groupsClaim),
+			Values: []string{
+				binding.Subject.Name,
+			},
+		},
+	}
+}
+
+func (c *BindingClient) Create(binding *Binding, userIdHeader string, userIdPrefix string, groupsHeader string, groupsClaim string) error {
 	// TODO: permission check before go ahead
 	bindingName, err := getBindingName(binding)
+	subjectKind := strings.ToLower(binding.Subject.Kind)
 	if err != nil {
 		return err
 	}
 	roleBinding := rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Annotations: map[string]string{USER: binding.User.Name, ROLE: binding.RoleRef.Name},
+			Annotations: map[string]string{subjectKind: binding.Subject.Kind, ROLE: binding.RoleRef.Name},
 			Name:        bindingName,
 		},
 		RoleRef: rbacv1.RoleRef{
@@ -127,7 +149,7 @@ func (c *BindingClient) Create(binding *Binding, userIdHeader string, userIdPref
 			Name:     roleBindingNameMap[binding.RoleRef.Name],
 		},
 		Subjects: []rbacv1.Subject{
-			*binding.User,
+			*binding.Subject,
 		},
 	}
 	_, err = c.kubeClient.RbacV1().RoleBindings(binding.ReferredNamespace).Create(context.TODO(), &roleBinding, metav1.CreateOptions{})
@@ -135,18 +157,25 @@ func (c *BindingClient) Create(binding *Binding, userIdHeader string, userIdPref
 		return err
 	}
 
+	// get istio "when" rules
+	var whenRules []*istioSecurity.Condition
+	if binding.Subject.Kind == "User" {
+		whenRules = getIstioSecurityConditionUser(userIdHeader, userIdPrefix, binding)
+	} else {
+		whenRules = getIstioSecurityConditionGroup(groupsClaim, binding)
+	}
 	// create istio authorization policy
 	istioAuth := &istioSecurityClient.AuthorizationPolicy{
 		ObjectMeta: metav1.ObjectMeta{
-			Annotations: map[string]string{USER: binding.User.Name, ROLE: binding.RoleRef.Name},
+			Annotations: map[string]string{subjectKind: binding.Subject.Name, ROLE: binding.RoleRef.Name},
 			Name:        bindingName,
 			Namespace:   binding.ReferredNamespace,
 		},
-		Spec: getAuthorizationPolicy(binding, userIdHeader, userIdPrefix),
+		Spec: getAuthorizationPolicy(whenRules),
 	}
 
 	result := istioSecurityClient.AuthorizationPolicy{}
-	return c.restClient.
+	return c.istioRestClient.
 		Post().
 		Namespace(binding.ReferredNamespace).
 		Resource(AuthorizationPolicy).
@@ -167,7 +196,7 @@ func (c *BindingClient) Delete(binding *Binding) error {
 		return err
 	}
 	result := istioSecurityClient.AuthorizationPolicy{}
-	err = c.restClient.
+	err = c.istioRestClient.
 		Get().
 		Namespace(binding.ReferredNamespace).
 		Resource(AuthorizationPolicy).
@@ -183,7 +212,7 @@ func (c *BindingClient) Delete(binding *Binding) error {
 	if err != nil {
 		return err
 	}
-	return c.restClient.
+	return c.istioRestClient.
 		Delete().
 		Namespace(binding.ReferredNamespace).
 		Resource(AuthorizationPolicy).
@@ -193,7 +222,7 @@ func (c *BindingClient) Delete(binding *Binding) error {
 		Error()
 }
 
-func (c *BindingClient) List(user string, namespaces []string, role string) (*BindingEntries, error) {
+func (c *BindingClient) List(user string, groups []string, namespaces []string, role string) (*BindingEntries, error) {
 	bindings := []Binding{}
 	for _, ns := range namespaces {
 		roleBindings, err := c.roleBindingLister.RoleBindings(ns).List(labels.Everything())
@@ -201,15 +230,20 @@ func (c *BindingClient) List(user string, namespaces []string, role string) (*Bi
 			return nil, err
 		}
 		for _, roleBinding := range roleBindings {
-			userVal, ok := roleBinding.Annotations[USER]
-			if !ok {
+			userVal, userOk := roleBinding.Annotations[USER]
+			groupVal, groupOk := roleBinding.Annotations[GROUP]
+			if !userOk && !groupOk {
 				continue
 			}
-			if user != "" && user != userVal {
-				continue
+			if user != "" || len(groups) > 0 {
+				userMatch := user != "" && userVal == user
+				groupMatch := len(groups) > 0 && slices.Contains(groups, groupVal)
+				if !userMatch && !groupMatch {
+					continue
+				}
 			}
-			roleVal, ok := roleBinding.Annotations[ROLE]
-			if !ok {
+			roleVal, roleOk := roleBinding.Annotations[ROLE]
+			if !roleOk {
 				continue
 			}
 			if role != "" && role != roleVal {
@@ -220,7 +254,7 @@ func (c *BindingClient) List(user string, namespaces []string, role string) (*Bi
 					len(roleBinding.Subjects))
 			}
 			binding := Binding{
-				User: &rbacv1.Subject{
+				Subject: &rbacv1.Subject{
 					Kind: roleBinding.Subjects[0].Kind,
 					Name: roleBinding.Subjects[0].Name,
 				},
