@@ -52,7 +52,7 @@ export const roleMap: ReadonlyMap<Role, Role> = new Map([
 export interface SimpleBinding {
     namespace: string;
     role: SimpleRole;
-    user: string;
+    subject: string;
 }
 
 export interface WorkgroupInfo {
@@ -65,7 +65,7 @@ export interface WorkgroupInfo {
  */
 export function mapWorkgroupBindingToSimpleBinding (bindings: WorkgroupBinding[]): SimpleBinding[] {
     return bindings.map((n) => ({
-        user: n.user.name,
+        subject: n.subject.name,
         namespace: n.referredNamespace,
         role: roleMap.get(n.roleRef.name as Role) as SimpleRole,
     }));
@@ -75,9 +75,9 @@ export function mapWorkgroupBindingToSimpleBinding (bindings: WorkgroupBinding[]
  * Converts Kubernetes Namespace types to SimpleBinding to ensure
  * compatibility between identity-aware and non-identity aware clusters
  */
-export function mapNamespacesToSimpleBinding (user: string, namespaces: V1Namespace[]): SimpleBinding[] {
+export function mapNamespacesToSimpleBinding (subject: string, namespaces: V1Namespace[]): SimpleBinding[] {
     return namespaces.map((n) => ({
-        user,
+        subject,
         namespace: n.metadata.name,
         role: 'contributor',
     }));
@@ -87,11 +87,11 @@ export function mapNamespacesToSimpleBinding (user: string, namespaces: V1Namesp
  * Converts SimpleBinding to Workgroup Binding from Profile Controller
  */
 export function mapSimpleBindingToWorkgroupBinding (binding: SimpleBinding): WorkgroupBinding {
-    const {user, namespace, role} = binding;
+    const {subject, namespace, role} = binding;
     return {
-        user: {
+        subject: {
             kind: 'User',
-            name: user,
+            name: subject,
         },
         referredNamespace: namespace,
         roleRef: {
@@ -170,7 +170,7 @@ export class WorkgroupApi {
         return Array.from(names).map((n) => ({
             namespace: n,
             role: 'contributor',
-            user: fakeUser,
+            subject: fakeUser,
         }));
     }
     /**
@@ -213,7 +213,7 @@ export class WorkgroupApi {
         let errIndex = 0;
         try {
             const binding = mapSimpleBindingToWorkgroupBinding({
-                user: contributor,
+                subject: contributor,
                 namespace,
                 role: 'contributor',
             });
@@ -249,7 +249,7 @@ export class WorkgroupApi {
             .readBindings(undefined, namespace);
         const users = mapWorkgroupBindingToSimpleBinding(body.bindings)
             .filter((b) => b.role === 'contributor')
-            .map((b) => b.user);
+            .map((b) => b.subject);
         return users;
     }
     routes() {return Router()
@@ -354,8 +354,8 @@ export class WorkgroupApi {
                     const name = b.namespace;
                     if (!namespaces[name]) {namespaces[name] = {contributors: []};}
                     const namespace = namespaces[name];
-                    if (b.role === 'owner') {namespace.owner = b.user; return;}
-                    namespaces[name].contributors.push(b.user);
+                    if (b.role === 'owner') {namespace.owner = b.subject; return;}
+                    namespaces[name].contributors.push(b.subject);
                 });
                 const tabular = Object.keys(namespaces).map(namespace => [
                     namespace,

@@ -52,17 +52,17 @@ describe('Workgroup API', () => {
                     body: {
                         bindings: [
                             {
-                                user: {kind: 'User', name: 'anyone@kubeflow.org'},
+                                subject: {kind: 'User', name: 'anyone@kubeflow.org'},
                                 referredNamespace: 'default',
                                 roleRef: {kind: 'ClusterRole', name: 'admin'},
                             },
                             {
-                                user: {kind: 'User', name: 'user1@kubeflow.org'},
+                                subject: {kind: 'User', name: 'user1@kubeflow.org'},
                                 referredNamespace: 'default',
                                 roleRef: {kind: 'ClusterRole', name: 'edit'},
                             },
                             {
-                                user: {kind: 'User', name: 'user1@kubeflow.org'},
+                                subject: {kind: 'User', name: 'user1@kubeflow.org'},
                                 referredNamespace: 'kubeflow',
                                 roleRef: {kind: 'ClusterRole', name: 'admin'},
                             },
@@ -95,12 +95,12 @@ describe('Workgroup API', () => {
                     isClusterAdmin: true,
                     namespaces: [
                         {
-                            user: 'anonymous@kubeflow.org',
+                            subject: 'anonymous@kubeflow.org',
                             namespace: 'default',
                             role: 'contributor',
                         },
                         {
-                            user: 'anonymous@kubeflow.org',
+                            subject: 'anonymous@kubeflow.org',
                             namespace: 'kubeflow',
                             role: 'contributor',
                         },
@@ -130,7 +130,7 @@ describe('Workgroup API', () => {
                         response: null,
                         body: {
                             bindings: [{
-                                user: {kind: 'user', name: 'test@testdomain.com'},
+                                subject: {kind: 'user', name: 'test@testdomain.com'},
                                 referredNamespace: 'test',
                                 roleRef: {apiGroup: '', kind: 'ClusterRole', name: 'edit'}
                             }]
@@ -150,7 +150,7 @@ describe('Workgroup API', () => {
                     isClusterAdmin: false,
                     namespaces: [
                         {
-                            user: 'test@testdomain.com',
+                            subject: 'test@testdomain.com',
                             namespace: 'test',
                             role: 'contributor',
                         },
@@ -244,7 +244,7 @@ describe('Workgroup API', () => {
                         response: null,
                         body: {
                             bindings: [{
-                                user: {kind: 'user', name: 'test@testdomain.com'},
+                                subject: {kind: 'user', name: 'test@testdomain.com'},
                                 referredNamespace: 'test',
                                 roleRef: {apiGroup: '', kind: 'ClusterRole', name: 'admin'}
                             }]
@@ -441,7 +441,7 @@ describe('Workgroup API', () => {
             const response = await sendTestRequest(url('add'), headers, 200, 'post', requestBody);
             expect(response).toEqual(['test']);
             expect(mockProfilesService.createBinding).toHaveBeenCalledWith({
-                user: {
+                subject: {
                     kind: 'User',
                     name: 'apverma@google.com',
                 },
@@ -458,7 +458,7 @@ describe('Workgroup API', () => {
             expect(response).toEqual(['test']);
             expect(mockProfilesService.createBinding).not.toHaveBeenCalled();
             expect(mockProfilesService.deleteBinding).toHaveBeenCalledWith({
-                user: {
+                subject: {
                     kind: 'User',
                     name: 'apverma@google.com',
                 },
