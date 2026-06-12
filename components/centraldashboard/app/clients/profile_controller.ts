@@ -139,7 +139,7 @@ class ObjectSerializer {
 * Binding will give user edit access to referredNamespace
 */
 export class Binding {
-    'user'?: Subject;
+    'subject'?: Subject;
     'referredNamespace'?: string;
     'roleRef'?: RoleRef;
     /**
@@ -151,8 +151,8 @@ export class Binding {
 
     static attributeTypeMap: Array<{name: string, baseName: string, type: string}> = [
         {
-            "name": "user",
-            "baseName": "user",
+            "name": "subject",
+            "baseName": "subject",
             "type": "Subject"
         },
         {
