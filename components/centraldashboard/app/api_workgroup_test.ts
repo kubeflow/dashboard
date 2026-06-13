@@ -152,6 +152,7 @@ describe('Workgroup API', () => {
                         {
                             subject: 'test@testdomain.com',
                             namespace: 'test',
+                            kind: 'user',
                             role: 'contributor',
                         },
                     ],
