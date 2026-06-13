@@ -3,7 +3,7 @@ iron-ajax#RemoveContribAjax(method='DELETE', url='/api/workgroup/remove-contribu
 iron-ajax#AddContribAjax(method='POST', url='/api/workgroup/add-contributor/[[ownedNamespace.namespace]]',
     on-response='handleContribCreate', on-error='handleContribCreate', handle-as='json', content-type='application/json')
 iron-ajax#GetContribsAjax(auto='[[!empty(ownedNamespace)]]', url='/api/workgroup/get-contributors/[[ownedNamespace.namespace]]',
-    last-response='{{contributorList}}', on-error='onContribFetchError', handle-as='json')
+    on-response='handleContribFetch', on-error='onContribFetchError', handle-as='json')
 h2
     iron-icon.icon(icon='kubeflow:account-group')
     span.text
@@ -11,10 +11,16 @@ h2
         |
         code [[ownedNamespace.namespace]]
 .content.small
-    md2-input(label='Email Addresses', value='{{newContribEmail}}', on-submit='addNewContrib', placeholder='Add by email address', error$='[[contribCreateError]]')
+    h3 Users
+    md2-input(label='Email Addresses', value='{{newContribEmail}}', on-submit='addNewContrib', placeholder='Add user by email address', error$='[[contribCreateError]]')
         .prefix(slot='prefix')
-            template(is='dom-repeat', items='[[contributorList]]')
+            template(is='dom-repeat', items='[[userContributorList]]')
                 paper-chip(on-remove='removeContributor') [[item]]
+    h3 Groups
+    md2-input(label='Groups', value='{{newGroupName}}', on-submit='addNewGroupContrib', placeholder='Add group by name', error$='[[contribCreateError]]')
+        .prefix(slot='prefix')
+            template(is='dom-repeat', items='[[groupContributorList]]')
+                paper-chip(on-remove='removeGroupContributor') [[item]]
 paper-toast#ContribError(duration=5000)
     | Failed to fetch contributor list for {{ownedNamespace.namespace}}, because:
     strong [[contribError]]

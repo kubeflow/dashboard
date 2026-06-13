@@ -13,6 +13,7 @@ const EMAIL_RGX = /^[a-zA-Z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]
 
 // Valid actions for handling a contributor
 type ContributorActions = 'create' | 'remove';
+type ContributorType = 'user' | 'group';
 
 interface CreateProfileRequest {
     namespace?: string;
@@ -21,6 +22,7 @@ interface CreateProfileRequest {
 
 interface AddOrRemoveContributorRequest {
     contributor?: string;
+    cType?: ContributorType;
 }
 
 interface HasWorkgroupResponse {
@@ -53,6 +55,7 @@ export interface SimpleBinding {
     namespace: string;
     role: SimpleRole;
     subject: string;
+    kind?: string;
 }
 
 export interface WorkgroupInfo {
@@ -68,6 +71,7 @@ export function mapWorkgroupBindingToSimpleBinding (bindings: WorkgroupBinding[]
         subject: n.subject.name,
         namespace: n.referredNamespace,
         role: roleMap.get(n.roleRef.name as Role) as SimpleRole,
+        kind: n.subject.kind,
     }));
 }
 
@@ -87,10 +91,10 @@ export function mapNamespacesToSimpleBinding (subject: string, namespaces: V1Nam
  * Converts SimpleBinding to Workgroup Binding from Profile Controller
  */
 export function mapSimpleBindingToWorkgroupBinding (binding: SimpleBinding): WorkgroupBinding {
-    const {subject, namespace, role} = binding;
+    const {subject, namespace, role, kind: subjectKind} = binding;
     return {
         subject: {
-            kind: 'User',
+            kind: subjectKind.charAt(0).toUpperCase() + subjectKind.slice(1),
             name: subject,
         },
         referredNamespace: namespace,
@@ -191,7 +195,7 @@ export class WorkgroupApi {
     }
     async handleContributor(action: ContributorActions, req: Request, res: Response) {
         const {namespace} = req.params;
-        const {contributor} = req.body as AddOrRemoveContributorRequest;
+        const {contributor, cType} = req.body as AddOrRemoveContributorRequest;
         const {profilesService} = this;
         if (!contributor || !namespace) {
             const missing = [];
@@ -204,7 +208,7 @@ export class WorkgroupApi {
                 error: `Missing ${missing.join(' and ')} field${missing.length-1?'s':''}.`,
             });
         }
-        if (!EMAIL_RGX.test(contributor)) {
+        if (cType === "user" && !EMAIL_RGX.test(contributor)) {
             return apiError({
                 res,
                 error: `Contributor doesn't look like a valid email address`,
@@ -214,6 +218,7 @@ export class WorkgroupApi {
         try {
             const binding = mapSimpleBindingToWorkgroupBinding({
                 subject: contributor,
+                kind: cType,
                 namespace,
                 role: 'contributor',
             });
@@ -226,8 +231,8 @@ export class WorkgroupApi {
             const actionAPI = action === 'create' ? 'createBinding' : 'deleteBinding';
             await profilesService[actionAPI](binding, {headers});
             errIndex++;
-            const users = await this.getContributors(namespace);
-            res.json(users);
+            const contributors = await this.getContributors(namespace);
+            res.json(contributors);
         } catch (err) {
             const errMessage = [
                 `Unable to add new contributor for ${namespace}. HTTP ${err.response.statusCode || '???'} - ${err.response.statusMessage || 'Unknown'}`,
@@ -244,13 +249,17 @@ export class WorkgroupApi {
      * Given an owned namespace, list all contributors under it
      * @param namespace Namespace to find contributors for
      */
-    async getContributors(namespace: string) {
+    async getContributors(namespace: string): Promise<Array<{name: string, kind?: string}>> {
         const {body} = await this.profilesService
             .readBindings(undefined, namespace);
-        const users = mapWorkgroupBindingToSimpleBinding(body.bindings)
+        const simpleBindings = mapWorkgroupBindingToSimpleBinding(body.bindings);
+        const contributors = simpleBindings
             .filter((b) => b.role === 'contributor')
-            .map((b) => b.subject);
-        return users;
+            .map((b) => ({
+                name: b.subject,
+                kind: b.kind,
+            }));
+        return contributors;
     }
     routes() {return Router()
         .get('/exists', async (req: Request, res: Response) => {
@@ -374,8 +383,8 @@ export class WorkgroupApi {
         .get('/get-contributors/:namespace', async (req: Request, res: Response) => {
             const {namespace} = req.params;
             try {
-                const users = await this.getContributors(namespace);
-                res.json(users);
+                const contributors = await this.getContributors(namespace);
+                res.json(contributors);
             } catch (err) {
                 surfaceProfileControllerErrors({
                     res,
