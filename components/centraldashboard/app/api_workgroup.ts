@@ -183,7 +183,11 @@ export class WorkgroupApi {
     async getWorkgroupInfo(user: User.User): Promise<WorkgroupInfo> {
         const [adminResponse, bindings] = await Promise.all([
             this.profilesService.v1RoleClusteradminGet(user.email),
-            this.profilesService.readBindings(user.email), // TODO: pass user.groups here too
+            this.profilesService.readBindings(
+              user.email, 
+              undefined, 
+              undefined, 
+              user.groups), // TODO: pass user.groups here too
         ]);
         const namespaces = mapWorkgroupBindingToSimpleBinding(
             bindings.body.bindings || []
