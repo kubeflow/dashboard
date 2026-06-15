@@ -712,7 +712,7 @@ export class DefaultApi {
      * @param {*} [options] Override http request options.
      */
     // TODO: accept groups string array
-    public readBindings (user?: string, namespace?: string, role?: string, options: any = {}) : Promise<{ response: http.IncomingMessage; body: BindingEntries;  }> {
+    public readBindings (user?: string, namespace?: string, role?: string, groups?: string[], options: any = {}) : Promise<{ response: http.IncomingMessage; body: BindingEntries;  }> {
         const localVarPath = this.basePath + '/v1/bindings';
         let localVarQueryParameters: any = {};
         let localVarHeaderParams: any = (<any>Object).assign({}, this.defaultHeaders);
@@ -728,6 +728,10 @@ export class DefaultApi {
 
         if (role !== undefined) {
             localVarQueryParameters['role'] = ObjectSerializer.serialize(role, "string");
+        }
+
+        if (groups !== undefined) {
+            localVarQueryParameters['groups'] = groups.join(',');
         }
 
         (<any>Object).assign(localVarHeaderParams, options.headers);
