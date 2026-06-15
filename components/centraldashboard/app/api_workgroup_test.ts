@@ -18,8 +18,8 @@ describe('Workgroup API', () => {
         goog: 'accounts.google.com:',
         other: 'other.foo.bar:',
     };
-    const attachUserGCPMiddleware = attachUser(header.goog, prefix.goog);
-    const attachUserOtherIAPMiddleware = attachUser(header.other, prefix.other);
+    const attachUserGCPMiddleware = attachUser(header.goog, prefix.goog, '');
+    const attachUserOtherIAPMiddleware = attachUser(header.other, prefix.other, '');
     const registrationFlowAllowed = true;
     let mockK8sService: jasmine.SpyObj<KubernetesService>;
     let mockProfilesService: jasmine.SpyObj<DefaultApi>;
@@ -392,7 +392,7 @@ describe('Workgroup API', () => {
     describe('Add / Remove Contributor', () => {
         type RouteTypes = 'add' | 'remove';
         let url: (type: RouteTypes) => string;
-        const requestBody = {contributor: 'apverma@google.com'};
+        const requestBody = {contributor: 'apverma@google.com', cType: 'user'};
         const headers = {
             'content-type': 'application/json',
             [header.goog]: `${prefix.goog}test@testdomain.com`,
@@ -433,7 +433,8 @@ describe('Workgroup API', () => {
         });
         it('Should error on invalid email for contrib', async () => {
             const response = await sendTestRequest(url('add'), headers, 400, 'post', {
-                contributor: 'apverma'
+                contributor: 'apverma',
+                cType: 'user',
             });
             expect(response).toEqual({error: `Contributor doesn't look like a valid email address`});
             expect(mockProfilesService.createBinding).not.toHaveBeenCalled();
