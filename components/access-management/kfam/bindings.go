@@ -50,7 +50,7 @@ var roleBindingNameMap = map[string]string{
 }
 
 type BindingInterface interface {
-	Create(binding *Binding, userIdHeader string, userIdPrefix string, groupsHeader string, groupsClaim string) error
+	Create(binding *Binding, userIdHeader string, userIdPrefix string, groupsClaim string) error
 	Delete(binding *Binding) error
 	List(user string, groups []string, namespaces []string, role string) (*BindingEntries, error)
 }
@@ -130,7 +130,7 @@ func getIstioSecurityConditionGroup(groupsClaim string, binding *Binding) []*ist
 	}
 }
 
-func (c *BindingClient) Create(binding *Binding, userIdHeader string, userIdPrefix string, groupsHeader string, groupsClaim string) error {
+func (c *BindingClient) Create(binding *Binding, userIdHeader string, userIdPrefix string, groupsClaim string) error {
 	// TODO: permission check before go ahead
 	bindingName, err := getBindingName(binding)
 	subjectKind := strings.ToLower(binding.Subject.Kind)

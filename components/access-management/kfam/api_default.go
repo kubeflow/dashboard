@@ -49,7 +49,6 @@ type KfamV1Alpha1Client struct {
 	bindingClient BindingInterface
 	clusterAdmins []string
 	userIdHeader  string
-	groupsHeader  string
 	groupsClaim   string
 	userIdPrefix  string
 }
@@ -89,7 +88,6 @@ func NewKfamClient(userIdHeader string, userIdPrefix string, groupsHeader string
 		},
 		clusterAdmins: sanitizeClusterAdmins(clusterAdmins),
 		userIdHeader:  userIdHeader,
-		groupsHeader:  groupsHeader,
 		groupsClaim:   groupsClaim,
 		userIdPrefix:  userIdPrefix,
 	}, nil
@@ -145,7 +143,7 @@ func (c *KfamV1Alpha1Client) CreateBinding(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	if c.isOwnerOrAdmin(useremail, binding.ReferredNamespace) {
-		err := c.bindingClient.Create(&binding, c.userIdHeader, c.userIdPrefix, c.groupsHeader, c.groupsClaim)
+		err := c.bindingClient.Create(&binding, c.userIdHeader, c.userIdPrefix, c.groupsClaim)
 		if err != nil {
 			IncRequestErrorCounter(err.Error(), useremail, action, r.URL.Path,
 				SEVERITY_MAJOR)

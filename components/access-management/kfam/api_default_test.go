@@ -44,7 +44,7 @@ type mockBindingClient struct {
 	listErr    error
 }
 
-func (m *mockBindingClient) Create(binding *Binding, userIdHeader string, userIdPrefix string, groupsHeader string, groupsClaim string) error {
+func (m *mockBindingClient) Create(binding *Binding, userIdHeader string, userIdPrefix string, groupsClaim string) error {
 	return nil
 }
 
