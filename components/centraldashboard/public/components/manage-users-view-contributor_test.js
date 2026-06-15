@@ -92,7 +92,7 @@ describe('Manage Users View Contributor', () => {
 
         expect(manageUsersViewContributor.userContributorList)
             .toEqual(
-                ['ap@kubeflow.org'],
+                verificationContribs.map((c) => c.name),
                 'Invalid list of user contributors'
             );
     });
@@ -125,7 +125,7 @@ describe('Manage Users View Contributor', () => {
 
         expect(manageUsersViewContributor.userContributorList)
             .toEqual(
-                ['ap@kubeflow.org'],
+                verificationContribs.map((c) => c.name),
                 'Invalid list of user contributors'
             );
     });

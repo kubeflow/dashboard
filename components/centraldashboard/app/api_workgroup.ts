@@ -183,7 +183,7 @@ export class WorkgroupApi {
     async getWorkgroupInfo(user: User.User): Promise<WorkgroupInfo> {
         const [adminResponse, bindings] = await Promise.all([
             this.profilesService.v1RoleClusteradminGet(user.email),
-            this.profilesService.readBindings(user.email),
+            this.profilesService.readBindings(user.email), // TODO: pass user.groups here too
         ]);
         const namespaces = mapWorkgroupBindingToSimpleBinding(
             bindings.body.bindings || []
@@ -208,7 +208,7 @@ export class WorkgroupApi {
                 error: `Missing ${missing.join(' and ')} field${missing.length-1?'s':''}.`,
             });
         }
-        if (cType === "user" && !EMAIL_RGX.test(contributor)) {
+        if ((!cType || cType === "user") && !EMAIL_RGX.test(contributor)) {
             return apiError({
                 res,
                 error: `Contributor doesn't look like a valid email address`,
@@ -235,8 +235,8 @@ export class WorkgroupApi {
             res.json(contributors);
         } catch (err) {
             const errMessage = [
-                `Unable to add new contributor for ${namespace}. HTTP ${err.response.statusCode || '???'} - ${err.response.statusMessage || 'Unknown'}`,
-                `Unable to fetch contributors for ${namespace}. HTTP ${err.response.statusCode || '???'} - ${err.response.statusMessage || 'Unknown'}`,
+                `Unable to add new contributor for ${namespace}. HTTP ${err.response?.statusCode || '???'} - ${err.response?.statusMessage || 'Unknown'}`,
+                `Unable to fetch contributors for ${namespace}. HTTP ${err.response?.statusCode || '???'} - ${err.response?.statusMessage || 'Unknown'}`,
             ][errIndex];
             surfaceProfileControllerErrors({
                 res,

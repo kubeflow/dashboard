@@ -279,7 +279,6 @@ func (c *KfamV1Alpha1Client) ReadBinding(w http.ResponseWriter, r *http.Request)
 	role := queries.Get("role")
 	var groups []string
 	if g := queries.Get("groups"); g != "" {
-
 		err = json.Unmarshal([]byte(queries.Get("groups")), &groups)
 		if err != nil {
 			IncRequestErrorCounter(err.Error(), "", action, r.URL.Path,

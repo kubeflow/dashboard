@@ -711,6 +711,7 @@ export class DefaultApi {
      * @param role Owner or editor or viewer, when not empty, only return bindings of this role
      * @param {*} [options] Override http request options.
      */
+    // TODO: accept groups string array
     public readBindings (user?: string, namespace?: string, role?: string, options: any = {}) : Promise<{ response: http.IncomingMessage; body: BindingEntries;  }> {
         const localVarPath = this.basePath + '/v1/bindings';
         let localVarQueryParameters: any = {};
