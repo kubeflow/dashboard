@@ -40,6 +40,7 @@ interface EnvironmentInfo {
 }
 
 export type SimpleRole = 'owner' | 'contributor' | 'viewer';
+const simpleRolePrecedence = ['owner', 'contributor', 'viewer']; // strongest to weakest
 export type WorkgroupRole = 'admin' | 'edit' | 'view';
 export type Role = SimpleRole | WorkgroupRole;
 export const roleMap: ReadonlyMap<Role, Role> = new Map([
@@ -103,6 +104,27 @@ export function mapSimpleBindingToWorkgroupBinding (binding: SimpleBinding): Wor
             name: roleMap.get(role) as WorkgroupRole,
         }
     };
+}
+
+/**
+ * It is possible for a user to have a matching RoleBinding with a User subject
+ * AND match on one or more Group subject RoleBindings.
+ * This function returns the _set_ of namespaces where the user has access.
+ * Most powerful role that matches takes precendece.
+ * For equally powerful role bound by both Group and User RoleBindings, User takes precedence.
+ */
+function deduplicateNamespaces(namespaces: SimpleBinding[]): SimpleBinding[] {
+  const best = new Map<string, SimpleBinding>();
+  for (const binding of namespaces) {
+    const existing = best.get(binding.namespace);
+    if (!existing || simpleRolePrecedence.indexOf(binding.role) < simpleRolePrecedence.indexOf(existing.role)) {
+      best.set(binding.namespace, binding);
+    }
+    if (existing && binding.kind?.toLowerCase() === 'user' && simpleRolePrecedence.indexOf(binding.role) === simpleRolePrecedence.indexOf(existing.role)) {
+      best.set(binding.namespace, binding);
+    }
+  }
+  return Array.from(best.values());
 }
 
 /**
@@ -187,16 +209,18 @@ export class WorkgroupApi {
               user.email, 
               undefined, 
               undefined, 
-              user.groups), // TODO: pass user.groups here too
+              user.groups),
         ]);
-        const namespaces = mapWorkgroupBindingToSimpleBinding(
+        const namespaces = deduplicateNamespaces(mapWorkgroupBindingToSimpleBinding(
             bindings.body.bindings || []
-        );
+        ));
         return {
             isClusterAdmin: adminResponse.body,
             namespaces,
         };
     }
+
+
     async handleContributor(action: ContributorActions, req: Request, res: Response) {
         const {namespace} = req.params;
         const {contributor, cType} = req.body as AddOrRemoveContributorRequest;
