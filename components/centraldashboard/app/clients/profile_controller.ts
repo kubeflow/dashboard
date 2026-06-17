@@ -709,9 +709,9 @@ export class DefaultApi {
      * @param user User name, when not empty, only return bindings of this user
      * @param namespace Namespace name, when not empty, only return bindings of this namespace
      * @param role Owner or editor or viewer, when not empty, only return bindings of this role
+     * @param groups Groups array, when not empty, return matching bindings
      * @param {*} [options] Override http request options.
      */
-    // TODO: accept groups string array
     public readBindings (user?: string, namespace?: string, role?: string, groups?: string[], options: any = {}) : Promise<{ response: http.IncomingMessage; body: BindingEntries;  }> {
         const localVarPath = this.basePath + '/v1/bindings';
         let localVarQueryParameters: any = {};
