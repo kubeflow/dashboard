@@ -1,6 +1,6 @@
 approvers:
-- juliusvonkohout
-- kimwnasptd
-- thesuperzapper
-reviewers:
 - andyatmiami
+- juliusvonkohout
+- thesuperzapper
+emeritus_approvers:
+- kimwnasptd
