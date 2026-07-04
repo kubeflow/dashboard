@@ -14,11 +14,11 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
-	"path"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/gorilla/mux"
 	profileRegister "github.com/kubeflow/dashboard/components/access-management/pkg/apis/kubeflow/v1beta1"
 	profilev1beta1 "github.com/kubeflow/dashboard/components/profile-controller/api/v1beta1"
 	log "github.com/sirupsen/logrus"
@@ -206,7 +206,7 @@ func (c *KfamV1Alpha1Client) DeleteProfile(w http.ResponseWriter, r *http.Reques
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	const action = "delete"
 	useremail := c.getUserEmail(r.Header)
-	profileName := path.Base(r.RequestURI)
+	profileName := mux.Vars(r)["profile"]
 	// check permission before delete
 	if c.isOwnerOrAdmin(useremail, profileName) {
 		err := c.profileClient.Delete(profileName, nil)
