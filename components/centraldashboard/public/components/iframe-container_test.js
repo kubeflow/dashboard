@@ -93,6 +93,38 @@ describe('Iframe Container', () => {
         expect(iframeContainer.page).toBe('/foo/bar?name=blah#new-hash');
     });
 
+    it('Should synchronize page property when an HTTP page loads',
+        async () => {
+            const fakeContentWindow = {
+                location: {
+                    href: 'http://testsite.com/foo/bar?name=blah',
+                    origin: 'http://testsite.com',
+                    protocol: 'http:',
+                },
+                postMessage: () => {},
+            };
+            spyOnProperty(iframeContainer.$.iframe, 'contentWindow').and
+                .returnValue(fakeContentWindow);
+            iframeContainer.$.iframe.dispatchEvent(new Event('load'));
+            expect(iframeContainer.page).toBe('/foo/bar?name=blah');
+        });
+
+    it('Should not synchronize page property when a non-HTTP(S) document ' +
+        'loads', async () => {
+        const fakeContentWindow = {
+            location: {
+                href: 'about:blank',
+                origin: 'null',
+                protocol: 'about:',
+            },
+            postMessage: () => {},
+        };
+        spyOnProperty(iframeContainer.$.iframe, 'contentWindow').and
+            .returnValue(fakeContentWindow);
+        iframeContainer.$.iframe.dispatchEvent(new Event('load'));
+        expect(iframeContainer.page).toBe(undefined);
+    });
+
     it('Should send messages to iframed page', async () => {
         const origin = window.location.origin;
         // Simulate message being sent from iframe
