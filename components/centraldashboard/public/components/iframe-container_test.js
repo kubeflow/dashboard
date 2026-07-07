@@ -80,6 +80,9 @@ describe('Iframe Container', () => {
     });
 
     it('Should reflect iframe URL changes on hashchange event', async () => {
+        // Capture the real Window before the spy replaces the property, since
+        // hashchange listeners are attached to the Window on load.
+        const realContentWindow = iframeContainer.$.iframe.contentWindow;
         const fakeLocation = {
             href: 'http://testsite.com/foo/bar?name=blah',
             origin: 'http://testsite.com',
@@ -88,9 +91,22 @@ describe('Iframe Container', () => {
             .returnValue({location: fakeLocation});
         expect(iframeContainer.page).toBe(undefined);
         fakeLocation.href = 'http://testsite.com/foo/bar?name=blah#new-hash';
-        iframeContainer.$.iframe.contentDocument
-            .dispatchEvent(new Event('hashchange'));
+        realContentWindow.dispatchEvent(new Event('hashchange'));
         expect(iframeContainer.page).toBe('/foo/bar?name=blah#new-hash');
+    });
+
+    it('Should reflect iframe URL changes on popstate event', async () => {
+        const realContentWindow = iframeContainer.$.iframe.contentWindow;
+        const fakeLocation = {
+            href: 'http://testsite.com/foo/bar?name=blah',
+            origin: 'http://testsite.com',
+        };
+        spyOnProperty(iframeContainer.$.iframe, 'contentWindow').and
+            .returnValue({location: fakeLocation});
+        expect(iframeContainer.page).toBe(undefined);
+        fakeLocation.href = 'http://testsite.com/previous/page';
+        realContentWindow.dispatchEvent(new Event('popstate'));
+        expect(iframeContainer.page).toBe('/previous/page');
     });
 
     it('Should synchronize page property when an HTTP page loads',
@@ -101,6 +117,7 @@ describe('Iframe Container', () => {
                     origin: 'http://testsite.com',
                     protocol: 'http:',
                 },
+                addEventListener: () => {},
                 postMessage: () => {},
             };
             spyOnProperty(iframeContainer.$.iframe, 'contentWindow').and
@@ -117,6 +134,7 @@ describe('Iframe Container', () => {
                 origin: 'null',
                 protocol: 'about:',
             },
+            addEventListener: () => {},
             postMessage: () => {},
         };
         spyOnProperty(iframeContainer.$.iframe, 'contentWindow').and
@@ -149,5 +167,81 @@ describe('Iframe Container', () => {
             },
             origin,
         ]);
+    });
+});
+
+// Drives the component with real navigations inside a served fixture page
+// instead of a mocked contentWindow. The mocked hashchange test above passed
+// for years while the listener was attached to the Document, where Window
+// events never fire in a real browser; these tests close that blind spot.
+describe('Iframe Container real navigation', () => {
+    const FIXTURE_URL = '/base/test_fixtures/hash-routed-app.html';
+    const FIXTURE_SECOND_PAGE_URL =
+        '/base/test_fixtures/hash-routed-app-second-page.html';
+
+    let container;
+
+    const waitForPage = (expectedPage, timeoutMilliseconds = 3000) =>
+        new Promise((resolve, reject) => {
+            const startTime = Date.now();
+            const poll = () => {
+                if (container.page === expectedPage) return resolve();
+                if (Date.now() - startTime > timeoutMilliseconds) {
+                    return reject(new Error(
+                        `timed out waiting for page "${expectedPage}", ` +
+                        `page is "${container.page}"`));
+                }
+                setTimeout(poll, 25);
+            };
+            poll();
+        });
+
+    const loadFixture = (url) => new Promise((resolve) => {
+        container.$.iframe.addEventListener('load', resolve, {once: true});
+        container.src = url;
+    });
+
+    beforeEach(() => {
+        container = document.createElement('iframe-container');
+        document.body.appendChild(container);
+    });
+
+    afterEach(() => {
+        document.body.removeChild(container);
+    });
+
+    it('Should sync page when a hash link is clicked inside the iframe',
+        async () => {
+            await loadFixture(FIXTURE_URL);
+            expect(container.page).toBe(FIXTURE_URL);
+            container.$.iframe.contentDocument
+                .getElementById('details-link').click();
+            await waitForPage(`${FIXTURE_URL}#/details/123`);
+        });
+
+    it('Should sync page on history back inside the iframe', async () => {
+        await loadFixture(FIXTURE_URL);
+        container.$.iframe.contentDocument
+            .getElementById('details-link').click();
+        await waitForPage(`${FIXTURE_URL}#/details/123`);
+        container.$.iframe.contentWindow.history.back();
+        await waitForPage(FIXTURE_URL);
+        expect(container.page).toBe(FIXTURE_URL);
+    });
+
+    it('Should re-attach listeners after a full document navigation inside ' +
+        'the iframe', async () => {
+        await loadFixture(FIXTURE_URL);
+        const nextLoad = new Promise((resolve) => {
+            container.$.iframe.addEventListener('load', resolve, {once: true});
+        });
+        container.$.iframe.contentDocument
+            .getElementById('second-page-link').click();
+        await nextLoad;
+        await waitForPage(FIXTURE_SECOND_PAGE_URL);
+        container.$.iframe.contentDocument
+            .getElementById('second-details-link').click();
+        await waitForPage(`${FIXTURE_SECOND_PAGE_URL}#/second/456`);
+        expect(container.page).toBe(`${FIXTURE_SECOND_PAGE_URL}#/second/456`);
     });
 });

@@ -73,9 +73,13 @@ export class IframeContainer extends PolymerElement {
             if (protocol === 'http:' || protocol === 'https:') {
                 syncIframePage();
             }
-            const {contentDocument} = iframe;
+            const {contentDocument, contentWindow} = iframe;
             contentDocument.addEventListener('click', syncIframePage);
-            contentDocument.addEventListener('hashchange', syncIframePage);
+            // hashchange and popstate are Window events; a Document listener
+            // never receives them, so in-iframe hash navigation (for example
+            // the hash-routed Pipelines web application) was never synced.
+            contentWindow.addEventListener('hashchange', syncIframePage);
+            contentWindow.addEventListener('popstate', syncIframePage);
         });
     }
 
