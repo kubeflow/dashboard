@@ -54,15 +54,15 @@ export class IframeContainer extends PolymerElement {
         // Adds a click handler to be able to capture navigation events from
         // the captured iframe and set the page property which notifies
         const iframe = this.$.iframe;
+        this._syncIframePage = () => {
+            const iframeLocation = iframe.contentWindow.location;
+            const newIframePage = iframeLocation.href.slice(
+                iframeLocation.origin.length);
+            if (this.page !== newIframePage) {
+                this.page = newIframePage;
+            }
+        };
         iframe.addEventListener('load', () => {
-            const syncIframePage = () => {
-                const iframeLocation = iframe.contentWindow.location;
-                const newIframePage = iframeLocation.href.slice(
-                    iframeLocation.origin.length);
-                if (this.page !== newIframePage) {
-                    this.page = newIframePage;
-                }
-            };
             // Synchronize the page property on load so that server-side
             // navigations are captured before any click or hashchange event.
             // Non-HTTP(S) documents such as about:blank are skipped: their
@@ -71,15 +71,18 @@ export class IframeContainer extends PolymerElement {
             // two-way page binding.
             const {protocol} = iframe.contentWindow.location;
             if (protocol === 'http:' || protocol === 'https:') {
-                syncIframePage();
+                this._syncIframePage();
             }
-            const {contentDocument, contentWindow} = iframe;
-            contentDocument.addEventListener('click', syncIframePage);
             // hashchange and popstate are Window events; a Document listener
             // never receives them, so in-iframe hash navigation (for example
             // the hash-routed Pipelines web application) was never synced.
-            contentWindow.addEventListener('hashchange', syncIframePage);
-            contentWindow.addEventListener('popstate', syncIframePage);
+            // The stable listener reference makes re-attachment on every load
+            // a no-op when the browser reuses the Window, and a fresh attach
+            // when navigation replaced it.
+            const {contentDocument, contentWindow} = iframe;
+            contentDocument.addEventListener('click', this._syncIframePage);
+            contentWindow.addEventListener('hashchange', this._syncIframePage);
+            contentWindow.addEventListener('popstate', this._syncIframePage);
         });
     }
 
