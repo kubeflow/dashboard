@@ -21,6 +21,7 @@ interface CreateProfileRequest {
 
 interface AddOrRemoveContributorRequest {
     contributor?: string;
+    role?: SimpleRole;
 }
 
 interface HasWorkgroupResponse {
@@ -191,7 +192,7 @@ export class WorkgroupApi {
     }
     async handleContributor(action: ContributorActions, req: Request, res: Response) {
         const {namespace} = req.params;
-        const {contributor} = req.body as AddOrRemoveContributorRequest;
+        const {contributor, role = 'contributor'} = req.body as AddOrRemoveContributorRequest;
         const {profilesService} = this;
         if (!contributor || !namespace) {
             const missing = [];
@@ -210,12 +211,30 @@ export class WorkgroupApi {
                 error: `Contributor doesn't look like a valid email address`,
             });
         }
+        if (action === 'create' && role !== 'contributor' && role !== 'viewer') {
+            return apiError({
+                res,
+                error: `Invalid role: must be 'contributor' or 'viewer'`,
+            });
+        }
         let errIndex = 0;
         try {
+            let resolvedRole = role;
+            if (action === 'remove') {
+                const existing = await this.getContributors(namespace);
+                const match = existing.find((b) => b.user === contributor);
+                if (!match) {
+                    return apiError({
+                        res,
+                        error: `${contributor} is not a contributor or viewer of ${namespace}`,
+                    });
+                }
+                resolvedRole = match.role;
+            }
             const binding = mapSimpleBindingToWorkgroupBinding({
                 user: contributor,
                 namespace,
-                role: 'contributor',
+                role: resolvedRole,
             });
             // only pass the auth-related headers from the user's request on to kfam
             const authHeaders = ['authorization', 'cookie', this.userIdHeader];
@@ -241,16 +260,15 @@ export class WorkgroupApi {
         }
     }
     /**
-     * Given an owned namespace, list all contributors under it
+     * Given an owned namespace, list all contributors and viewers under it
      * @param namespace Namespace to find contributors for
      */
     async getContributors(namespace: string) {
         const {body} = await this.profilesService
             .readBindings(undefined, namespace);
-        const users = mapWorkgroupBindingToSimpleBinding(body.bindings)
-            .filter((b) => b.role === 'contributor')
-            .map((b) => b.user);
-        return users;
+        return mapWorkgroupBindingToSimpleBinding(body.bindings)
+            .filter((b) => b.role === 'contributor' || b.role === 'viewer')
+            .map((b) => ({user: b.user, role: b.role}));
     }
     routes() {return Router()
         .get('/exists', async (req: Request, res: Response) => {
