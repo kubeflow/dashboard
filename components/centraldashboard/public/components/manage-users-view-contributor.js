@@ -3,9 +3,9 @@ import '@polymer/iron-icon/iron-icon.js';
 import '@polymer/iron-icons/iron-icons.js';
 import '@polymer/iron-icons/social-icons.js';
 import '@polymer/paper-toast/paper-toast.js';
-import '@polymer/paper-ripple/paper-ripple.js';
-import '@polymer/paper-item/paper-icon-item.js';
-import '@polymer/paper-icon-button/paper-icon-button.js';
+import '@polymer/paper-dropdown-menu/paper-dropdown-menu.js';
+import '@polymer/paper-listbox/paper-listbox.js';
+import '@polymer/paper-item/paper-item.js';
 
 import {html, PolymerElement} from '@polymer/polymer';
 
@@ -31,25 +31,20 @@ export class ManageUsersViewContributor extends utilitiesMixin(PolymerElement) {
             user: {type: String, value: 'Loading...'},
             ownedNamespace: {type: Object, value: () => ({})},
             newContribEmail: String,
+            newContribRole: {type: String, value: 'contributor'},
             contribError: Object,
-            contributorInputEl: Object,
         };
-    }
-    /**
-     * Main ready method for Polymer Elements.
-     */
-    ready() {
-        super.ready();
-        this.contributorInputEl = this.$.ContribEmail;
     }
 
     /**
      * Triggers an API call to create a new Contributor
      */
     addNewContrib() {
-        // Need to call the api directly here.
         const api = this.$.AddContribAjax;
-        api.body = {contributor: this.newContribEmail};
+        api.body = {
+            contributor: this.newContribEmail,
+            role: this.newContribRole,
+        };
         api.generateRequest();
     }
     /**
@@ -58,7 +53,7 @@ export class ManageUsersViewContributor extends utilitiesMixin(PolymerElement) {
      */
     removeContributor(e) {
         const api = this.$.RemoveContribAjax;
-        api.body = {contributor: e.model.item};
+        api.body = {contributor: e.model.item.user};
         api.generateRequest();
     }
     /**
