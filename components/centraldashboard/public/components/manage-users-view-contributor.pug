@@ -11,10 +11,15 @@ h2
         |
         code [[ownedNamespace.namespace]]
 .content.small
-    md2-input(label='Email Addresses', value='{{newContribEmail}}', on-submit='addNewContrib', placeholder='Add by email address', error$='[[contribCreateError]]')
-        .prefix(slot='prefix')
-            template(is='dom-repeat', items='[[contributorList]]')
-                paper-chip(on-remove='removeContributor') [[item]]
+    .add-row
+        md2-input(label='Email Address', value='{{newContribEmail}}', on-submit='addNewContrib', placeholder='Add by email address', error$='[[contribCreateError]]')
+            .prefix(slot='prefix')
+                template(is='dom-repeat', items='[[contributorList]]')
+                    paper-chip(on-remove='removeContributor') [[item.user]] ([[item.role]])
+        paper-dropdown-menu(label='Role', no-animations, disabled$='[[!newContribEmail]]')
+            paper-listbox(slot='dropdown-content', selected='{{newContribRole}}', attr-for-selected='value')
+                paper-item(value='contributor') Edit
+                paper-item(value='viewer') View
 paper-toast#ContribError(duration=5000)
     | Failed to fetch contributor list for {{ownedNamespace.namespace}}, because:
     strong [[contribError]]

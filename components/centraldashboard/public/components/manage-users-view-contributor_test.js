@@ -17,6 +17,10 @@ const TEMPLATE = `
 `;
 const user = 'test@kubeflow.org';
 const ownedNs = {namespace: 'ns1', role: 'owner'};
+const contribList = [
+    {user: 'foo@kubeflow.org', role: 'contributor'},
+    {user: 'bar@kubeflow.org', role: 'viewer'},
+];
 
 describe('Manage Users View Contributor', () => {
     let manageUsersViewContributor;
@@ -64,15 +68,14 @@ describe('Manage Users View Contributor', () => {
     });
 
     it('Should add contributors correctly', async () => {
-        const contribList = ['foo@kubeflow.org', 'bar@kubeflow.org'];
-        const verificationContribs = ['ap@kubeflow.org'];
+        const updatedList = [{user: 'ap@kubeflow.org', role: 'contributor'}];
         mockIronAjax(
             manageUsersViewContributor.$.GetContribsAjax,
             contribList,
         );
         mockIronAjax(
             manageUsersViewContributor.$.AddContribAjax,
-            verificationContribs,
+            updatedList,
         );
 
         manageUsersViewContributor.user = user;
@@ -89,21 +92,20 @@ describe('Manage Users View Contributor', () => {
 
         expect(manageUsersViewContributor.contributorList)
             .toEqual(
-                verificationContribs,
+                updatedList,
                 'Invalid list of contributors'
             );
     });
 
     it('Should remove contributors correctly', async () => {
-        const contribList = ['foo@kubeflow.org', 'bar@kubeflow.org'];
-        const verificationContribs = ['ap@kubeflow.org'];
+        const updatedList = [{user: 'ap@kubeflow.org', role: 'contributor'}];
         mockIronAjax(
             manageUsersViewContributor.$.GetContribsAjax,
             contribList,
         );
         mockIronAjax(
             manageUsersViewContributor.$.RemoveContribAjax,
-            verificationContribs,
+            updatedList,
         );
 
         manageUsersViewContributor.user = user;
@@ -112,20 +114,19 @@ describe('Manage Users View Contributor', () => {
         flush();
         await yieldForRequests();
 
-        const chip = manageUsersViewContributor.shadowRoot.querySelector('md2-input paper-chip:nth-of-type(1)');
-        chip.fireRemove({});
+        const removeBtn = manageUsersViewContributor.shadowRoot.querySelector('.contrib-row paper-icon-button');
+        removeBtn.click();
 
         await yieldForRequests();
 
         expect(manageUsersViewContributor.contributorList)
             .toEqual(
-                verificationContribs,
+                updatedList,
                 'Invalid list of contributors'
             );
     });
 
     it('UI State should show contribs when namespace available', async () => {
-        const contribList = ['foo@kubeflow.org', 'bar@kubeflow.org'];
         mockIronAjax(
             manageUsersViewContributor.$.GetContribsAjax,
             contribList,
@@ -140,7 +141,6 @@ describe('Manage Users View Contributor', () => {
         expect(manageUsersViewContributor.shadowRoot.querySelector('h2 > .text').innerText)
             .toBe('Contributors for - ns1');
 
-        // View prop expectations
         expect(manageUsersViewContributor.contributorList)
             .toEqual(
                 contribList,
