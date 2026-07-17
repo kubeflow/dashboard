@@ -196,10 +196,10 @@ describe('Iframe Container real navigation', () => {
             poll();
         });
 
-    const loadFixture = (url) => new Promise((resolve) => {
-        container.$.iframe.addEventListener('load', resolve, {once: true});
+    const loadFixture = async (url) => {
         container.src = url;
-    });
+        await waitForPage(url);
+    };
 
     beforeEach(() => {
         container = document.createElement('iframe-container');
@@ -232,12 +232,8 @@ describe('Iframe Container real navigation', () => {
     it('Should re-attach listeners after a full document navigation inside ' +
         'the iframe', async () => {
         await loadFixture(FIXTURE_URL);
-        const nextLoad = new Promise((resolve) => {
-            container.$.iframe.addEventListener('load', resolve, {once: true});
-        });
         container.$.iframe.contentDocument
             .getElementById('second-page-link').click();
-        await nextLoad;
         await waitForPage(FIXTURE_SECOND_PAGE_URL);
         container.$.iframe.contentDocument
             .getElementById('second-details-link').click();
