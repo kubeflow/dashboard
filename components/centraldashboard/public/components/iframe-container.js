@@ -63,22 +63,14 @@ export class IframeContainer extends PolymerElement {
             }
         };
         iframe.addEventListener('load', () => {
-            // Synchronize the page property on load so that server-side
-            // navigations are captured before any click or hashchange event.
-            // Non-HTTP(S) documents such as about:blank are skipped: their
-            // opaque origin serializes to "null", which would produce an
-            // invalid page value and corrupt the parent URL through the
-            // two-way page binding.
+            // Skip non-HTTP(S) documents (about:blank) whose opaque
+            // origin would corrupt the parent URL binding.
             const {protocol} = iframe.contentWindow.location;
             if (protocol === 'http:' || protocol === 'https:') {
                 this._syncIframePage();
             }
-            // hashchange and popstate are Window events; a Document listener
-            // never receives them, so in-iframe hash navigation (for example
-            // the hash-routed Pipelines web application) was never synced.
-            // The stable listener reference makes re-attachment on every load
-            // a no-op when the browser reuses the Window, and a fresh attach
-            // when navigation replaced it.
+            // hashchange and popstate are Window events; attach to
+            // contentWindow so in-iframe hash navigation syncs.
             const {contentDocument, contentWindow} = iframe;
             contentDocument.addEventListener('click', this._syncIframePage);
             contentWindow.addEventListener('hashchange', this._syncIframePage);

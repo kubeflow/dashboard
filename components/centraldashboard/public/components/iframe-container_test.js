@@ -80,8 +80,7 @@ describe('Iframe Container', () => {
     });
 
     it('Should reflect iframe URL changes on hashchange event', async () => {
-        // Capture the real Window before the spy replaces the property, since
-        // hashchange listeners are attached to the Window on load.
+        // Capture the real Window before the spy replaces the property.
         const realContentWindow = iframeContainer.$.iframe.contentWindow;
         const fakeLocation = {
             href: 'http://testsite.com/foo/bar?name=blah',
@@ -170,10 +169,7 @@ describe('Iframe Container', () => {
     });
 });
 
-// Drives the component with real navigations inside a served fixture page
-// instead of a mocked contentWindow. The mocked hashchange test above passed
-// for years while the listener was attached to the Document, where Window
-// events never fire in a real browser; these tests close that blind spot.
+// Real navigations against served fixtures (no mocked contentWindow).
 describe('Iframe Container real navigation', () => {
     const FIXTURE_URL = '/base/test_fixtures/hash-routed-app.html';
     const FIXTURE_SECOND_PAGE_URL =
