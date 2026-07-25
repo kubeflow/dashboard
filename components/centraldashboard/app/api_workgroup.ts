@@ -21,7 +21,6 @@ interface CreateProfileRequest {
 
 interface AddOrRemoveContributorRequest {
     contributor?: string;
-    role?: SimpleRole;
 }
 
 interface HasWorkgroupResponse {
@@ -190,9 +189,14 @@ export class WorkgroupApi {
             namespaces,
         };
     }
-    async handleContributor(action: ContributorActions, req: Request, res: Response) {
+    async handleContributor(
+        action: ContributorActions,
+        role: SimpleRole,
+        req: Request,
+        res: Response,
+    ) {
         const {namespace} = req.params;
-        const {contributor, role = 'contributor'} = req.body as AddOrRemoveContributorRequest;
+        const {contributor} = req.body as AddOrRemoveContributorRequest;
         const {profilesService} = this;
         if (!contributor || !namespace) {
             const missing = [];
@@ -209,12 +213,6 @@ export class WorkgroupApi {
             return apiError({
                 res,
                 error: `Contributor doesn't look like a valid email address`,
-            });
-        }
-        if (action === 'create' && role !== 'contributor' && role !== 'viewer') {
-            return apiError({
-                res,
-                error: `Invalid role: must be 'contributor' or 'viewer'`,
             });
         }
         let errIndex = 0;
@@ -417,10 +415,13 @@ export class WorkgroupApi {
             }
         })
         .post('/add-contributor/:namespace', async (req: Request, res: Response) => {
-            this.handleContributor('create', req, res);
+            this.handleContributor('create', 'contributor', req, res);
+        })
+        .post('/add-viewer/:namespace', async (req: Request, res: Response) => {
+            this.handleContributor('create', 'viewer', req, res);
         })
         .delete('/remove-contributor/:namespace', async (req: Request, res: Response) => {
-            this.handleContributor('remove', req, res);
+            this.handleContributor('remove', 'contributor', req, res);
         });
     }
 }

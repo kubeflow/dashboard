@@ -389,7 +389,7 @@ describe('Workgroup API', () => {
         });
     });
     describe('Add / Remove Contributor', () => {
-        type RouteTypes = 'add' | 'remove';
+        type RouteTypes = 'add' | 'add-viewer' | 'remove';
         let url: (type: RouteTypes) => string;
         const requestBody = {contributor: 'apverma@google.com'};
         const headers = {
@@ -428,11 +428,12 @@ describe('Workgroup API', () => {
             expect(mockProfilesService.createBinding).not.toHaveBeenCalled();
         });
         it('Should error on missing contributor', async () => {
-            const [rAdd, rRemove] = await Promise.all([
+            const [rAdd, rViewer, rRemove] = await Promise.all([
                 sendTestRequest(url('add'), headers, 400, 'post'),
+                sendTestRequest(`http://localhost:${port}/api/workgroup/add-viewer/apverma`, headers, 400, 'post'),
                 sendTestRequest(url('remove'), headers, 400, 'delete'),
             ]);
-            [rAdd, rRemove].forEach(response => {
+            [rAdd, rViewer, rRemove].forEach(response => {
                 expect(response).toEqual({error: `Missing contributor field.`});
             });
             expect(mockProfilesService.createBinding).not.toHaveBeenCalled();
@@ -444,15 +445,7 @@ describe('Workgroup API', () => {
             expect(response).toEqual({error: `Contributor doesn't look like a valid email address`});
             expect(mockProfilesService.createBinding).not.toHaveBeenCalled();
         });
-        it('Should error on invalid role', async () => {
-            const response = await sendTestRequest(url('add'), headers, 400, 'post', {
-                ...requestBody,
-                role: 'owner',
-            });
-            expect(response).toEqual({error: `Invalid role: must be 'contributor' or 'viewer'`});
-            expect(mockProfilesService.createBinding).not.toHaveBeenCalled();
-        });
-        it('Should successfully add a new contributor with default edit role', async () => {
+        it('Should successfully add a new contributor via add-contributor endpoint', async () => {
             const response = await sendTestRequest(url('add'), headers, 200, 'post', requestBody);
             expect(response).toEqual([]);
             expect(mockProfilesService.createBinding).toHaveBeenCalledWith({
@@ -462,11 +455,9 @@ describe('Workgroup API', () => {
             }, jasmine.anything());
             expect(mockProfilesService.deleteBinding).not.toHaveBeenCalled();
         });
-        it('Should successfully add a new viewer', async () => {
-            const response = await sendTestRequest(url('add'), headers, 200, 'post', {
-                ...requestBody,
-                role: 'viewer',
-            });
+        it('Should successfully add a new viewer via add-viewer endpoint', async () => {
+            const viewerUrl = `http://localhost:${port}/api/workgroup/add-viewer/apverma`;
+            const response = await sendTestRequest(viewerUrl, headers, 200, 'post', requestBody);
             expect(response).toEqual([]);
             expect(mockProfilesService.createBinding).toHaveBeenCalledWith({
                 user: {kind: 'User', name: 'apverma@google.com'},
@@ -477,26 +468,25 @@ describe('Workgroup API', () => {
         });
         it('Should bubble kfam error when adding a user with the same role they already have', async () => {
             buildApi(existingContributors);
-            url = (type: RouteTypes) =>
-                `http://localhost:${port}/api/workgroup/${type}-contributor/apverma`;
             mockProfilesService.createBinding.and.rejectWith({
                 response: {statusCode: 409, statusMessage: 'Conflict'},
                 body: 'rolebindings.rbac.authorization.k8s.io "user-apverma-clusterrole-edit" already exists',
             });
-            const response = await sendTestRequest(url('add'), headers, 409, 'post', requestBody);
+            const response = await sendTestRequest(
+                `http://localhost:${port}/api/workgroup/add-contributor/apverma`,
+                headers, 409, 'post', requestBody,
+            );
             expect(mockProfilesService.deleteBinding).not.toHaveBeenCalled();
             expect(mockProfilesService.createBinding).toHaveBeenCalled();
             expect(response.error).toContain('already exists');
         });
         it('Should remove old binding and create new one when upgrading role', async () => {
             buildApi(existingContributors);
-            url = (type: RouteTypes) =>
-                `http://localhost:${port}/api/workgroup/${type}-contributor/apverma`;
             // viewer@example.com is currently a viewer — upgrade to contributor
-            const response = await sendTestRequest(url('add'), headers, 200, 'post', {
-                contributor: 'viewer@example.com',
-                role: 'contributor',
-            });
+            const response = await sendTestRequest(
+                `http://localhost:${port}/api/workgroup/add-contributor/apverma`,
+                headers, 200, 'post', {contributor: 'viewer@example.com'},
+            );
             expect(response).toEqual(existingContributors);
             expect(mockProfilesService.deleteBinding).toHaveBeenCalledWith({
                 user: {kind: 'User', name: 'viewer@example.com'},
@@ -511,13 +501,11 @@ describe('Workgroup API', () => {
         });
         it('Should remove old binding and create new one when downgrading role', async () => {
             buildApi(existingContributors);
-            url = (type: RouteTypes) =>
-                `http://localhost:${port}/api/workgroup/${type}-contributor/apverma`;
             // apverma@google.com is currently a contributor — downgrade to viewer
-            const response = await sendTestRequest(url('add'), headers, 200, 'post', {
-                ...requestBody,
-                role: 'viewer',
-            });
+            const response = await sendTestRequest(
+                `http://localhost:${port}/api/workgroup/add-viewer/apverma`,
+                headers, 200, 'post', requestBody,
+            );
             expect(response).toEqual(existingContributors);
             expect(mockProfilesService.deleteBinding).toHaveBeenCalledWith({
                 user: {kind: 'User', name: 'apverma@google.com'},
@@ -539,8 +527,6 @@ describe('Workgroup API', () => {
         });
         it('Should successfully remove a contributor, resolving role from existing bindings', async () => {
             buildApi(existingContributors);
-            url = (type: RouteTypes) =>
-                `http://localhost:${port}/api/workgroup/${type}-contributor/apverma`;
             const response = await sendTestRequest(url('remove'), {...headers, 'Transfer-Encoding': 'chunked'}, 200, 'delete', requestBody);
             expect(response).toEqual(existingContributors);
             expect(mockProfilesService.createBinding).not.toHaveBeenCalled();
@@ -552,8 +538,6 @@ describe('Workgroup API', () => {
         });
         it('Should successfully remove a viewer, resolving role from existing bindings', async () => {
             buildApi(existingContributors);
-            url = (type: RouteTypes) =>
-                `http://localhost:${port}/api/workgroup/${type}-contributor/apverma`;
             const response = await sendTestRequest(url('remove'), {...headers, 'Transfer-Encoding': 'chunked'}, 200, 'delete', {
                 contributor: 'viewer@example.com',
             });

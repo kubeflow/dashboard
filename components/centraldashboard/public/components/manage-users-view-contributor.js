@@ -37,14 +37,21 @@ export class ManageUsersViewContributor extends utilitiesMixin(PolymerElement) {
     }
 
     /**
+     * Computes the add URL based on the selected role.
+     * @param {string} namespace
+     * @param {string} role
+     * @return {string}
+     */
+    _addUrl(namespace, role) {
+        const endpoint = role === 'viewer' ? 'add-viewer' : 'add-contributor';
+        return `/api/workgroup/${endpoint}/${namespace}`;
+    }
+    /**
      * Triggers an API call to create a new Contributor
      */
     addNewContrib() {
         const api = this.$.AddContribAjax;
-        api.body = {
-            contributor: this.newContribEmail,
-            role: this.newContribRole,
-        };
+        api.body = {contributor: this.newContribEmail};
         api.generateRequest();
     }
     /**
