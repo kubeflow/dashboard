@@ -30,6 +30,9 @@ h2 .icon {
 .content.small {
     max-width: 640px;
 }
+#ContribError {
+    background: #F44336
+}
 .add-row paper-dropdown-menu {
     --paper-input-container-focus-color: var(--accent-color);
     --paper-listbox-background-color: white;
