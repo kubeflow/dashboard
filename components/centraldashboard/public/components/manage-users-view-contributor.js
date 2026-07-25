@@ -70,6 +70,10 @@ export class ManageUsersViewContributor extends utilitiesMixin(PolymerElement) {
      * @return {string}
      */
     _isolateErrorFromIronRequest(e) {
+        const status = e.detail.request.status;
+        if (status === 403) {
+            return 'You are not authorized to perform this action.';
+        }
         const bd = e.detail.request.response||{};
         return bd.error || e.detail.error || e.detail;
     }
