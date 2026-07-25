@@ -219,6 +219,12 @@ export class WorkgroupApi {
         }
         let errIndex = 0;
         try {
+            // only pass the auth-related headers from the user's request on to kfam
+            const authHeaders = ['authorization', 'cookie', this.userIdHeader];
+            const {headers} = req;
+            Object.keys(headers).forEach(
+                (key) => authHeaders.includes(key) || delete headers[key]
+            );
             let resolvedRole = role;
             if (action === 'remove') {
                 const existing = await this.getContributors(namespace);
@@ -231,17 +237,25 @@ export class WorkgroupApi {
                 }
                 resolvedRole = match.role;
             }
+            if (action === 'create') {
+                const existing = await this.getContributors(namespace);
+                const match = existing.find((b) => b.user === contributor);
+                if (match && match.role !== role) {
+                    // Different role: remove old binding before creating new one
+                    const oldBinding = mapSimpleBindingToWorkgroupBinding({
+                        user: contributor,
+                        namespace,
+                        role: match.role,
+                    });
+                    await profilesService.deleteBinding(oldBinding, {headers});
+                }
+                // Same role: fall through to createBinding → kfam will error "already exists"
+            }
             const binding = mapSimpleBindingToWorkgroupBinding({
                 user: contributor,
                 namespace,
                 role: resolvedRole,
             });
-            // only pass the auth-related headers from the user's request on to kfam
-            const authHeaders = ['authorization', 'cookie', this.userIdHeader];
-            const {headers} = req;
-            Object.keys(headers).forEach(
-                (key) => authHeaders.includes(key) || delete headers[key]
-            );
             const actionAPI = action === 'create' ? 'createBinding' : 'deleteBinding';
             await profilesService[actionAPI](binding, {headers});
             errIndex++;
