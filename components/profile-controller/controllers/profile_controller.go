@@ -347,7 +347,7 @@ func (r *ProfileReconciler) appendErrorConditionAndReturn(ctx context.Context, i
 }
 
 // mapEventToRequest maps an event to reconcile requests for all Profiles
-func (r *ProfileReconciler) mapEventToRequest(o client.Object) []reconcile.Request {
+func (r *ProfileReconciler) mapEventToRequest(_ context.Context, o client.Object) []reconcile.Request {
 	req := []reconcile.Request{}
 	profileList := &profilev1.ProfileList{}
 	err := r.Client.List(context.TODO(), profileList)
@@ -404,9 +404,8 @@ func (r *ProfileReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&istioSecurityClient.AuthorizationPolicy{}).
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&rbacv1.RoleBinding{}).
-		Watches(
-			&source.Channel{Source: events},
-			handler.EnqueueRequestsFromMapFunc(r.mapEventToRequest),
+		WatchesRawSource(
+			source.Channel(events, handler.EnqueueRequestsFromMapFunc(r.mapEventToRequest)),
 		)
 
 	err = c.Complete(r)
