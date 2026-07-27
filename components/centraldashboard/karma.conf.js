@@ -23,6 +23,13 @@ module.exports = (config) => config.set({
     frameworks: ['jasmine'],
     files: [
         'public/index_test.js',
+        /* Served-only fixtures for real iframe navigation tests. */
+        {
+            pattern: 'test_fixtures/*.html',
+            included: false,
+            served: true,
+            watched: false,
+        },
     ],
     exclude: [],
     preprocessors: {
