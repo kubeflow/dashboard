@@ -347,10 +347,10 @@ func (r *ProfileReconciler) appendErrorConditionAndReturn(ctx context.Context, i
 }
 
 // mapEventToRequest maps an event to reconcile requests for all Profiles
-func (r *ProfileReconciler) mapEventToRequest(_ context.Context, o client.Object) []reconcile.Request {
+func (r *ProfileReconciler) mapEventToRequest(ctx context.Context, o client.Object) []reconcile.Request {
 	req := []reconcile.Request{}
 	profileList := &profilev1.ProfileList{}
-	err := r.Client.List(context.TODO(), profileList)
+	err := r.Client.List(ctx, profileList)
 	if err != nil {
 		r.Log.Error(err, "Failed to list profiles in order to trigger reconciliation")
 		return req
