@@ -518,14 +518,39 @@ describe('Workgroup API', () => {
                 roleRef: {kind: 'ClusterRole', name: 'view'},
             }, jasmine.anything());
         });
+        it('Should error with cleanup message when old binding delete fails during role change', async () => {
+            buildApi(existingContributors);
+            // viewer@example.com is currently a viewer — upgrade to contributor
+            // createBinding succeeds, but deleteBinding (cleanup of old role) fails
+            mockProfilesService.deleteBinding.and.rejectWith({
+                response: {statusCode: 500, statusMessage: 'Internal Server Error'},
+            });
+            const response = await sendTestRequest(
+                `http://localhost:${port}/api/workgroup/add-contributor/apverma`,
+                headers, 500, 'post', {contributor: 'viewer@example.com'},
+            );
+            expect(response.error).toContain('Role updated but failed to remove existing assignment');
+            expect(response.error).toContain('viewer@example.com');
+            // new binding was created before the failed cleanup
+            expect(mockProfilesService.createBinding).toHaveBeenCalledWith({
+                user: {kind: 'User', name: 'viewer@example.com'},
+                referredNamespace: 'apverma',
+                roleRef: {kind: 'ClusterRole', name: 'edit'},
+            }, jasmine.anything());
+            expect(mockProfilesService.deleteBinding).toHaveBeenCalledWith({
+                user: {kind: 'User', name: 'viewer@example.com'},
+                referredNamespace: 'apverma',
+                roleRef: {kind: 'ClusterRole', name: 'view'},
+            }, jasmine.anything());
+        });
         it('Should error when removing a user not in the namespace', async () => {
             const response = await sendTestRequest(url('remove'), {...headers, 'Transfer-Encoding': 'chunked'}, 400, 'delete', {
                 contributor: 'unknown@google.com',
             });
-            expect(response).toEqual({error: `unknown@google.com is not a contributor or viewer of apverma`});
+            expect(response).toEqual({error: `unknown@google.com is not a contributor of apverma`});
             expect(mockProfilesService.deleteBinding).not.toHaveBeenCalled();
         });
-        it('Should successfully remove a contributor, resolving role from existing bindings', async () => {
+        it('Should successfully remove a contributor', async () => {
             buildApi(existingContributors);
             const response = await sendTestRequest(url('remove'), {...headers, 'Transfer-Encoding': 'chunked'}, 200, 'delete', requestBody);
             expect(response).toEqual(existingContributors);
@@ -536,9 +561,11 @@ describe('Workgroup API', () => {
                 roleRef: {kind: 'ClusterRole', name: 'edit'},
             }, jasmine.anything());
         });
-        it('Should successfully remove a viewer, resolving role from existing bindings', async () => {
+        it('Should successfully remove a viewer', async () => {
             buildApi(existingContributors);
-            const response = await sendTestRequest(url('remove'), {...headers, 'Transfer-Encoding': 'chunked'}, 200, 'delete', {
+            const removeViewerUrl =
+                `http://localhost:${port}/api/workgroup/remove-viewer/apverma`;
+            const response = await sendTestRequest(removeViewerUrl, {...headers, 'Transfer-Encoding': 'chunked'}, 200, 'delete', {
                 contributor: 'viewer@example.com',
             });
             expect(response).toEqual(existingContributors);

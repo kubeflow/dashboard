@@ -1,4 +1,4 @@
-iron-ajax#RemoveContribAjax(method='DELETE', url='/api/workgroup/remove-contributor/[[ownedNamespace.namespace]]',
+iron-ajax#RemoveContribAjax(method='DELETE', url='[[_removeUrl(ownedNamespace.namespace, _removingRole)]]',
     on-response='handleContribDelete', on-error='handleContribDelete', handle-as='json', content-type='application/json')
 iron-ajax#AddContribAjax(method='POST', url='[[_addUrl(ownedNamespace.namespace, newContribRole)]]',
     on-response='handleContribCreate', on-error='handleContribCreate', handle-as='json', content-type='application/json')
