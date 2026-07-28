@@ -116,7 +116,7 @@
         "karma-jasmine": "^2.0.1",
         "karma-jasmine-html-reporter": "^1.4.2",
         "karma-sourcemap-loader": "^0.3.7",
-        "karma-webpack": "^4.0.2",
+        "karma-webpack": "^5.0.1",
         "mini-css-extract-plugin": "^0.5.0",
         "nodemon": "^1.19.3",
         "nyc": "^14.1.1",
@@ -131,7 +131,7 @@
         "url-loader": "^1.1.2",
         "webpack": "^4.47.0",
         "webpack-cli": "^4.10.0",
-        "webpack-dev-server": "^4.15.2"
+        "webpack-dev-server": "^6.0.0"
     },
     "overrides": {
         "pug-loader": {
