@@ -223,39 +223,52 @@ export class WorkgroupApi {
             Object.keys(headers).forEach(
                 (key) => authHeaders.includes(key) || delete headers[key]
             );
-            let resolvedRole = role;
+            let oldBinding: WorkgroupBinding | null = null;
             if (action === 'remove') {
                 const existing = await this.getContributors(namespace);
-                const match = existing.find((b) => b.user === contributor);
+                const match = existing.find(
+                    (b) => b.user === contributor && b.role === role
+                );
                 if (!match) {
                     return apiError({
                         res,
-                        error: `${contributor} is not a contributor or viewer of ${namespace}`,
+                        error: `${contributor} is not a ${role} of ${namespace}`,
                     });
                 }
-                resolvedRole = match.role;
             }
             if (action === 'create') {
                 const existing = await this.getContributors(namespace);
                 const match = existing.find((b) => b.user === contributor);
                 if (match && match.role !== role) {
-                    // Different role: remove old binding before creating new one
-                    const oldBinding = mapSimpleBindingToWorkgroupBinding({
+                    oldBinding = mapSimpleBindingToWorkgroupBinding({
                         user: contributor,
                         namespace,
                         role: match.role,
                     });
-                    await profilesService.deleteBinding(oldBinding, {headers});
                 }
                 // Same role: fall through to createBinding → kfam will error "already exists"
             }
             const binding = mapSimpleBindingToWorkgroupBinding({
                 user: contributor,
                 namespace,
-                role: resolvedRole,
+                role,
             });
             const actionAPI = action === 'create' ? 'createBinding' : 'deleteBinding';
             await profilesService[actionAPI](binding, {headers});
+            // A failure here means the user has both bindings temporarily;
+            // surface a clear message so the operator knows cleanup is needed.
+            if (oldBinding) {
+                try {
+                    await profilesService.deleteBinding(oldBinding, {headers});
+                } catch (cleanupErr) {
+                    return surfaceProfileControllerErrors({
+                        res,
+                        msg: `Role updated but failed to remove existing assignment` +
+                            ` for ${contributor} in ${namespace}.`,
+                        err: cleanupErr,
+                    });
+                }
+            }
             errIndex++;
             const users = await this.getContributors(namespace);
             res.json(users);
@@ -422,6 +435,9 @@ export class WorkgroupApi {
         })
         .delete('/remove-contributor/:namespace', async (req: Request, res: Response) => {
             this.handleContributor('remove', 'contributor', req, res);
+        })
+        .delete('/remove-viewer/:namespace', async (req: Request, res: Response) => {
+            this.handleContributor('remove', 'viewer', req, res);
         });
     }
 }
