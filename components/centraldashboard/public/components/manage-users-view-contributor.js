@@ -32,6 +32,7 @@ export class ManageUsersViewContributor extends utilitiesMixin(PolymerElement) {
             ownedNamespace: {type: Object, value: () => ({})},
             newContribEmail: String,
             newContribRole: {type: String, value: 'contributor'},
+            _removingRole: {type: String, value: 'contributor'},
             contribError: Object,
         };
     }
@@ -55,10 +56,22 @@ export class ManageUsersViewContributor extends utilitiesMixin(PolymerElement) {
         api.generateRequest();
     }
     /**
+     * Computes the remove URL based on the role being removed.
+     * @param {string} namespace
+     * @param {string} role
+     * @return {string}
+     */
+    _removeUrl(namespace, role) {
+        const endpoint =
+            role === 'viewer' ? 'remove-viewer' : 'remove-contributor';
+        return `/api/workgroup/${endpoint}/${namespace}`;
+    }
+    /**
      * Triggers an API call to remove a Contributor
      * @param {Event} e
      */
     removeContributor(e) {
+        this._removingRole = e.model.item.role;
         const api = this.$.RemoveContribAjax;
         api.body = {contributor: e.model.item.user};
         api.generateRequest();
