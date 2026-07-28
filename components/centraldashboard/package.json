@@ -40,7 +40,7 @@
         "@babel/polyfill": "^7.6.0",
         "@google-cloud/monitoring": "^2.3.5",
         "@grpc/grpc-js": "^1.10.8",
-        "@kubernetes/client-node": "^0.19.0",
+        "@kubernetes/client-node": "^1.4.0",
         "@polymer/app-layout": "^3.1.0",
         "@polymer/app-route": "^3.0.0",
         "@polymer/iron-a11y-keys": "^3.0.1",
@@ -116,10 +116,10 @@
         "karma-jasmine": "^2.0.1",
         "karma-jasmine-html-reporter": "^1.4.2",
         "karma-sourcemap-loader": "^0.3.7",
-        "karma-webpack": "^4.0.2",
+        "karma-webpack": "^5.0.1",
         "mini-css-extract-plugin": "^0.5.0",
         "nodemon": "^1.19.3",
-        "nyc": "^14.1.1",
+        "nyc": "^18.0.0",
         "pug": "^3.0.1",
         "pug-loader": "^2.4.0",
         "puppeteer": "^1.20.0",
@@ -131,7 +131,7 @@
         "url-loader": "^1.1.2",
         "webpack": "^4.47.0",
         "webpack-cli": "^4.10.0",
-        "webpack-dev-server": "^4.15.2"
+        "webpack-dev-server": "^6.0.0"
     },
     "overrides": {
         "pug-loader": {
