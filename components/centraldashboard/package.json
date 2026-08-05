@@ -93,7 +93,7 @@
         "@types/serve-static": "^1.15.5",
         "babel-loader": "^8.0.6",
         "clean-webpack-plugin": "^4.0.0",
-        "concurrently": "^4.1.2",
+        "concurrently": "^10.0.4",
         "copy-webpack-plugin": "^6.4.1",
         "core-js": "^2.6.9",
         "cross-env": "^5.2.1",
