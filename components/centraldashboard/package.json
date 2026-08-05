@@ -118,7 +118,7 @@
         "karma-sourcemap-loader": "^0.3.7",
         "karma-webpack": "^4.0.2",
         "mini-css-extract-plugin": "^0.5.0",
-        "nodemon": "^1.19.3",
+        "nodemon": "^3.1.14",
         "nyc": "^14.1.1",
         "pug": "^3.0.3",
         "pug-loader": "^2.4.0",
