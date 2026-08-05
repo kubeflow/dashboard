@@ -12,6 +12,7 @@ package kfam
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	"path"
@@ -48,10 +49,11 @@ type KfamV1Alpha1Client struct {
 	bindingClient BindingInterface
 	clusterAdmins []string
 	userIdHeader  string
+	groupsClaim   string
 	userIdPrefix  string
 }
 
-func NewKfamClient(userIdHeader string, userIdPrefix string, clusterAdmins []string) (*KfamV1Alpha1Client, error) {
+func NewKfamClient(userIdHeader string, userIdPrefix string, groupsHeader string, groupsClaim string, clusterAdmins []string) (*KfamV1Alpha1Client, error) {
 	profileRESTClient, err := getRESTClient(profileRegister.GroupName, profileRegister.GroupVersion)
 	if err != nil {
 		return nil, err
@@ -80,12 +82,13 @@ func NewKfamClient(userIdHeader string, userIdPrefix string, clusterAdmins []str
 			restClient: profileRESTClient,
 		},
 		bindingClient: &BindingClient{
-			restClient:        istioRESTClient,
+			istioRestClient:   istioRESTClient,
 			kubeClient:        kubeClient,
 			roleBindingLister: roleBindingLister,
 		},
 		clusterAdmins: sanitizeClusterAdmins(clusterAdmins),
 		userIdHeader:  userIdHeader,
+		groupsClaim:   groupsClaim,
 		userIdPrefix:  userIdPrefix,
 	}, nil
 }
@@ -131,9 +134,16 @@ func (c *KfamV1Alpha1Client) CreateBinding(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	// check permission before create binding
-	useremail := c.getUserEmail(r.Header)
+	useremail, err := c.getUserEmail(r.Header)
+	if err != nil {
+		IncRequestErrorCounter(err.Error(), useremail, action, r.URL.Path,
+			SEVERITY_MAJOR)
+		w.WriteHeader(http.StatusForbidden)
+		writeResponse(w, []byte(err.Error()))
+		return
+	}
 	if c.isOwnerOrAdmin(useremail, binding.ReferredNamespace) {
-		err := c.bindingClient.Create(&binding, c.userIdHeader, c.userIdPrefix)
+		err := c.bindingClient.Create(&binding, c.userIdHeader, c.userIdPrefix, c.groupsClaim)
 		if err != nil {
 			IncRequestErrorCounter(err.Error(), useremail, action, r.URL.Path,
 				SEVERITY_MAJOR)
@@ -184,7 +194,14 @@ func (c *KfamV1Alpha1Client) DeleteBinding(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	// check permission before delete
-	useremail := c.getUserEmail(r.Header)
+	useremail, err := c.getUserEmail(r.Header)
+	if err != nil {
+		IncRequestErrorCounter(err.Error(), useremail, action, r.URL.Path,
+			SEVERITY_MAJOR)
+		w.WriteHeader(http.StatusForbidden)
+		writeResponse(w, []byte(err.Error()))
+		return
+	}
 	if c.isOwnerOrAdmin(useremail, binding.ReferredNamespace) {
 		err := c.bindingClient.Delete(&binding)
 		if err != nil {
@@ -205,7 +222,14 @@ func (c *KfamV1Alpha1Client) DeleteBinding(w http.ResponseWriter, r *http.Reques
 func (c *KfamV1Alpha1Client) DeleteProfile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	const action = "delete"
-	useremail := c.getUserEmail(r.Header)
+	useremail, err := c.getUserEmail(r.Header)
+	if err != nil {
+		IncRequestErrorCounter(err.Error(), useremail, action, r.URL.Path,
+			SEVERITY_MAJOR)
+		w.WriteHeader(http.StatusForbidden)
+		writeResponse(w, []byte(err.Error()))
+		return
+	}
 	profileName := path.Base(r.RequestURI)
 	// check permission before delete
 	if c.isOwnerOrAdmin(useremail, profileName) {
@@ -250,7 +274,22 @@ func (c *KfamV1Alpha1Client) ReadBinding(w http.ResponseWriter, r *http.Request)
 	} else {
 		namespaces = append(namespaces, queries.Get("namespace"))
 	}
-	bindingList, err := c.bindingClient.List(queries.Get("user"), namespaces, queries.Get("role"))
+
+	user := queries.Get("user")
+	role := queries.Get("role")
+	var groups []string
+	if g := queries.Get("groups"); g != "" {
+		err = json.Unmarshal([]byte(queries.Get("groups")), &groups)
+		if err != nil {
+			IncRequestErrorCounter(err.Error(), "", action, r.URL.Path,
+				SEVERITY_MAJOR)
+			w.WriteHeader(http.StatusUnauthorized)
+			writeResponse(w, []byte(err.Error()))
+			return
+		}
+	}
+
+	bindingList, err := c.bindingClient.List(user, groups, namespaces, role)
 	if err != nil {
 		IncRequestErrorCounter(err.Error(), "", action, r.URL.Path,
 			SEVERITY_MAJOR)
@@ -258,6 +297,7 @@ func (c *KfamV1Alpha1Client) ReadBinding(w http.ResponseWriter, r *http.Request)
 		writeResponse(w, []byte(err.Error()))
 		return
 	}
+
 	result, err := json.Marshal(*bindingList)
 	if err != nil {
 		IncRequestErrorCounter(err.Error(), "", action, r.URL.Path,
@@ -304,8 +344,12 @@ func writeResponse(w http.ResponseWriter, msg []byte) bool {
 	return true
 }
 
-func (c *KfamV1Alpha1Client) getUserEmail(header http.Header) string {
-	return header.Get(c.userIdHeader)[len(c.userIdPrefix):]
+func (c *KfamV1Alpha1Client) getUserEmail(header http.Header) (string, error) {
+	if h := header.Get(c.userIdHeader); len(h) > len(c.userIdPrefix) {
+		return h[len(c.userIdPrefix):], nil
+	} else {
+		return "", fmt.Errorf("header %q missing or prefix %q not found", c.userIdHeader, c.userIdPrefix)
+	}
 }
 
 func (c *KfamV1Alpha1Client) isClusterAdmin(queryUser string) bool {

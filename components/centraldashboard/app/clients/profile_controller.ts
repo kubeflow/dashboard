@@ -139,7 +139,7 @@ class ObjectSerializer {
 * Binding will give user edit access to referredNamespace
 */
 export class Binding {
-    'user'?: Subject;
+    'subject'?: Subject;
     'referredNamespace'?: string;
     'roleRef'?: RoleRef;
     /**
@@ -151,8 +151,8 @@ export class Binding {
 
     static attributeTypeMap: Array<{name: string, baseName: string, type: string}> = [
         {
-            "name": "user",
-            "baseName": "user",
+            "name": "subject",
+            "baseName": "subject",
             "type": "Subject"
         },
         {
@@ -709,9 +709,10 @@ export class DefaultApi {
      * @param user User name, when not empty, only return bindings of this user
      * @param namespace Namespace name, when not empty, only return bindings of this namespace
      * @param role Owner or editor or viewer, when not empty, only return bindings of this role
+     * @param groups Groups array, when not empty, return matching bindings
      * @param {*} [options] Override http request options.
      */
-    public readBindings (user?: string, namespace?: string, role?: string, options: any = {}) : Promise<{ response: http.IncomingMessage; body: BindingEntries;  }> {
+    public readBindings (user?: string, namespace?: string, role?: string, groups?: string[], options: any = {}) : Promise<{ response: http.IncomingMessage; body: BindingEntries;  }> {
         const localVarPath = this.basePath + '/v1/bindings';
         let localVarQueryParameters: any = {};
         let localVarHeaderParams: any = (<any>Object).assign({}, this.defaultHeaders);
@@ -727,6 +728,10 @@ export class DefaultApi {
 
         if (role !== undefined) {
             localVarQueryParameters['role'] = ObjectSerializer.serialize(role, "string");
+        }
+
+        if (groups !== undefined) {
+            localVarQueryParameters['groups'] = groups.join(',');
         }
 
         (<any>Object).assign(localVarHeaderParams, options.headers);
