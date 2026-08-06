@@ -189,7 +189,12 @@ export class WorkgroupApi {
             namespaces,
         };
     }
-    async handleContributor(action: ContributorActions, req: Request, res: Response) {
+    async handleContributor(
+        action: ContributorActions,
+        role: SimpleRole,
+        req: Request,
+        res: Response,
+    ) {
         const {namespace} = req.params;
         const {contributor} = req.body as AddOrRemoveContributorRequest;
         const {profilesService} = this;
@@ -212,19 +217,58 @@ export class WorkgroupApi {
         }
         let errIndex = 0;
         try {
-            const binding = mapSimpleBindingToWorkgroupBinding({
-                user: contributor,
-                namespace,
-                role: 'contributor',
-            });
             // only pass the auth-related headers from the user's request on to kfam
             const authHeaders = ['authorization', 'cookie', this.userIdHeader];
             const {headers} = req;
             Object.keys(headers).forEach(
                 (key) => authHeaders.includes(key) || delete headers[key]
             );
+            let oldBinding: WorkgroupBinding | null = null;
+            if (action === 'remove') {
+                const existing = await this.getContributors(namespace);
+                const match = existing.find(
+                    (b) => b.user === contributor && b.role === role
+                );
+                if (!match) {
+                    return apiError({
+                        res,
+                        error: `${contributor} is not a ${role} of ${namespace}`,
+                    });
+                }
+            }
+            if (action === 'create') {
+                const existing = await this.getContributors(namespace);
+                const match = existing.find((b) => b.user === contributor);
+                if (match && match.role !== role) {
+                    oldBinding = mapSimpleBindingToWorkgroupBinding({
+                        user: contributor,
+                        namespace,
+                        role: match.role,
+                    });
+                }
+                // Same role: fall through to createBinding → kfam will error "already exists"
+            }
+            const binding = mapSimpleBindingToWorkgroupBinding({
+                user: contributor,
+                namespace,
+                role,
+            });
             const actionAPI = action === 'create' ? 'createBinding' : 'deleteBinding';
             await profilesService[actionAPI](binding, {headers});
+            // A failure here means the user has both bindings temporarily;
+            // surface a clear message so the operator knows cleanup is needed.
+            if (oldBinding) {
+                try {
+                    await profilesService.deleteBinding(oldBinding, {headers});
+                } catch (cleanupErr) {
+                    return surfaceProfileControllerErrors({
+                        res,
+                        msg: `Role updated but failed to remove existing assignment` +
+                            ` for ${contributor} in ${namespace}.`,
+                        err: cleanupErr,
+                    });
+                }
+            }
             errIndex++;
             const users = await this.getContributors(namespace);
             res.json(users);
@@ -241,16 +285,15 @@ export class WorkgroupApi {
         }
     }
     /**
-     * Given an owned namespace, list all contributors under it
+     * Given an owned namespace, list all contributors and viewers under it
      * @param namespace Namespace to find contributors for
      */
     async getContributors(namespace: string) {
         const {body} = await this.profilesService
             .readBindings(undefined, namespace);
-        const users = mapWorkgroupBindingToSimpleBinding(body.bindings)
-            .filter((b) => b.role === 'contributor')
-            .map((b) => b.user);
-        return users;
+        return mapWorkgroupBindingToSimpleBinding(body.bindings)
+            .filter((b) => b.role === 'contributor' || b.role === 'viewer')
+            .map((b) => ({user: b.user, role: b.role}));
     }
     routes() {return Router()
         .get('/exists', async (req: Request, res: Response) => {
@@ -385,10 +428,16 @@ export class WorkgroupApi {
             }
         })
         .post('/add-contributor/:namespace', async (req: Request, res: Response) => {
-            this.handleContributor('create', req, res);
+            this.handleContributor('create', 'contributor', req, res);
+        })
+        .post('/add-viewer/:namespace', async (req: Request, res: Response) => {
+            this.handleContributor('create', 'viewer', req, res);
         })
         .delete('/remove-contributor/:namespace', async (req: Request, res: Response) => {
-            this.handleContributor('remove', req, res);
+            this.handleContributor('remove', 'contributor', req, res);
+        })
+        .delete('/remove-viewer/:namespace', async (req: Request, res: Response) => {
+            this.handleContributor('remove', 'viewer', req, res);
         });
     }
 }
