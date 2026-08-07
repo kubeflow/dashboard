@@ -71,8 +71,8 @@ export class KubernetesService {
   /** Retrieves the list of namespaces from the Cluster. */
   async getNamespaces(): Promise<k8s.V1Namespace[]> {
     try {
-      const {body} = await this.coreAPI.listNamespace();
-      return body.items;
+      const namespaceList = await this.coreAPI.listNamespace();
+      return namespaceList.items;
     } catch (err) {
       console.error('Unable to fetch Namespaces:', err.body || err);
       return [];
@@ -82,8 +82,8 @@ export class KubernetesService {
   /** Retrieves the configmap data for the central dashboard. */
   async getConfigMap(): Promise<k8s.V1ConfigMap> {
     try {
-      const { body } = await this.coreAPI.readNamespacedConfigMap(this.dashboardConfigMap,this.namespace);
-      return body;
+      const configMap = await this.coreAPI.readNamespacedConfigMap({name: this.dashboardConfigMap, namespace: this.namespace});
+      return configMap;
     } catch (err) {
       console.error('Unable to fetch ConfigMap:', err.body || err);
       return null;
@@ -93,8 +93,8 @@ export class KubernetesService {
   /** Retrieves the list of events for the given Namespace from the Cluster. */
   async getEventsForNamespace(namespace: string): Promise<k8s.CoreV1Event[]> {
     try {
-      const {body} = await this.coreAPI.listNamespacedEvent(namespace);
-      return body.items;
+      const eventList = await this.coreAPI.listNamespacedEvent({namespace});
+      return eventList.items;
     } catch (err) {
       console.error(
           `Unable to fetch Events for ${namespace}:`, err.body || err);
@@ -127,8 +127,8 @@ export class KubernetesService {
    */
   async getNodes(): Promise<k8s.V1Node[]> {
     try {
-      const {body} = await this.coreAPI.listNode();
-      return body.items;
+      const nodeList = await this.coreAPI.listNode();
+      return nodeList.items;
     } catch (err) {
       console.error('Unable to fetch Nodes', err.body || err);
       return [];
@@ -161,9 +161,9 @@ export class KubernetesService {
     try {
       // tslint:disable-next-line: no-any
       const _ = (o: any) => o || {};
-      const response = await this.customObjectsAPI.listNamespacedCustomObject(
-          APP_API_GROUP, APP_API_VERSION, this.namespace, APP_API_NAME);
-      const body = response.body as V1BetaApplicationList;
+      const response = await this.customObjectsAPI.listNamespacedCustomObject({
+          group: APP_API_GROUP, version: APP_API_VERSION, namespace: this.namespace, plural: APP_API_NAME});
+      const body = response as unknown as V1BetaApplicationList;
       const kubeflowApp = (body.items || [])
         .find((app) =>
           /^kubeflow$/i.test(_(_(_(app).spec).descriptor).type)
