@@ -1,5 +1,5 @@
 # ---------- Builder stage ----------
-FROM node:18-bullseye AS build
+FROM node:18-bookworm AS build
 
 ARG kubeflowversion
 ARG commit
