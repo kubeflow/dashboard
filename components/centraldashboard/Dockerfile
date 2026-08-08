@@ -1,5 +1,5 @@
 # ---------- Builder stage ----------
-FROM node:16.20.2-bullseye AS build
+FROM node:18-bookworm AS build
 
 ARG kubeflowversion
 ARG commit
@@ -8,6 +8,7 @@ ENV BUILD_VERSION=$kubeflowversion
 ENV BUILD_COMMIT=$commit
 ENV CHROME_BIN=/usr/bin/chromium
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV NODE_OPTIONS=--openssl-legacy-provider
 
 WORKDIR /usr/src/app
 
@@ -26,7 +27,7 @@ RUN npm run build \
  && npm prune --production
 
 # ---------- Production stage ----------
-FROM node:16.20.2-alpine AS serve
+FROM node:18-alpine AS serve
 
 USER root
 
