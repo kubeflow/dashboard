@@ -1,5 +1,5 @@
 # ---------- Builder stage ----------
-FROM node:16.20.2-bullseye AS build
+FROM node:18-bullseye AS build
 
 ARG kubeflowversion
 ARG commit
@@ -26,7 +26,7 @@ RUN npm run build \
  && npm prune --production
 
 # ---------- Production stage ----------
-FROM node:16.20.2-alpine AS serve
+FROM node:18-alpine AS serve
 
 USER root
 
