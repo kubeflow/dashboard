@@ -8,6 +8,7 @@ ENV BUILD_VERSION=$kubeflowversion
 ENV BUILD_COMMIT=$commit
 ENV CHROME_BIN=/usr/bin/chromium
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV NODE_OPTIONS=--openssl-legacy-provider
 
 WORKDIR /usr/src/app
 
