@@ -26,7 +26,6 @@ google/martian
 google/pprof
 googleapis/gax-go
 googleapis/gnostic
-hashicorp/golang-lru
 hpcloud/tail
 imdario/mergo
 inconshreveable/mousetrap
