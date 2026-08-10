@@ -8,9 +8,9 @@ import (
 	"net/url"
 	"strings"
 
-	awssdk "github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/iam"
+	awssdk "github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/iam"
 	"github.com/go-logr/logr"
 	profilev1 "github.com/kubeflow/dashboard/components/profile-controller/api/v1"
 	"github.com/tidwall/gjson"
@@ -79,23 +79,24 @@ func (aws *AwsIAMForServiceAccount) updateIAMForServiceAccount(serviceAccountNam
 		return nil
 	}
 
-	sess, err := session.NewSession()
+	ctx := context.TODO()
+	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
-		return fmt.Errorf("error getting AWS session while retrieving region: %v", err)
+		return fmt.Errorf("error loading AWS config: %v", err)
 	}
-	svc := iam.New(sess)
+	svc := iam.NewFromConfig(cfg)
 	roleName := getIAMRoleNameFromIAMRoleArn(aws.AwsIAMRole)
 	roleInput := &iam.GetRoleInput{
 		RoleName: awssdk.String(roleName),
 	}
 
-	output, err := svc.GetRole(roleInput)
+	output, err := svc.GetRole(ctx, roleInput)
 	if err != nil {
 		return err
 	}
 
 	// Seems AssumeRolePolicyDocument is URL encoded
-	decodeValue, err := url.QueryUnescape(awssdk.StringValue(output.Role.AssumeRolePolicyDocument))
+	decodeValue, err := url.QueryUnescape(awssdk.ToString(output.Role.AssumeRolePolicyDocument))
 	if err != nil {
 		return err
 	}
@@ -112,7 +113,7 @@ func (aws *AwsIAMForServiceAccount) updateIAMForServiceAccount(serviceAccountNam
 		RoleName:       awssdk.String(roleName),
 		PolicyDocument: awssdk.String(updatedRolePolicy),
 	}
-	if _, err = svc.UpdateAssumeRolePolicy(input); err != nil {
+	if _, err = svc.UpdateAssumeRolePolicy(ctx, input); err != nil {
 		return err
 	}
 	return nil

@@ -17,12 +17,14 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"runtime"
 	"testing"
+	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -54,7 +56,7 @@ func TestAPIs(t *testing.T) {
 	RunSpecs(t, "Controller Suite")
 }
 
-var _ = BeforeSuite(func() {
+var _ = BeforeSuite(func(ctx context.Context) {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 	//ctx, cancel = context.WithCancel(context.Background())
 
@@ -99,7 +101,7 @@ var _ = BeforeSuite(func() {
 	//	Expect(err).NotTo(HaveOccurred(), "failed to run manager")
 	//}()
 
-}, 60)
+}, NodeTimeout(60*time.Second))
 
 var _ = AfterSuite(func() {
 	//By("stopping the manager context")

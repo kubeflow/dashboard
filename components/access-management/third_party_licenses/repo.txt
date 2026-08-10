@@ -48,7 +48,6 @@ gopherjs/gopherjs
 gorilla/mux
 gregjones/httpcache
 grpc-ecosystem/grpc-gateway
-hashicorp/golang-lru
 hpcloud/tail
 imdario/mergo
 inconshreveable/mousetrap

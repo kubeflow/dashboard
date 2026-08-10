@@ -15,6 +15,8 @@
 package kfam
 
 import (
+	"context"
+
 	"github.com/kubeflow/dashboard/components/profile-controller/api/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -41,7 +43,7 @@ func (c *ProfileClient) Create(profile *v1beta1.Profile) (*v1beta1.Profile, erro
 		Post().
 		Resource(Profiles).
 		Body(profile).
-		Do().
+		Do(context.TODO()).
 		Into(&result)
 
 	return &result, err
@@ -53,7 +55,7 @@ func (c *ProfileClient) Delete(name string, opts *metav1.DeleteOptions) error {
 		Resource(Profiles).
 		Name(name).
 		Body(opts).
-		Do().
+		Do(context.TODO()).
 		Error()
 }
 
@@ -64,7 +66,7 @@ func (c *ProfileClient) Get(name string, opts metav1.GetOptions) (*v1beta1.Profi
 		Resource(Profiles).
 		Name(name).
 		VersionedParams(&opts, scheme.ParameterCodec).
-		Do().
+		Do(context.TODO()).
 		Into(&result)
 
 	return &result, err
@@ -76,7 +78,7 @@ func (c *ProfileClient) List(opts metav1.ListOptions) (*v1beta1.ProfileList, err
 		Get().
 		Resource(Profiles).
 		VersionedParams(&opts, scheme.ParameterCodec).
-		Do().
+		Do(context.TODO()).
 		Into(&result)
 
 	return &result, err
@@ -88,7 +90,7 @@ func (c *ProfileClient) Update(profile *v1beta1.Profile) (*v1beta1.Profile, erro
 		Put().
 		Resource(Profiles).
 		Body(profile).
-		Do().
+		Do(context.TODO()).
 		Into(&result)
 
 	return &result, err

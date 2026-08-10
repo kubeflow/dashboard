@@ -26,7 +26,6 @@ github.com/google/martian
 github.com/google/pprof
 github.com/googleapis/gax-go/v2
 github.com/googleapis/gnostic
-github.com/hashicorp/golang-lru
 github.com/hpcloud/tail
 github.com/imdario/mergo
 github.com/inconshreveable/mousetrap

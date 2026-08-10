@@ -48,7 +48,6 @@ gopherjs/gopherjs,https://github.com/gopherjs/gopherjs/blob/master/LICENSE,BSD 2
 gorilla/mux,https://github.com/gorilla/mux/blob/master/LICENSE,BSD 3-Clause "New" or "Revised" License,https://raw.githubusercontent.com/gorilla/mux/master/LICENSE
 gregjones/httpcache,https://github.com/gregjones/httpcache/blob/master/LICENSE.txt,MIT License,https://raw.githubusercontent.com/gregjones/httpcache/master/LICENSE.txt
 grpc-ecosystem/grpc-gateway,https://github.com/grpc-ecosystem/grpc-gateway/blob/master/LICENSE.txt,BSD 3-Clause "New" or "Revised" License,https://raw.githubusercontent.com/grpc-ecosystem/grpc-gateway/master/LICENSE.txt
-hashicorp/golang-lru,https://github.com/hashicorp/golang-lru/blob/master/LICENSE,Mozilla Public License 2.0,https://raw.githubusercontent.com/hashicorp/golang-lru/master/LICENSE
 hpcloud/tail,https://github.com/hpcloud/tail/blob/master/LICENSE.txt,MIT,https://raw.githubusercontent.com/hpcloud/tail/master/LICENSE.txt
 imdario/mergo,https://github.com/imdario/mergo/blob/master/LICENSE,BSD 3-Clause "New" or "Revised" License,https://raw.githubusercontent.com/imdario/mergo/master/LICENSE
 inconshreveable/mousetrap,https://github.com/inconshreveable/mousetrap/blob/master/LICENSE,Apache License 2.0,https://raw.githubusercontent.com/inconshreveable/mousetrap/master/LICENSE

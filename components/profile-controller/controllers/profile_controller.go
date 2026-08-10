@@ -25,11 +25,11 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/cenkalti/backoff"
+	"github.com/cenkalti/backoff/v4"
+	"github.com/fsnotify/fsnotify"
 	"github.com/go-logr/logr"
 	profilev1 "github.com/kubeflow/dashboard/components/profile-controller/api/v1"
 	"github.com/pkg/errors"
-	"gopkg.in/fsnotify.v1"
 	"gopkg.in/yaml.v2"
 	istioSecurity "istio.io/api/security/v1beta1"
 	istioSecurityClient "istio.io/client-go/pkg/apis/security/v1beta1"
@@ -404,9 +404,7 @@ func (r *ProfileReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&istioSecurityClient.AuthorizationPolicy{}).
 		Owns(&corev1.ServiceAccount{}).
 		Owns(&rbacv1.RoleBinding{}).
-		WatchesRawSource(
-			source.Channel(events, handler.EnqueueRequestsFromMapFunc(r.mapEventToRequest)),
-		)
+		WatchesRawSource(source.Channel(events, handler.EnqueueRequestsFromMapFunc(r.mapEventToRequest)))
 
 	err = c.Complete(r)
 	if err != nil {
