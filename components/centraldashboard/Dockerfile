@@ -1,5 +1,5 @@
 # ---------- Builder stage ----------
-FROM node:18-bookworm AS build
+FROM node:22-bookworm AS build
 
 ARG kubeflowversion
 ARG commit
@@ -27,7 +27,7 @@ RUN npm run build \
  && npm prune --production
 
 # ---------- Production stage ----------
-FROM node:18-alpine AS serve
+FROM node:22-alpine AS serve
 
 USER root
 

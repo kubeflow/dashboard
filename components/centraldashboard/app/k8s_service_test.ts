@@ -14,7 +14,7 @@ describe('KubernetesService', () => {
       'makeApiClient'
     ]);
     mockApiClient = jasmine.createSpyObj<k8s.CoreV1Api>(
-        'mockApiClient', ['listNamespace', 'listNamespacedEvent', 'listNode']);
+        'mockApiClient', ['listNamespace', 'listNamespacedEvent', 'listNode', 'readNamespacedConfigMap']);
     mockCustomApiClient = jasmine.createSpyObj<k8s.CustomObjectsApi>(
         'mockCustomApiClient', ['listNamespacedCustomObject']);
     mockKubeConfig.makeApiClient.withArgs(k8s.CoreV1Api)
@@ -74,6 +74,37 @@ describe('KubernetesService', () => {
 
       const namespaces = await k8sService.getNamespaces();
       expect(namespaces.length).toBe(0);
+    });
+  });
+
+  describe('Get ConfigMap', () => {
+    it('Returns the dashboard configmap', async () => {
+      const configMapResponse = {
+        apiVersion: 'v1',
+        kind: 'ConfigMap',
+        metadata: {
+          name: 'dashboard-config',
+          namespace: 'kubeflow',
+        },
+        data: {
+          settings: '{"documentation": "https://www.kubeflow.org/docs/"}',
+        },
+      };
+      mockApiClient.readNamespacedConfigMap.and.returnValue(
+          Promise.resolve(configMapResponse as k8s.V1ConfigMap));
+
+      const configMap = await k8sService.getConfigMap();
+      expect(configMap).toEqual(configMapResponse as k8s.V1ConfigMap);
+      expect(mockApiClient.readNamespacedConfigMap)
+          .toHaveBeenCalledWith({name: 'dashboard-config', namespace: 'kubeflow'});
+    });
+
+    it('Returns null on error', async () => {
+      mockApiClient.readNamespacedConfigMap.and.returnValue(
+          Promise.reject({body: 'testing-error'}));
+
+      const configMap = await k8sService.getConfigMap();
+      expect(configMap).toBeNull();
     });
   });
 
@@ -169,7 +200,7 @@ describe('KubernetesService', () => {
     });
 
     it('Returns empty list on error', async () => {
-      mockApiClient.listNamespacedEvent
+      mockApiClient.listNamespacedEvent.withArgs({namespace: 'bad-namespace'})
           .and.returnValue(Promise.reject({body: 'testing-error'}));
 
       const events = await k8sService.getEventsForNamespace('bad-namespace');
