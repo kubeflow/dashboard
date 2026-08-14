@@ -1,5 +1,5 @@
 # ---------- Builder stage ----------
-FROM node:16.20.2-bullseye AS build
+FROM node:22-bookworm AS build
 
 ARG kubeflowversion
 ARG commit
@@ -8,6 +8,7 @@ ENV BUILD_VERSION=$kubeflowversion
 ENV BUILD_COMMIT=$commit
 ENV CHROME_BIN=/usr/bin/chromium
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV NODE_OPTIONS=--openssl-legacy-provider
 
 WORKDIR /usr/src/app
 
@@ -26,11 +27,12 @@ RUN npm run build \
  && npm prune --production
 
 # ---------- Production stage ----------
-FROM node:16.20.2-alpine AS serve
+FROM node:22-bookworm-slim AS serve
 
 USER root
 
-RUN apk add --no-cache tini
+RUN apt-get update && apt-get install -y --no-install-recommends tini \
+ && rm -rf /var/lib/apt/lists/*
 
 USER node:node
 
@@ -43,4 +45,4 @@ COPY --from=build --chown=node:node /usr/src/app ./
 
 EXPOSE 8082
 
-ENTRYPOINT ["/sbin/tini", "--" , "npm", "start"]
+ENTRYPOINT ["/usr/bin/tini", "--" , "npm", "start"]

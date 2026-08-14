@@ -1,24 +1,20 @@
 import * as k8s from '@kubernetes/client-node';
-import {IncomingMessage} from 'http';
 
 import {KubernetesService} from './k8s_service';
 
 describe('KubernetesService', () => {
-  let mockResponse: jasmine.SpyObj<IncomingMessage>;
   let mockKubeConfig: jasmine.SpyObj<k8s.KubeConfig>;
   let mockApiClient: jasmine.SpyObj<k8s.CoreV1Api>;
   let mockCustomApiClient: jasmine.SpyObj<k8s.CustomObjectsApi>;
   let k8sService: KubernetesService;
 
   beforeEach(() => {
-    mockResponse =
-        jasmine.createSpyObj<IncomingMessage>('mockResponse', ['rawHeaders']);
     mockKubeConfig = jasmine.createSpyObj<k8s.KubeConfig>('mockKubeConfig', [
       'loadFromDefault', 'getContextObject', 'getCurrentContext',
       'makeApiClient'
     ]);
     mockApiClient = jasmine.createSpyObj<k8s.CoreV1Api>(
-        'mockApiClient', ['listNamespace', 'listNamespacedEvent', 'listNode']);
+        'mockApiClient', ['listNamespace', 'listNamespacedEvent', 'listNode', 'readNamespacedConfigMap']);
     mockCustomApiClient = jasmine.createSpyObj<k8s.CustomObjectsApi>(
         'mockCustomApiClient', ['listNamespacedCustomObject']);
     mockKubeConfig.makeApiClient.withArgs(k8s.CoreV1Api)
@@ -65,7 +61,7 @@ describe('KubernetesService', () => {
         ]
       };
       mockApiClient.listNamespace.and.returnValue(Promise.resolve(
-          {response: mockResponse, body: response as k8s.V1NamespaceList}));
+          response as k8s.V1NamespaceList));
 
       const namespaces = await k8sService.getNamespaces();
       const namespaceNames = namespaces.map((n) => n.metadata.name);
@@ -78,6 +74,37 @@ describe('KubernetesService', () => {
 
       const namespaces = await k8sService.getNamespaces();
       expect(namespaces.length).toBe(0);
+    });
+  });
+
+  describe('Get ConfigMap', () => {
+    it('Returns the dashboard configmap', async () => {
+      const configMapResponse = {
+        apiVersion: 'v1',
+        kind: 'ConfigMap',
+        metadata: {
+          name: 'dashboard-config',
+          namespace: 'kubeflow',
+        },
+        data: {
+          settings: '{"documentation": "https://www.kubeflow.org/docs/"}',
+        },
+      };
+      mockApiClient.readNamespacedConfigMap.and.returnValue(
+          Promise.resolve(configMapResponse as k8s.V1ConfigMap));
+
+      const configMap = await k8sService.getConfigMap();
+      expect(configMap).toEqual(configMapResponse as k8s.V1ConfigMap);
+      expect(mockApiClient.readNamespacedConfigMap)
+          .toHaveBeenCalledWith({name: 'dashboard-config', namespace: 'kubeflow'});
+    });
+
+    it('Returns null on error', async () => {
+      mockApiClient.readNamespacedConfigMap.and.returnValue(
+          Promise.reject({body: 'testing-error'}));
+
+      const configMap = await k8sService.getConfigMap();
+      expect(configMap).toBeNull();
     });
   });
 
@@ -165,7 +192,7 @@ describe('KubernetesService', () => {
         ]
       } as unknown;  // needed to work around TS compiler
       mockApiClient.listNamespacedEvent.and.returnValue(Promise.resolve(
-          {response: mockResponse, body: response as k8s.CoreV1EventList}));
+          response as k8s.CoreV1EventList));
 
       const events = await k8sService.getEventsForNamespace('kubeflow');
       const eventNames = events.map((n) => n.metadata.name);
@@ -173,7 +200,7 @@ describe('KubernetesService', () => {
     });
 
     it('Returns empty list on error', async () => {
-      mockApiClient.listNamespacedEvent.withArgs('bad-namespace')
+      mockApiClient.listNamespacedEvent.withArgs({namespace: 'bad-namespace'})
           .and.returnValue(Promise.reject({body: 'testing-error'}));
 
       const events = await k8sService.getEventsForNamespace('bad-namespace');
@@ -218,10 +245,9 @@ describe('KubernetesService', () => {
         }]
       };
       mockApiClient.listNode.and.returnValue(Promise.resolve(
-          {response: mockResponse, body: listNodeResponse as k8s.V1NodeList}));
+          listNodeResponse as k8s.V1NodeList));
       mockCustomApiClient.listNamespacedCustomObject.and.returnValue(
-          Promise.resolve(
-              {response: mockResponse, body: listApplicationsResponse}));
+          Promise.resolve(listApplicationsResponse));
 
       const platformInfo = await k8sService.getPlatformInfo();
       expect(platformInfo).toEqual({
@@ -261,10 +287,9 @@ describe('KubernetesService', () => {
         }]
       };
       mockApiClient.listNode.and.returnValue(Promise.resolve(
-          {response: mockResponse, body: response as k8s.V1NodeList}));
+          response as k8s.V1NodeList));
       mockCustomApiClient.listNamespacedCustomObject.and.returnValue(
-          Promise.resolve(
-              {response: mockResponse, body: listApplicationsResponse}));
+          Promise.resolve(listApplicationsResponse));
 
       const platformInfo = await k8sService.getPlatformInfo();
       expect(platformInfo).toEqual({
@@ -304,13 +329,10 @@ describe('KubernetesService', () => {
         ]
       };
       mockApiClient.listNode.and.returnValue(Promise.resolve(
-          {response: mockResponse, body: listNodeResponse as k8s.V1NodeList}));
+          listNodeResponse as k8s.V1NodeList));
       mockCustomApiClient.listNamespacedCustomObject.and.returnValue(
           Promise.resolve({
-            response: mockResponse,
-            body: {
               items: [],
-            }
           }));
 
       const platformInfo = await k8sService.getPlatformInfo();
@@ -325,9 +347,9 @@ describe('KubernetesService', () => {
 
     it('Returns defaults on error', async () => {
       mockApiClient.listNode.and.returnValue(
-          Promise.reject({response: mockResponse, body: 'testing-error'}));
+          Promise.reject({body: 'testing-error'}));
       mockCustomApiClient.listNamespacedCustomObject.and.returnValue(
-          Promise.reject({response: mockResponse, body: 'testing-error'}));
+          Promise.reject({body: 'testing-error'}));
 
       const platformInfo = await k8sService.getPlatformInfo();
       expect(platformInfo).toEqual({
@@ -375,7 +397,7 @@ describe('KubernetesService', () => {
         ]
       };
       mockApiClient.listNode.and.returnValue(Promise.resolve(
-          {response: mockResponse, body: listNodeResponse as k8s.V1NodeList}));
+          listNodeResponse as k8s.V1NodeList));
 
       const nodes = await k8sService.getNodes();
       expect(nodes).toEqual(listNodeResponse.items as k8s.V1Node[]);
