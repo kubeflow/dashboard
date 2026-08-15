@@ -256,17 +256,19 @@ export class WorkgroupApi {
             const actionAPI = action === 'create' ? 'createBinding' : 'deleteBinding';
             await profilesService[actionAPI](binding, {headers});
             // A failure here means the user has both bindings temporarily;
-            // surface a clear message so the operator knows cleanup is needed.
+            // try rolling back and surface a clear message so the operator knows if cleanup is needed.
             if (oldBinding) {
                 try {
                     await profilesService.deleteBinding(oldBinding, {headers});
                 } catch (cleanupErr) {
-                    return surfaceProfileControllerErrors({
-                        res,
-                        msg: `Role updated but failed to remove existing assignment` +
-                            ` for ${contributor} in ${namespace}.`,
-                        err: cleanupErr,
-                    });
+                    let msg = `Role updated but failed to remove existing assignment` +
+                        ` for ${contributor} in ${namespace}. Manual cleanup required.`;
+                    try {
+                        await profilesService.deleteBinding(binding, {headers});
+                        msg = `Failed to remove existing assignment for ${contributor}` +
+                            ` in ${namespace}. Role change was not applied.`;
+                    } catch (_rollbackErr) { /* best-effort */ }
+                    return surfaceProfileControllerErrors({res, msg, err: cleanupErr});
                 }
             }
             errIndex++;
