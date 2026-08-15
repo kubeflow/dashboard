@@ -345,11 +345,11 @@ func writeResponse(w http.ResponseWriter, msg []byte) bool {
 }
 
 func (c *KfamV1Alpha1Client) getUserEmail(header http.Header) (string, error) {
-	if h := header.Get(c.userIdHeader); len(h) > len(c.userIdPrefix) {
-		return h[len(c.userIdPrefix):], nil
-	} else {
+	value := header.Get(c.userIdHeader)
+	if value == "" || !strings.HasPrefix(value, c.userIdPrefix) || len(value) == len(c.userIdPrefix) {
 		return "", fmt.Errorf("header %q missing or prefix %q not found", c.userIdHeader, c.userIdPrefix)
 	}
+	return strings.TrimPrefix(value, c.userIdPrefix), nil
 }
 
 func (c *KfamV1Alpha1Client) isClusterAdmin(queryUser string) bool {
