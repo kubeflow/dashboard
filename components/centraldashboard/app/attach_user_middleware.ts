@@ -1,18 +1,7 @@
 import {NextFunction, Request, RequestHandler, Response} from 'express';
 
-/**
- * Parses a groups header value that may be plain text or a base64-encoded
- * comma-separated list. Auto-detects base64 via round-trip check.
- */
 function parseGroupsHeader(value: string): string[] {
-  let raw = value;
-  try {
-    const decoded = Buffer.from(value, 'base64').toString('utf-8');
-    if (Buffer.from(decoded).toString('base64') === value) {
-      raw = decoded;
-    }
-  } catch (_) { /* not valid base64, use raw value */ }
-  return raw.split(',').map((g) => g.trim()).filter(Boolean);
+  return value.split(',').map((g) => g.trim()).filter(Boolean);
 }
 
 /**

@@ -78,16 +78,4 @@ describe('Attach User Middleware', () => {
     expect(mockRequest.user.groups).toEqual(['group-a', 'group-b']);
     expect(mockNextFunction).toHaveBeenCalled();
   });
-
-  it('Should decode a base64-encoded groups header', () => {
-    const email = 'user@domain.com';
-    const encoded = Buffer.from('group-a,group-b').toString('base64');
-    mockRequest.header.withArgs(userIdHeader).and.returnValue(email);
-    mockRequest.header.withArgs(groupsHeader).and.returnValue(encoded);
-
-    middleware(mockRequest, null, mockNextFunction);
-
-    expect(mockRequest.user.groups).toEqual(['group-a', 'group-b']);
-    expect(mockNextFunction).toHaveBeenCalled();
-  });
 });
