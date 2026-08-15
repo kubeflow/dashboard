@@ -731,7 +731,7 @@ export class DefaultApi {
         }
 
         if (groups !== undefined) {
-            localVarQueryParameters['groups'] = groups.join(',');
+            localVarQueryParameters['groups'] = JSON.stringify(groups);
         }
 
         (<any>Object).assign(localVarHeaderParams, options.headers);
