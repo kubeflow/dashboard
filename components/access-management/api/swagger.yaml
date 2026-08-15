@@ -93,6 +93,14 @@ paths:
         type: "string"
         x-exportParamName: "Role"
         x-optionalDataType: "String"
+      - name: "groups"
+        in: "query"
+        description: "JSON-encoded list of group names; when not empty, return bindings\
+          \ for any of these groups"
+        required: false
+        type: "string"
+        x-exportParamName: "Groups"
+        x-optionalDataType: "String"
       responses:
         200:
           description: "OK"
@@ -103,8 +111,7 @@ paths:
         500:
           description: "Internal Server Error"
     post:
-      summary: "Create a binding specifying a user and an namespace, the binding will\
-        \ grant user edit-access to referred namespace"
+      summary: "Create a binding granting a user or group access to a namespace"
       description: "Only admin or referred namespace owner can create binding"
       operationId: "create binding"
       consumes:
@@ -190,13 +197,17 @@ definitions:
     properties:
       kind:
         type: "string"
+        description: "Subject kind; either 'User' or 'Group'"
+        enum:
+        - "User"
+        - "Group"
       name:
         type: "string"
       namespace:
         type: "string"
     description: "in consistent with io.k8s.api.rbac.v1.Subject"
     example:
-      kind: "kind"
+      kind: "User"
       name: "name"
       namespace: "namespace"
   RoleRef:
@@ -216,7 +227,7 @@ definitions:
   Binding:
     type: "object"
     properties:
-      user:
+      subject:
         $ref: "#/definitions/Subject"
       referredNamespace:
         type: "string"
@@ -225,16 +236,16 @@ definitions:
       status:
         type: "string"
         description: "Status of the profile, one of Succeeded, Failed, Unknown."
-    description: "Binding will give user edit access to referredNamespace"
+    description: "Binding grants a user or group access to a namespace"
     example:
       RoleRef:
         apiGroup: "apiGroup"
         kind: "kind"
         name: "name"
       referredNamespace: "referredNamespace"
-      user:
-        kind: "kind"
-        name: "name"
+      subject:
+        kind: "User"
+        name: "user@example.com"
         namespace: "namespace"
       status: "status"
   Metadata:
