@@ -53,7 +53,7 @@ type KfamV1Alpha1Client struct {
 	userIdPrefix  string
 }
 
-func NewKfamClient(userIdHeader string, userIdPrefix string, groupsHeader string, groupsClaim string, clusterAdmins []string) (*KfamV1Alpha1Client, error) {
+func NewKfamClient(userIdHeader string, userIdPrefix string, groupsClaim string, clusterAdmins []string) (*KfamV1Alpha1Client, error) {
 	profileRESTClient, err := getRESTClient(profileRegister.GroupName, profileRegister.GroupVersion)
 	if err != nil {
 		return nil, err

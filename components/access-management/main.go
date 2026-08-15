@@ -29,9 +29,6 @@ const (
 	// set this parameter to specify header key containing user id.
 	USERIDHEADER = "userid-header"
 
-	// it is possible to specify a groups header as well
-	GROUPSHEADER = "groups-header"
-
 	// TODO: review this
 	// in a profile namespace the istio sidecar can only do "contains" semantics
 	// in a list-typed JWT claim
@@ -49,12 +46,10 @@ func main() {
 	log.Printf("Server started")
 	var userIdHeader string
 	var userIdPrefix string
-	var groupsHeader string
 	var groupsClaim string
 	var clusterAdmins string
 	flag.StringVar(&userIdHeader, USERIDHEADER, "x-goog-authenticated-user-email", "Key of request header containing user id")
 	flag.StringVar(&userIdPrefix, USERIDPREFIX, "accounts.google.com:", "Request header user id common prefix")
-	flag.StringVar(&groupsHeader, GROUPSHEADER, "groups", "Key of request header containing groups JSON array")
 	flag.StringVar(&groupsClaim, GROUPSCLAIM, "groups", "List-typed JWT claim that can be used for 'is in group' semantics")
 	flag.StringVar(&clusterAdmins, CLUSTERADMIN, "", "cluster admin")
 	flag.Parse()
@@ -62,7 +57,7 @@ func main() {
 	profile.AddToScheme(scheme.Scheme)
 	istioSecurityClient.AddToScheme(scheme.Scheme)
 
-	kfamClient, err := kfam.NewKfamClient(userIdHeader, userIdPrefix, groupsHeader, groupsClaim, strings.Split(clusterAdmins, ","))
+	kfamClient, err := kfam.NewKfamClient(userIdHeader, userIdPrefix, groupsClaim, strings.Split(clusterAdmins, ","))
 	if err != nil {
 		log.Print(err)
 		panic(err)

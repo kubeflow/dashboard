@@ -110,7 +110,7 @@ export function mapSimpleBindingToWorkgroupBinding (binding: SimpleBinding): Wor
  * It is possible for a user to have a matching RoleBinding with a User subject
  * AND match on one or more Group subject RoleBindings.
  * This function returns the _set_ of namespaces where the user has access.
- * Most powerful role that matches takes precendece.
+ * Most powerful role that matches takes precedence.
  * For equally powerful role bound by both Group and User RoleBindings, User takes precedence.
  */
 function deduplicateNamespaces(namespaces: SimpleBinding[]): SimpleBinding[] {
