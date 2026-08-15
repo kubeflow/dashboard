@@ -140,7 +140,7 @@ func (c *BindingClient) Create(binding *Binding, userIdHeader string, userIdPref
 	}
 	roleBinding := rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Annotations: map[string]string{subjectKind: binding.Subject.Kind, ROLE: binding.RoleRef.Name},
+			Annotations: map[string]string{subjectKind: binding.Subject.Name, ROLE: binding.RoleRef.Name},
 			Name:        bindingName,
 		},
 		RoleRef: rbacv1.RoleRef{
