@@ -2,6 +2,14 @@ const webpackConfig = require('./webpack.config');
 webpackConfig.entry = ''; // Karma will supply the entry points
 webpackConfig.devtool = 'inline-source-map';
 
+// karma-webpack manages its own output; remove production output config
+// and CleanWebpackPlugin to avoid mkdir errors on fresh checkouts
+// where dist/public does not exist yet.
+delete webpackConfig.output;
+webpackConfig.plugins = webpackConfig.plugins.filter(
+    (plugin) => plugin.constructor.name !== 'CleanWebpackPlugin'
+);
+
 // Add istanbul instrumentation via babel plugin for coverage
 const babelRule = webpackConfig.module.rules.find(
     (rule) => rule.use && rule.use.loader === 'babel-loader'
