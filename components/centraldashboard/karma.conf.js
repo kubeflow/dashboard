@@ -1,5 +1,5 @@
 const webpackConfig = require('./webpack.config');
-webpackConfig.entry = ''; // Karma will supply the entry points
+delete webpackConfig.entry; // Karma will supply the entry points
 webpackConfig.devtool = 'inline-source-map';
 
 // karma-webpack manages its own output; remove production output config
