@@ -13,7 +13,7 @@ import {Chart} from 'chart.js';
 // Explicitly loads the Chart.js CSS so it can be applied to the ShadowDOM
 // Necessary since third-party CSS would normally be vendored and applied
 // globally.
-import chartCss from '!css-loader!exports-loader!chart.js/dist/Chart.css';
+import chartCss from '!!css-loader?{"exportType":"string"}!chart.js/dist/Chart.css';
 
 import './card-styles.js';
 

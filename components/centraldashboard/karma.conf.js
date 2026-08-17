@@ -1,15 +1,15 @@
 const webpackConfig = require('./webpack.config');
 webpackConfig.entry = ''; // Karma will supply the entry points
 webpackConfig.devtool = 'inline-source-map';
-webpackConfig.module.rules.push({
-    enforce: 'post',
-    test: /\.js$/,
-    use: {
-        loader: 'istanbul-instrumenter-loader',
-        options: {esModules: true},
-    },
-    exclude: /node_modules|_test\.js$/,
-});
+
+// Add istanbul instrumentation via babel plugin for coverage
+const babelRule = webpackConfig.module.rules.find(
+    (rule) => rule.use && rule.use.loader === 'babel-loader'
+);
+if (babelRule) {
+    babelRule.use.options.plugins = (babelRule.use.options.plugins || [])
+        .concat(['istanbul']);
+}
 
 module.exports = (config) => config.set({
     basePath: '',
@@ -20,7 +20,7 @@ module.exports = (config) => config.set({
             flags: ['--no-sandbox'],
         },
     },
-    frameworks: ['jasmine'],
+    frameworks: ['jasmine', 'webpack'],
     files: [
         'public/index_test.js',
         /* Served-only fixtures for real iframe navigation tests. */
@@ -49,4 +49,3 @@ module.exports = (config) => config.set({
         },
     },
 });
-
