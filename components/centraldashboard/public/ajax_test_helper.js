@@ -78,6 +78,9 @@ export function mockIronAjax(component, response, respondWithError = false) {
         const completes = new Promise((res, rej) =>
             (respondWithError ? rej : res)(resp)
         );
+        // Prevent unhandled rejection when error mock is
+        // not explicitly awaited by the test
+        if (respondWithError) completes.catch(() => {});
         return {response: resp, completes};
     };
 }
