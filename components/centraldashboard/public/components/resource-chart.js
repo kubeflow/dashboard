@@ -17,6 +17,7 @@ import {Chart} from 'chart.js';
 import chartCss from '!!css-loader?{"exportType":"string"}!chart.js/dist/Chart.css';
 
 import './card-styles.js';
+import {templateContent} from './resources/template-utils.js';
 
 Chart.defaults.global.defaultFontFamily = '"Google Sans", sans-serif';
 Chart.Tooltip.positioners.custom = (_, eventPosition) => (
@@ -44,7 +45,7 @@ const MAX_TOOLTIP_LENGTH = 10;
 
 class ResourceChart extends PolymerElement {
     static get template() {
-        return html([`
+        return html(templateContent(`
         <style include="card-styles">
             :host {
                 @apply --dashboard-card;
@@ -131,7 +132,7 @@ class ResourceChart extends PolymerElement {
                 </footer>
             </template>
         </article>
-        `]);
+        `));
     }
 
     static get properties() {

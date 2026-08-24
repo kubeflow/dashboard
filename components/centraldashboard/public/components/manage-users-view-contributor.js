@@ -14,13 +14,14 @@ import './resources/md2-input/md2-input.js';
 import css from './manage-users-view-contributor.css';
 import template from './manage-users-view-contributor.pug';
 import utilitiesMixin from './utilities-mixin.js';
+import {templateContent} from './resources/template-utils.js';
 
 export class ManageUsersViewContributor extends utilitiesMixin(PolymerElement) {
     static get template() {
-        return html([`
+        return html(templateContent(`
             <style>${css.toString()}</style>
             ${template()}
-        `]);
+        `));
     }
 
     /**
