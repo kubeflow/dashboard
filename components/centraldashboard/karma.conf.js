@@ -16,7 +16,13 @@ const babelRule = webpackConfig.module.rules.find(
 );
 if (babelRule) {
     babelRule.use.options.plugins = (babelRule.use.options.plugins || [])
-        .concat(['istanbul']);
+        .concat([[
+            'istanbul',
+            {
+                include: ['public/**/*.js'],
+                exclude: ['public/**/*_test.js'],
+            },
+        ]]);
 }
 
 module.exports = (config) => config.set({
