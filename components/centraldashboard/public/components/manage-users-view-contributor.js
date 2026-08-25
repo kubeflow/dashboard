@@ -31,6 +31,9 @@ export class ManageUsersViewContributor extends utilitiesMixin(PolymerElement) {
             user: {type: String, value: 'Loading...'},
             ownedNamespace: {type: Object, value: () => ({})},
             newContribEmail: String,
+            newGroupName: String,
+            userContributorList: {type: Array, value: () => []},
+            groupContributorList: {type: Array, value: () => []},
             contribError: Object,
             contributorInputEl: Object,
         };
@@ -44,22 +47,50 @@ export class ManageUsersViewContributor extends utilitiesMixin(PolymerElement) {
     }
 
     /**
-     * Triggers an API call to create a new Contributor
+     * Triggers an API call to create a new user Contributor
      */
     addNewContrib() {
-        // Need to call the api directly here.
         const api = this.$.AddContribAjax;
-        api.body = {contributor: this.newContribEmail};
+        api.body = {contributor: this.newContribEmail, cType: 'user'};
         api.generateRequest();
     }
     /**
-     * Triggers an API call to remove a Contributor
+     * Triggers an API call to create a new group Contributor
+     */
+    addNewGroupContrib() {
+        const api = this.$.AddContribAjax;
+        api.body = {contributor: this.newGroupName, cType: 'group'};
+        api.generateRequest();
+    }
+    /**
+     * Triggers an API call to remove a user Contributor
      * @param {Event} e
      */
     removeContributor(e) {
         const api = this.$.RemoveContribAjax;
-        api.body = {contributor: e.model.item};
+        api.body = {contributor: e.model.item, cType: 'user'};
         api.generateRequest();
+    }
+    /**
+     * Triggers an API call to remove a group Contributor
+     * @param {Event} e
+     */
+    removeGroupContributor(e) {
+        const api = this.$.RemoveContribAjax;
+        api.body = {contributor: e.model.item, cType: 'group'};
+        api.generateRequest();
+    }
+    /**
+     * Splits a contributors response array into user and group lists.
+     * @param {Array} contribs
+     */
+    _updateContributorLists(contribs) {
+        this.groupContributorList = contribs
+            .filter((c) => c.kind && c.kind.toLowerCase() === 'group')
+            .map((c) => c.name);
+        this.userContributorList = contribs
+            .filter((c) => c.kind && c.kind.toLowerCase() === 'user')
+            .map((c) => c.name);
     }
     /**
      * Takes an event from iron-ajax and isolates the error from a request that
@@ -81,8 +112,8 @@ export class ManageUsersViewContributor extends utilitiesMixin(PolymerElement) {
             this.contribCreateError = error;
             return;
         }
-        this.contributorList = e.detail.response;
-        this.newContribEmail = this.contribCreateError = '';
+        this._updateContributorLists(e.detail.response);
+        this.newContribEmail = this.newGroupName = this.contribCreateError = '';
     }
     /**
      * Iron-Ajax response / error handler for removeContributor
@@ -94,8 +125,19 @@ export class ManageUsersViewContributor extends utilitiesMixin(PolymerElement) {
             this.contribCreateError = error;
             return;
         }
-        this.contributorList = e.detail.response;
-        this.newContribEmail = this.contribCreateError = '';
+        this._updateContributorLists(e.detail.response);
+        this.newContribEmail = this.newGroupName = this.contribCreateError = '';
+    }
+    /**
+     * Iron-Ajax response handler for getContributors
+     * @param {IronAjaxEvent} e
+     */
+    handleContribFetch(e) {
+        if (e.detail.error) {
+            this.onContribFetchError(e);
+            return;
+        }
+        this._updateContributorLists(e.detail.response);
     }
     /**
      * Iron-Ajax error handler for getContributors

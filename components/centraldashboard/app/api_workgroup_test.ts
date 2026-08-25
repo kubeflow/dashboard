@@ -18,8 +18,8 @@ describe('Workgroup API', () => {
         goog: 'accounts.google.com:',
         other: 'other.foo.bar:',
     };
-    const attachUserGCPMiddleware = attachUser(header.goog, prefix.goog);
-    const attachUserOtherIAPMiddleware = attachUser(header.other, prefix.other);
+    const attachUserGCPMiddleware = attachUser(header.goog, prefix.goog, '');
+    const attachUserOtherIAPMiddleware = attachUser(header.other, prefix.other, '');
     const registrationFlowAllowed = true;
     let mockK8sService: jasmine.SpyObj<KubernetesService>;
     let mockProfilesService: jasmine.SpyObj<DefaultApi>;
@@ -52,17 +52,17 @@ describe('Workgroup API', () => {
                     body: {
                         bindings: [
                             {
-                                user: {kind: 'User', name: 'anyone@kubeflow.org'},
+                                subject: {kind: 'User', name: 'anyone@kubeflow.org'},
                                 referredNamespace: 'default',
                                 roleRef: {kind: 'ClusterRole', name: 'admin'},
                             },
                             {
-                                user: {kind: 'User', name: 'user1@kubeflow.org'},
+                                subject: {kind: 'User', name: 'user1@kubeflow.org'},
                                 referredNamespace: 'default',
                                 roleRef: {kind: 'ClusterRole', name: 'edit'},
                             },
                             {
-                                user: {kind: 'User', name: 'user1@kubeflow.org'},
+                                subject: {kind: 'User', name: 'user1@kubeflow.org'},
                                 referredNamespace: 'kubeflow',
                                 roleRef: {kind: 'ClusterRole', name: 'admin'},
                             },
@@ -95,12 +95,12 @@ describe('Workgroup API', () => {
                     isClusterAdmin: true,
                     namespaces: [
                         {
-                            user: 'anonymous@kubeflow.org',
+                            subject: 'anonymous@kubeflow.org',
                             namespace: 'default',
                             role: 'contributor',
                         },
                         {
-                            user: 'anonymous@kubeflow.org',
+                            subject: 'anonymous@kubeflow.org',
                             namespace: 'kubeflow',
                             role: 'contributor',
                         },
@@ -125,12 +125,12 @@ describe('Workgroup API', () => {
                 mockProfilesService.v1RoleClusteradminGet
                     .withArgs('test@testdomain.com')
                     .and.returnValue(Promise.resolve({response: null, body: false}));
-                mockProfilesService.readBindings.withArgs('test@testdomain.com')
+                mockProfilesService.readBindings.withArgs('test@testdomain.com', undefined, undefined, [])
                     .and.returnValue(Promise.resolve({
                         response: null,
                         body: {
                             bindings: [{
-                                user: {kind: 'user', name: 'test@testdomain.com'},
+                                subject: {kind: 'user', name: 'test@testdomain.com'},
                                 referredNamespace: 'test',
                                 roleRef: {apiGroup: '', kind: 'ClusterRole', name: 'edit'}
                             }]
@@ -150,8 +150,9 @@ describe('Workgroup API', () => {
                     isClusterAdmin: false,
                     namespaces: [
                         {
-                            user: 'test@testdomain.com',
+                            subject: 'test@testdomain.com',
                             namespace: 'test',
+                            kind: 'user',
                             role: 'contributor',
                         },
                     ],
@@ -162,7 +163,7 @@ describe('Workgroup API', () => {
                 expect(mockK8sService.getNamespaces).not.toHaveBeenCalled();
                 expect(mockK8sService.getPlatformInfo).toHaveBeenCalled();
                 expect(mockProfilesService.readBindings)
-                    .toHaveBeenCalledWith('test@testdomain.com');
+                    .toHaveBeenCalledWith('test@testdomain.com', undefined, undefined, []);
                 expect(mockProfilesService.v1RoleClusteradminGet)
                     .toHaveBeenCalledWith('test@testdomain.com');
             });
@@ -172,7 +173,7 @@ describe('Workgroup API', () => {
                 .and.callFake(
                     () => Promise.reject(
                         {response: {statusCode: 400}, body: 'A bad thing happened'}));
-            mockProfilesService.readBindings.withArgs('test@testdomain.com')
+            mockProfilesService.readBindings.withArgs('test@testdomain.com', undefined, undefined, [])
                 .and.returnValue(Promise.resolve({
                     response: null,
                     body: {
@@ -192,7 +193,7 @@ describe('Workgroup API', () => {
             expect(mockK8sService.getNamespaces).not.toHaveBeenCalled();
             expect(mockK8sService.getPlatformInfo).toHaveBeenCalled();
             expect(mockProfilesService.readBindings)
-                .toHaveBeenCalledWith('test@testdomain.com');
+                .toHaveBeenCalledWith('test@testdomain.com', undefined, undefined, []);
             expect(mockProfilesService.v1RoleClusteradminGet)
                 .toHaveBeenCalledWith('test@testdomain.com');
         });
@@ -239,12 +240,12 @@ describe('Workgroup API', () => {
                 mockProfilesService.v1RoleClusteradminGet
                     .withArgs('test@testdomain.com')
                     .and.returnValue(Promise.resolve({response: null, body: false}));
-                mockProfilesService.readBindings.withArgs('test@testdomain.com')
+                mockProfilesService.readBindings.withArgs('test@testdomain.com', undefined, undefined, [])
                     .and.returnValue(Promise.resolve({
                         response: null,
                         body: {
                             bindings: [{
-                                user: {kind: 'user', name: 'test@testdomain.com'},
+                                subject: {kind: 'user', name: 'test@testdomain.com'},
                                 referredNamespace: 'test',
                                 roleRef: {apiGroup: '', kind: 'ClusterRole', name: 'admin'}
                             }]
@@ -260,7 +261,7 @@ describe('Workgroup API', () => {
                 const response = await sendTestRequest(url, headers);
                 expect(response).toEqual(expectedResponse);
                 expect(mockProfilesService.readBindings)
-                    .toHaveBeenCalledWith('test@testdomain.com');
+                    .toHaveBeenCalledWith('test@testdomain.com', undefined, undefined, []);
                 expect(mockProfilesService.v1RoleClusteradminGet)
                     .toHaveBeenCalledWith('test@testdomain.com');
             });
@@ -269,7 +270,7 @@ describe('Workgroup API', () => {
             mockProfilesService.v1RoleClusteradminGet
                 .withArgs('test@testdomain.com')
                 .and.returnValue(Promise.resolve({response: null, body: false}));
-            mockProfilesService.readBindings.withArgs('test@testdomain.com')
+            mockProfilesService.readBindings.withArgs('test@testdomain.com', undefined, undefined, [])
                 .and.returnValue(Promise.resolve({
                     response: null,
                     body: {bindings: []},
@@ -284,7 +285,7 @@ describe('Workgroup API', () => {
             const response = await sendTestRequest(url, headers);
             expect(response).toEqual(expectedResponse);
             expect(mockProfilesService.readBindings)
-                .toHaveBeenCalledWith('test@testdomain.com');
+                .toHaveBeenCalledWith('test@testdomain.com', undefined, undefined, []);
             expect(mockProfilesService.v1RoleClusteradminGet)
                 .toHaveBeenCalledWith('test@testdomain.com');
         });
@@ -391,7 +392,7 @@ describe('Workgroup API', () => {
     describe('Add / Remove Contributor', () => {
         type RouteTypes = 'add' | 'remove';
         let url: (type: RouteTypes) => string;
-        const requestBody = {contributor: 'apverma@google.com'};
+        const requestBody = {contributor: 'apverma@google.com', cType: 'user'};
         const headers = {
             'content-type': 'application/json',
             [header.goog]: `${prefix.goog}test@testdomain.com`,
@@ -432,7 +433,8 @@ describe('Workgroup API', () => {
         });
         it('Should error on invalid email for contrib', async () => {
             const response = await sendTestRequest(url('add'), headers, 400, 'post', {
-                contributor: 'apverma'
+                contributor: 'apverma',
+                cType: 'user',
             });
             expect(response).toEqual({error: `Contributor doesn't look like a valid email address`});
             expect(mockProfilesService.createBinding).not.toHaveBeenCalled();
@@ -441,7 +443,7 @@ describe('Workgroup API', () => {
             const response = await sendTestRequest(url('add'), headers, 200, 'post', requestBody);
             expect(response).toEqual(['test']);
             expect(mockProfilesService.createBinding).toHaveBeenCalledWith({
-                user: {
+                subject: {
                     kind: 'User',
                     name: 'apverma@google.com',
                 },
@@ -458,7 +460,7 @@ describe('Workgroup API', () => {
             expect(response).toEqual(['test']);
             expect(mockProfilesService.createBinding).not.toHaveBeenCalled();
             expect(mockProfilesService.deleteBinding).toHaveBeenCalledWith({
-                user: {
+                subject: {
                     kind: 'User',
                     name: 'apverma@google.com',
                 },
@@ -468,6 +470,84 @@ describe('Workgroup API', () => {
                     name: 'edit',
                 }
             }, jasmine.anything());
+        });
+    });
+
+    describe('Group Contributors', () => {
+        let url: string;
+        const groupsMiddleware = attachUser(header.goog, prefix.goog, 'kubeflow-groups');
+
+        beforeEach(() => {
+            mockK8sService = jasmine.createSpyObj<KubernetesService>(['getPlatformInfo', 'getNamespaces']);
+            mockK8sService.getPlatformInfo.and.returnValue(Promise.resolve({
+                provider: 'onprem', providerName: 'onprem', kubeflowVersion: '1.0.0',
+            }));
+            mockProfilesService = jasmine.createSpyObj<DefaultApi>(['readBindings', 'v1RoleClusteradminGet']);
+            mockProfilesService.v1RoleClusteradminGet
+                .withArgs('test@testdomain.com')
+                .and.returnValue(Promise.resolve({response: null, body: false}));
+
+            testApp = express();
+            testApp.use(express.json());
+            testApp.use(groupsMiddleware);
+            testApp.use('/api/workgroup', newAPI().routes());
+            port = (testApp.listen(0).address() as any).port;
+            url = `http://localhost:${port}/api/workgroup/env-info`;
+        });
+
+        const headers = {
+            [header.goog]: `${prefix.goog}test@testdomain.com`,
+            'kubeflow-groups': 'group-a,group-b',
+        };
+
+        it('Should pass user groups to readBindings', async () => {
+            mockProfilesService.readBindings
+                .withArgs('test@testdomain.com', undefined, undefined, ['group-a', 'group-b'])
+                .and.returnValue(Promise.resolve({response: null, body: {bindings: []}}));
+
+            await sendTestRequest(url, headers);
+            expect(mockProfilesService.readBindings)
+                .toHaveBeenCalledWith('test@testdomain.com', undefined, undefined, ['group-a', 'group-b']);
+        });
+
+        it('Should deduplicate namespaces, keeping the higher role over a group binding', async () => {
+            mockProfilesService.readBindings
+                .withArgs('test@testdomain.com', undefined, undefined, ['group-a', 'group-b'])
+                .and.returnValue(Promise.resolve({response: null, body: {bindings: [
+                    {subject: {kind: 'User', name: 'test@testdomain.com'}, referredNamespace: 'test', roleRef: {kind: 'ClusterRole', name: 'admin'}},
+                    {subject: {kind: 'Group', name: 'group-a'}, referredNamespace: 'test', roleRef: {kind: 'ClusterRole', name: 'edit'}},
+                ]}}));
+
+            const response = await sendTestRequest(url, headers);
+            expect(response.namespaces.length).toBe(1);
+            expect(response.namespaces[0]).toEqual(jasmine.objectContaining({namespace: 'test', role: 'owner'}));
+        });
+
+        it('Should prefer a User binding over a Group binding on equal role', async () => {
+            mockProfilesService.readBindings
+                .withArgs('test@testdomain.com', undefined, undefined, ['group-a', 'group-b'])
+                .and.returnValue(Promise.resolve({response: null, body: {bindings: [
+                    {subject: {kind: 'Group', name: 'group-a'}, referredNamespace: 'test', roleRef: {kind: 'ClusterRole', name: 'edit'}},
+                    {subject: {kind: 'User', name: 'test@testdomain.com'}, referredNamespace: 'test', roleRef: {kind: 'ClusterRole', name: 'edit'}},
+                ]}}));
+
+            const response = await sendTestRequest(url, headers);
+            expect(response.namespaces.length).toBe(1);
+            expect(response.namespaces[0].subject).toBe('test@testdomain.com');
+            expect(response.namespaces[0].kind).toBe('User');
+        });
+
+        it('Should include namespaces accessible only via a group', async () => {
+            mockProfilesService.readBindings
+                .withArgs('test@testdomain.com', undefined, undefined, ['group-a', 'group-b'])
+                .and.returnValue(Promise.resolve({response: null, body: {bindings: [
+                    {subject: {kind: 'User', name: 'test@testdomain.com'}, referredNamespace: 'my-ns', roleRef: {kind: 'ClusterRole', name: 'admin'}},
+                    {subject: {kind: 'Group', name: 'group-a'}, referredNamespace: 'shared-ns', roleRef: {kind: 'ClusterRole', name: 'edit'}},
+                ]}}));
+
+            const response = await sendTestRequest(url, headers);
+            expect(response.namespaces.length).toBe(2);
+            expect(response.namespaces.map((n: any) => n.namespace)).toContain('shared-ns');
         });
     });
 });
