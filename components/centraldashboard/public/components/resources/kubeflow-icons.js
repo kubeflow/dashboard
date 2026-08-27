@@ -10,7 +10,6 @@ import '@polymer/iron-icons/av-icons.js';
 import '@polymer/iron-icons/editor-icons.js';
 import '@polymer/iron-icons/device-icons.js';
 
-import {html, htmlLiteral} from '@polymer/polymer/lib/utils/html-tag.js';
 
 /**
  * Converts an imported folder into a multiple <g> entries.
@@ -60,10 +59,12 @@ function stripSVG(svg) {
 const importData = require.context('../../assets/icons', true, /\.svg$/);
 const fileData = getSvgGroupEntries(importData).join('');
 
-const template = html`<iron-iconset-svg name="kubeflow" size="24">
-<svg><defs>
-${htmlLiteral([fileData])}
-</defs></svg>
-</iron-iconset-svg>`;
+// Build the iron-iconset-svg element imperatively to avoid
+// htmlLiteral tagged template validation issues with webpack 5.
+const iconsetEl = document.createElement('iron-iconset-svg');
+iconsetEl.setAttribute('name', 'kubeflow');
+iconsetEl.setAttribute('size', '24');
+iconsetEl.innerHTML = `<svg><defs>${fileData}</defs></svg>`;
 
-document.head.appendChild(template.content);
+document.head.appendChild(iconsetEl);
+

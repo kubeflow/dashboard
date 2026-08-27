@@ -5,6 +5,7 @@ const {execSync} = require('child_process');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const DefinePlugin = require('webpack').DefinePlugin;
+const ESLintPlugin = require('eslint-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
@@ -22,17 +23,18 @@ const BUILD_VERSION = process.env.BUILD_VERSION || `dev_local`;
 const SRC = resolve(__dirname, 'public');
 const COMPONENTS = resolve(SRC, 'components');
 const DESTINATION = resolve(__dirname, 'dist', 'public');
-const WEBCOMPONENTS = './node_modules/@webcomponents/webcomponentsjs';
+const WEBCOMPONENTS = resolve(
+    __dirname, 'node_modules', '@webcomponents', 'webcomponentsjs');
 const POLYFILLS = [
     {
-        from: resolve(WEBCOMPONENTS, '*.{js,map}'),
-        to: resolve(DESTINATION, 'webcomponentsjs'),
-        flatten: true,
+        from: '*.{js,map}',
+        to: resolve(DESTINATION, 'webcomponentsjs', '[name][ext]'),
+        context: WEBCOMPONENTS,
     },
     {
-        from: resolve(WEBCOMPONENTS, 'bundles', '*.{js,map}'),
-        to: resolve(DESTINATION, 'webcomponentsjs', 'bundles'),
-        flatten: true,
+        from: 'bundles/*.{js,map}',
+        to: resolve(DESTINATION, 'webcomponentsjs', 'bundles', '[name][ext]'),
+        context: WEBCOMPONENTS,
     },
 ];
 
@@ -48,7 +50,14 @@ const COMPONENT_RULES = [
     {
         test: /\.css$/,
         include: COMPONENTS,
-        use: ['css-loader', 'exports-loader'],
+        use: [
+            {
+                loader: 'css-loader',
+                options: {
+                    exportType: 'string',
+                },
+            },
+        ],
     },
 ];
 
@@ -77,39 +86,26 @@ module.exports = {
             },
             {
                 test: /\.(gif|ico|jpg|png)$/,
-                use: {
-                    loader: 'file-loader',
-                    options: {
-                        name: '[folder]/[name].[ext]',
-                    },
+                type: 'asset/resource',
+                generator: {
+                    filename: 'assets/[name][ext]',
                 },
             },
             {
                 test: /\.svg$/,
-                use: 'raw-loader',
+                type: 'asset/source',
             },
             // Roboto Font and Material Icons
             {
                 test: /(iconfont|roboto)\/.*\.(eot|svg|ttf|woff2?)$/,
-                use: {
-                    loader: 'url-loader',
-                    options: {
-                        name: 'fonts/[name].[ext]',
-                        limit: 8192,
+                type: 'asset',
+                parser: {
+                    dataUrlCondition: {
+                        maxSize: 8192,
                     },
                 },
-            },
-            {
-                enforce: 'pre',
-                test: /\.js$/,
-                exclude: NODE_MODULES,
-                use: {
-                    loader: 'eslint-loader',
-                    options: {
-                        extends: ['eslint:recommended', 'google'],
-                        failOnError: true,
-                        fix: true,
-                    },
+                generator: {
+                    filename: 'fonts/[name][ext]',
                 },
             },
             {
@@ -143,9 +139,7 @@ module.exports = {
     optimization: {
         minimizer: [
           new TerserPlugin({
-            cache: true,
             parallel: true,
-            sourceMap: true,
             extractComments: true,
           })
         ],
@@ -160,6 +154,12 @@ module.exports = {
         new DefinePlugin({
             BUILD_VERSION: JSON.stringify(BUILD_VERSION),
             VERSION: JSON.stringify(PKG_VERSION),
+        }),
+        new ESLintPlugin({
+            extensions: ['js'],
+            exclude: ['node_modules'],
+            failOnError: true,
+            fix: true,
         }),
         new HtmlWebpackPlugin({
             filename: resolve(DESTINATION, 'index.html'),
@@ -195,7 +195,7 @@ module.exports = {
             '/notebook': {
                 target: 'http://localhost:8086',
                 pathRewrite: {
-                    '^/notebook/(.*?)/(.*?)/(.*)':
+                    '^/notebook/(.*?)/(.*?)/(.*?)':
                         '/$1/services/$2/proxy/notebook/$1/$2/$3',
                 },
             },

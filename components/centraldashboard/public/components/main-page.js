@@ -29,6 +29,7 @@ import {html, PolymerElement} from '@polymer/polymer/polymer-element.js';
 import css from './main-page.css';
 import template from './main-page.pug';
 import logo from '../assets/logo.svg';
+import {templateContent} from './resources/template-utils.js';
 
 import './registration-page.js';
 import './namespace-selector.js';
@@ -53,8 +54,8 @@ import {
 export class MainPage extends utilitiesMixin(PolymerElement) {
     static get template() {
         const vars = {logo};
-        return html([
-            `<style>${css.toString()}</style>${template(vars)}`]);
+        return html(templateContent(
+            `<style>${css.toString()}</style>${template(vars)}`));
     }
 
     static get properties() {
@@ -376,7 +377,7 @@ export class MainPage extends utilitiesMixin(PolymerElement) {
         const l = new URL(`${IFRAME_LINK_PREFIX}${newPage}`
             , window.location.origin);
         for (const key in this.queryParams) {
-            if (this.queryParams.hasOwnProperty(key)) {
+            if (Object.prototype.hasOwnProperty.call(this.queryParams, key)) {
                 l.searchParams.append(key, this.queryParams[key]);
             }
         }

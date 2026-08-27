@@ -27,8 +27,6 @@ jobs:
           chrome-version: stable
 
       - name: Run frontend tests
-        env:
-          NODE_OPTIONS: --openssl-legacy-provider
         run: |
           cd components/centraldashboard
           npm install
