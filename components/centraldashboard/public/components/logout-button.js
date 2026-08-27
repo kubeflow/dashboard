@@ -1,6 +1,7 @@
 import { html, PolymerElement } from '@polymer/polymer/polymer-element.js';
 import '@polymer/paper-button/paper-button.js';
 import css from './logout-button.css';
+import {templateContent} from './resources/template-utils.js';
 
 /**
  * Logout button component.
@@ -8,7 +9,7 @@ import css from './logout-button.css';
  */
 export class LogoutButton extends PolymerElement {
     static get template() {
-        return html([`
+        return html(templateContent(`
             <style>${css.toString()}</style>
             <a href$="{{logoutUrl}}" on-tap="logout">
                 <paper-button id="logout-button">
@@ -17,7 +18,7 @@ export class LogoutButton extends PolymerElement {
                     </iron-icon>
                 </paper-button>
             </a>
-        `]);
+        `));
         ;
     }
 
