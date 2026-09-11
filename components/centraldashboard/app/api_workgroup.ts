@@ -262,22 +262,18 @@ export class WorkgroupApi {
             if (!requestedBindingExists) {
                 await profilesService[actionAPI](binding, {headers});
             }
-            // A failure here means the user has both bindings temporarily;
-            // try rolling back and surface a clear message so the operator knows if cleanup is needed.
+            // A failure here can occur after KFAM removed the old RoleBinding.
+            // Keep the new binding so the user does not lose all RBAC access.
             if (oldBinding) {
                 try {
                     await profilesService.deleteBinding(oldBinding, {headers});
                 } catch (cleanupErr) {
-                    let msg = `Role updated but failed to remove existing assignment` +
+                    const msg = `Role updated but failed to remove existing assignment` +
                         ` for ${contributor} in ${namespace}. Manual cleanup required.`;
-                    if (!requestedBindingExists) {
-                        try {
-                            await profilesService.deleteBinding(binding, {headers});
-                            msg = `Failed to remove existing assignment for ${contributor}` +
-                                ` in ${namespace}. Role change was not applied.`;
-                        } catch (_rollbackErr) { /* best-effort */ }
-                    }
-                    return surfaceProfileControllerErrors({res, msg, err: cleanupErr});
+                    const code = (cleanupErr.response && cleanupErr.response.statusCode) || 400;
+                    const detail = cleanupErr.body ? ` ${cleanupErr.body}` : '';
+                    console.error(`${msg}${detail}`, cleanupErr.stack ? cleanupErr : '');
+                    return apiError({res, code, error: `${msg}${detail}`});
                 }
             }
             errIndex++;

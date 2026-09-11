@@ -561,12 +561,11 @@ describe('Workgroup API', () => {
                 roleRef: {kind: 'ClusterRole', name: 'view'},
             }, jasmine.anything());
         });
-        it('Should error with manual cleanup message when old binding delete and rollback both fail', async () => {
+        it('Should retain the new binding and report cleanup details when old binding delete fails', async () => {
             buildApi(existingContributors);
-            // viewer@example.com is currently a viewer — upgrade to contributor
-            // createBinding succeeds, but deleteBinding (cleanup of old role) fails
             mockProfilesService.deleteBinding.and.rejectWith({
                 response: {statusCode: 500, statusMessage: 'Internal Server Error'},
+                body: 'failed to delete authorization policy',
             });
             const response = await sendTestRequest(
                 `http://localhost:${port}/api/workgroup/add-contributor/apverma`,
@@ -575,7 +574,7 @@ describe('Workgroup API', () => {
             expect(response.error).toContain('Role updated but failed to remove existing assignment');
             expect(response.error).toContain('Manual cleanup required');
             expect(response.error).toContain('viewer@example.com');
-            // new binding was created before the failed cleanup
+            expect(response.error).toContain('failed to delete authorization policy');
             expect(mockProfilesService.createBinding).toHaveBeenCalledWith({
                 user: {kind: 'User', name: 'viewer@example.com'},
                 referredNamespace: 'apverma',
@@ -586,30 +585,7 @@ describe('Workgroup API', () => {
                 referredNamespace: 'apverma',
                 roleRef: {kind: 'ClusterRole', name: 'view'},
             }, jasmine.anything());
-        });
-        it('Should roll back new binding when old binding delete fails during role change', async () => {
-            buildApi(existingContributors);
-            // apverma@google.com is currently a contributor — downgrade to viewer
-            // cleanup of old contributor binding fails; rollback of new viewer binding succeeds
-            let calls = 0;
-            mockProfilesService.deleteBinding.and.callFake(() => {
-                calls++;
-                // first call: cleanup of old binding fails; second call: rollback succeeds
-                return calls === 1
-                    ? Promise.reject({response: {statusCode: 500, statusMessage: 'Internal Server Error'}})
-                    : Promise.resolve();
-            });
-            const response = await sendTestRequest(
-                `http://localhost:${port}/api/workgroup/add-viewer/apverma`,
-                headers, 500, 'post', requestBody,
-            );
-            expect(response.error).toContain('Role change was not applied');
-            expect(mockProfilesService.deleteBinding).toHaveBeenCalledTimes(2);
-            expect(mockProfilesService.deleteBinding).toHaveBeenCalledWith({
-                user: {kind: 'User', name: 'apverma@google.com'},
-                referredNamespace: 'apverma',
-                roleRef: {kind: 'ClusterRole', name: 'view'},
-            }, jasmine.anything());
+            expect(mockProfilesService.deleteBinding).toHaveBeenCalledTimes(1);
         });
         it('Should error when removing a user not in the namespace', async () => {
             const response = await sendTestRequest(url('remove'), {...headers, 'Transfer-Encoding': 'chunked'}, 400, 'delete', {
