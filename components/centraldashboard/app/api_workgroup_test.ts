@@ -466,19 +466,62 @@ describe('Workgroup API', () => {
             }, jasmine.anything());
             expect(mockProfilesService.deleteBinding).not.toHaveBeenCalled();
         });
-        it('Should bubble kfam error when adding a user with the same role they already have', async () => {
+        it('Should keep an existing requested role without recreating it', async () => {
             buildApi(existingContributors);
-            mockProfilesService.createBinding.and.rejectWith({
-                response: {statusCode: 409, statusMessage: 'Conflict'},
-                body: 'rolebindings.rbac.authorization.k8s.io "user-apverma-clusterrole-edit" already exists',
-            });
             const response = await sendTestRequest(
                 `http://localhost:${port}/api/workgroup/add-contributor/apverma`,
-                headers, 409, 'post', requestBody,
+                headers, 200, 'post', requestBody,
             );
             expect(mockProfilesService.deleteBinding).not.toHaveBeenCalled();
-            expect(mockProfilesService.createBinding).toHaveBeenCalled();
-            expect(response.error).toContain('already exists');
+            expect(mockProfilesService.createBinding).not.toHaveBeenCalled();
+            expect(response).toEqual(existingContributors);
+        });
+        ['contributor', 'viewer'].forEach((requestedRole) => {
+            const oppositeRole = requestedRole === 'contributor' ? 'viewer' : 'contributor';
+            [false, true].forEach((reverseOrder) => {
+                it(`Should reconcile both roles to ${requestedRole} with reverse order ${reverseOrder}`, async () => {
+                    const contributors = [requestedRole, oppositeRole].map((role) => ({
+                        user: requestBody.contributor, role,
+                    }));
+                    buildApi(reverseOrder ? contributors.reverse() : contributors);
+                    mockProfilesService.deleteBinding.and.callFake(() => {
+                        contributors.splice(contributors.findIndex((binding) => binding.role === oppositeRole), 1);
+                        return Promise.resolve();
+                    });
+                    const response = await sendTestRequest(
+                        `http://localhost:${port}/api/workgroup/add-${requestedRole}/apverma`,
+                        headers, 200, 'post', requestBody,
+                    );
+                    expect(response).toEqual([{user: requestBody.contributor, role: requestedRole}]);
+                    expect(mockProfilesService.createBinding).not.toHaveBeenCalled();
+                    expect(mockProfilesService.deleteBinding).toHaveBeenCalledTimes(1);
+                    expect(mockProfilesService.deleteBinding).toHaveBeenCalledWith({
+                        user: {kind: 'User', name: requestBody.contributor},
+                        referredNamespace: 'apverma',
+                        roleRef: {kind: 'ClusterRole', name: oppositeRole === 'viewer' ? 'view' : 'edit'},
+                    }, jasmine.anything());
+                });
+            });
+            it(`Should preserve pre-existing ${requestedRole} when opposite role cleanup fails`, async () => {
+                buildApi([requestedRole, oppositeRole].map((role) => ({
+                    user: requestBody.contributor, role,
+                })));
+                mockProfilesService.deleteBinding.and.rejectWith({
+                    response: {statusCode: 500, statusMessage: 'Internal Server Error'},
+                });
+                const response = await sendTestRequest(
+                    `http://localhost:${port}/api/workgroup/add-${requestedRole}/apverma`,
+                    headers, 500, 'post', requestBody,
+                );
+                expect(response.error).toContain('Manual cleanup required');
+                expect(mockProfilesService.createBinding).not.toHaveBeenCalled();
+                expect(mockProfilesService.deleteBinding).toHaveBeenCalledTimes(1);
+                expect(mockProfilesService.deleteBinding).toHaveBeenCalledWith({
+                    user: {kind: 'User', name: requestBody.contributor},
+                    referredNamespace: 'apverma',
+                    roleRef: {kind: 'ClusterRole', name: oppositeRole === 'viewer' ? 'view' : 'edit'},
+                }, jasmine.anything());
+            });
         });
         it('Should remove old binding and create new one when upgrading role', async () => {
             buildApi(existingContributors);

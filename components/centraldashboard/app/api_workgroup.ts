@@ -224,6 +224,7 @@ export class WorkgroupApi {
                 (key) => authHeaders.includes(key) || delete headers[key]
             );
             let oldBinding: WorkgroupBinding | null = null;
+            let requestedBindingExists = false;
             if (action === 'remove') {
                 const existing = await this.getContributors(namespace);
                 const match = existing.find(
@@ -238,15 +239,19 @@ export class WorkgroupApi {
             }
             if (action === 'create') {
                 const existing = await this.getContributors(namespace);
-                const match = existing.find((b) => b.user === contributor);
-                if (match && match.role !== role) {
+                requestedBindingExists = existing.some(
+                    (binding) => binding.user === contributor && binding.role === role
+                );
+                const match = existing.find(
+                    (binding) => binding.user === contributor && binding.role !== role
+                );
+                if (match) {
                     oldBinding = mapSimpleBindingToWorkgroupBinding({
                         user: contributor,
                         namespace,
                         role: match.role,
                     });
                 }
-                // Same role: fall through to createBinding → kfam will error "already exists"
             }
             const binding = mapSimpleBindingToWorkgroupBinding({
                 user: contributor,
@@ -254,7 +259,9 @@ export class WorkgroupApi {
                 role,
             });
             const actionAPI = action === 'create' ? 'createBinding' : 'deleteBinding';
-            await profilesService[actionAPI](binding, {headers});
+            if (!requestedBindingExists) {
+                await profilesService[actionAPI](binding, {headers});
+            }
             // A failure here means the user has both bindings temporarily;
             // try rolling back and surface a clear message so the operator knows if cleanup is needed.
             if (oldBinding) {
@@ -263,11 +270,13 @@ export class WorkgroupApi {
                 } catch (cleanupErr) {
                     let msg = `Role updated but failed to remove existing assignment` +
                         ` for ${contributor} in ${namespace}. Manual cleanup required.`;
-                    try {
-                        await profilesService.deleteBinding(binding, {headers});
-                        msg = `Failed to remove existing assignment for ${contributor}` +
-                            ` in ${namespace}. Role change was not applied.`;
-                    } catch (_rollbackErr) { /* best-effort */ }
+                    if (!requestedBindingExists) {
+                        try {
+                            await profilesService.deleteBinding(binding, {headers});
+                            msg = `Failed to remove existing assignment for ${contributor}` +
+                                ` in ${namespace}. Role change was not applied.`;
+                        } catch (_rollbackErr) { /* best-effort */ }
+                    }
                     return surfaceProfileControllerErrors({res, msg, err: cleanupErr});
                 }
             }

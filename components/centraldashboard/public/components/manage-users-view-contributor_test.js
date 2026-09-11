@@ -67,18 +67,33 @@ describe('Manage Users View Contributor', () => {
             .toBe('Failed for test');
     });
 
-    it('Should show friendly message on 403 from add', () => {
-        // Simulate a 403 iron-ajax error event directly
-        const fakeEvent = {
-            detail: {
-                error: 'The request failed with status code: 403',
-                request: {status: 403, response: null},
-            },
-        };
-        manageUsersViewContributor.handleContribCreate(fakeEvent);
+    ['handleContribCreate', 'handleContribDelete'].forEach((handler) => {
+        it(`Should show friendly message on body-less 403 from ${handler}`, () => {
+            const fakeEvent = {
+                detail: {
+                    error: 'The request failed with status code: 403',
+                    request: {status: 403, response: null},
+                },
+            };
+            manageUsersViewContributor[handler](fakeEvent);
 
-        expect(manageUsersViewContributor.contribCreateError)
-            .toBe('You are not authorized to perform this action.');
+            expect(manageUsersViewContributor.contribCreateError)
+                .toBe('You are not authorized to perform this action.');
+        });
+
+        it(`Should preserve backend error on 403 from ${handler}`, () => {
+            const backendError = 'RoleBinding operation failed: already exists';
+            const fakeEvent = {
+                detail: {
+                    error: 'The request failed with status code: 403',
+                    request: {status: 403, response: {error: backendError}},
+                },
+            };
+            manageUsersViewContributor[handler](fakeEvent);
+
+            expect(manageUsersViewContributor.contribCreateError)
+                .toBe(backendError);
+        });
     });
 
     it('Should add contributors correctly', async () => {
