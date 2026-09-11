@@ -33,4 +33,22 @@ h2 .icon {
 #ContribError {
     background: #F44336
 }
+.add-row paper-dropdown-menu {
+    --paper-input-container-focus-color: var(--accent-color);
+    --paper-listbox-background-color: white;
+    --paper-listbox-color: black;
+}
+.add-row {
+    display: flex;
+    align-items: flex-end;
+    gap: .75em;
+    margin-bottom: .5em;
+}
+.add-row md2-input {
+    flex: 1;
+}
+.add-row paper-dropdown-menu[disabled] {
+    opacity: 0.4;
+    pointer-events: none;
+}
 [hidden] {display: none !important}
