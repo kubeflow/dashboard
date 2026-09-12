@@ -17,6 +17,7 @@ import './resources/animated-checkmark.js';
 import css from './registration-page.css';
 import template from './registration-page.pug';
 import logo from '../assets/logo.svg';
+import {templateContent} from './resources/template-utils.js';
 
 import utilitiesMixin from './utilities-mixin.js';
 
@@ -26,8 +27,8 @@ import utilitiesMixin from './utilities-mixin.js';
 export class RegistrationPage extends utilitiesMixin(PolymerElement) {
     static get template() {
         const vars = {logo};
-        return html([
-            `<style>${css.toString()}</style>${template(vars)}`]);
+        return html(templateContent(
+            `<style>${css.toString()}</style>${template(vars)}`));
     }
 
     static get properties() {
@@ -83,7 +84,7 @@ export class RegistrationPage extends utilitiesMixin(PolymerElement) {
         if (finalRgx.test(this.namespaceName)) return true;
         this.showError(
             `Name can only start and end with alpha-num characters, `+
-            `dashes are only permitted between start and end. (minlength >= 1)`
+            `dashes are only permitted between start and end. (minlength >= 1)`,
         );
     }
 
@@ -108,8 +109,10 @@ export class RegistrationPage extends utilitiesMixin(PolymerElement) {
         if (this.error && this.error.response) {
             return this.waitForRedirect = false;
         }
-        // Poll for profile over a span of 20 seconds (every 300ms)
-        // if still not there, let the user click next again!
+        /*
+         * Poll for profile over a span of 20 seconds (every 300ms)
+         * if still not there, let the user click next again!
+         */
         const success = await this.pollProfile(66, 300);
         if (success) this._successSetup();
         this.waitForRedirect = false;

@@ -9,6 +9,7 @@ import {html, PolymerElement} from '@polymer/polymer';
 
 import css from './dashboard-view.css';
 import template from './dashboard-view.pug';
+import {templateContent} from './resources/template-utils.js';
 import './card-styles.js';
 import './iframe-link.js';
 import './notebooks-card.js';
@@ -20,12 +21,12 @@ import utilitiesMixin from './utilities-mixin.js';
 
 export class DashboardView extends utilitiesMixin(PolymerElement) {
     static get template() {
-        return html([`
+        return html(templateContent(`
             <style include="card-styles">
                 ${css.toString()}
             </style>
             ${template()}
-        `]);
+        `));
     }
 
     /**
@@ -72,8 +73,10 @@ export class DashboardView extends utilitiesMixin(PolymerElement) {
             quickLink.link = this.buildHref(quickLink.link, {ns: namespace});
             return quickLink;
         });
-        // We need to deep-copy and re-assign in order to trigger the
-        // re-rendering of the component
+        /*
+         * We need to deep-copy and re-assign in order to trigger the
+         * re-rendering of the component
+         */
         this.quickLinks = JSON.parse(JSON.stringify(this.quickLinks));
     }
 }

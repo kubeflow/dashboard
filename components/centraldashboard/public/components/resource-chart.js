@@ -10,12 +10,16 @@ import 'chartjs-plugin-crosshair';
 
 import {html, PolymerElement} from '@polymer/polymer/polymer-element.js';
 import {Chart} from 'chart.js';
-// Explicitly loads the Chart.js CSS so it can be applied to the ShadowDOM
-// Necessary since third-party CSS would normally be vendored and applied
-// globally.
-import chartCss from '!css-loader!exports-loader!chart.js/dist/Chart.css';
+/*
+ * Explicitly loads the Chart.js CSS so it can be applied to the ShadowDOM
+ * Necessary since third-party CSS would normally be vendored and applied
+ * globally.
+ */
+// eslint-disable-next-line max-len
+import chartCss from '!!css-loader?{"exportType":"string"}!chart.js/dist/Chart.css';
 
 import './card-styles.js';
+import {templateContent} from './resources/template-utils.js';
 
 Chart.defaults.global.defaultFontFamily = '"Google Sans", sans-serif';
 Chart.Tooltip.positioners.custom = (_, eventPosition) => (
@@ -43,7 +47,7 @@ const MAX_TOOLTIP_LENGTH = 10;
 
 class ResourceChart extends PolymerElement {
     static get template() {
-        return html([`
+        return html(templateContent(`
         <style include="card-styles">
             :host {
                 @apply --dashboard-card;
@@ -130,7 +134,7 @@ class ResourceChart extends PolymerElement {
                 </footer>
             </template>
         </article>
-        `]);
+        `));
     }
 
     static get properties() {
@@ -265,12 +269,14 @@ class ResourceChart extends PolymerElement {
      * @return {Array}
      */
     _buildDatasets(timeSeriesPoints) {
-        // Create a Map from timeseries label to objects with the following
-        // shape:
-        // {
-        //   mean: cumulative moving average
-        //   data: [{t: timestamp in s, y: value}]
-        // }
+        /*
+         * Create a Map from timeseries label to objects with the following
+         * shape:
+         * {
+         *   mean: cumulative moving average
+         *   data: [{t: timestamp in s, y: value}]
+         * }
+         */
         let truncatedSeries = false;
         const dataPointsByLabel = new Map();
         timeSeriesPoints.forEach((point) => {

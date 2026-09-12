@@ -1,6 +1,43 @@
 import {NextFunction, Request, RequestHandler, Response} from 'express';
 
+/**
+ * Parses a JSON array of strings out of `value`, returning undefined if
+ * `value` is not valid JSON or is not an array of strings.
+ */
+function tryParseJsonStringArray(value: string): string[] | undefined {
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed) && parsed.every((g) => typeof g === 'string')) {
+      return parsed;
+    }
+  } catch {
+    // Not valid JSON; fall through.
+  }
+  return undefined;
+}
+
 function parseGroupsHeader(value: string): string[] {
+  // Istio's RequestAuthentication.outputClaimToHeaders base64-encodes
+  // non-string JWT claims (e.g. an array `groups` claim) before injecting
+  // them as a header, so this is the value's most common on-the-wire form.
+  // Only trust the decoded value if it is unambiguously a JSON array of
+  // strings, so a group literally named e.g. "dGVhbQ==" isn't silently
+  // reinterpreted as a different identity.
+  try {
+    const decoded = Buffer.from(value, 'base64').toString('utf-8');
+    const parsed = tryParseJsonStringArray(decoded);
+    if (parsed) {
+      return parsed;
+    }
+  } catch {
+    // Not valid base64; fall through.
+  }
+
+  const parsed = tryParseJsonStringArray(value);
+  if (parsed) {
+    return parsed;
+  }
+
   return value.split(',').map((g) => g.trim()).filter(Boolean);
 }
 

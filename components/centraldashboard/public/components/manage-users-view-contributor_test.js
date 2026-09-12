@@ -17,6 +17,10 @@ const TEMPLATE = `
 `;
 const user = 'test@kubeflow.org';
 const ownedNs = {namespace: 'ns1', role: 'owner'};
+const contribList = [
+    {subject: 'foo@kubeflow.org', role: 'contributor', kind: 'User'},
+    {subject: 'bar@kubeflow.org', role: 'viewer', kind: 'User'},
+];
 
 describe('Manage Users View Contributor', () => {
     let manageUsersViewContributor;
@@ -57,25 +61,50 @@ describe('Manage Users View Contributor', () => {
         expect(manageUsersViewContributor.$.ContribError.opened)
             .toBe(
                 true,
-                'Error toast is not opened'
+                'Error toast is not opened',
             );
         expect(manageUsersViewContributor.contribError)
             .toBe('Failed for test');
     });
 
+    ['handleContribCreate', 'handleContribDelete'].forEach((handler) => {
+        it(`Should show friendly message on body-less 403 from ${handler}`, () => {
+            const fakeEvent = {
+                detail: {
+                    error: 'The request failed with status code: 403',
+                    request: {status: 403, response: null},
+                },
+            };
+            manageUsersViewContributor[handler](fakeEvent);
+
+            expect(manageUsersViewContributor.contribCreateError)
+                .toBe('You are not authorized to perform this action.');
+        });
+
+        it(`Should preserve backend error on 403 from ${handler}`, () => {
+            const backendError = 'RoleBinding operation failed: already exists';
+            const fakeEvent = {
+                detail: {
+                    error: 'The request failed with status code: 403',
+                    request: {status: 403, response: {error: backendError}},
+                },
+            };
+            manageUsersViewContributor[handler](fakeEvent);
+
+            expect(manageUsersViewContributor.contribCreateError)
+                .toBe(backendError);
+        });
+    });
+
     it('Should add contributors correctly', async () => {
-        const contribList = [
-            {name: 'foo@kubeflow.org', kind: 'User'},
-            {name: 'bar@kubeflow.org', kind: 'User'},
-        ];
-        const verificationContribs = [{name: 'ap@kubeflow.org', kind: 'User'}];
+        const updatedList = [{subject: 'ap@kubeflow.org', role: 'contributor', kind: 'User'}];
         mockIronAjax(
             manageUsersViewContributor.$.GetContribsAjax,
             contribList,
         );
         mockIronAjax(
             manageUsersViewContributor.$.AddContribAjax,
-            verificationContribs,
+            updatedList,
         );
 
         manageUsersViewContributor.user = user;
@@ -92,24 +121,20 @@ describe('Manage Users View Contributor', () => {
 
         expect(manageUsersViewContributor.userContributorList)
             .toEqual(
-                verificationContribs.map((c) => c.name),
-                'Invalid list of user contributors'
+                updatedList,
+                'Invalid list of contributors',
             );
     });
 
     it('Should remove contributors correctly', async () => {
-        const contribList = [
-            {name: 'foo@kubeflow.org', kind: 'User'},
-            {name: 'bar@kubeflow.org', kind: 'User'},
-        ];
-        const verificationContribs = [{name: 'ap@kubeflow.org', kind: 'User'}];
+        const updatedList = [{subject: 'ap@kubeflow.org', role: 'contributor', kind: 'User'}];
         mockIronAjax(
             manageUsersViewContributor.$.GetContribsAjax,
             contribList,
         );
         mockIronAjax(
             manageUsersViewContributor.$.RemoveContribAjax,
-            verificationContribs,
+            updatedList,
         );
 
         manageUsersViewContributor.user = user;
@@ -118,23 +143,20 @@ describe('Manage Users View Contributor', () => {
         flush();
         await yieldForRequests();
 
-        const chip = manageUsersViewContributor.shadowRoot.querySelector('md2-input paper-chip:nth-of-type(1)');
-        chip.fireRemove({});
+        manageUsersViewContributor.removeContributor(
+            {model: {item: contribList[0]}},
+        );
 
         await yieldForRequests();
 
         expect(manageUsersViewContributor.userContributorList)
             .toEqual(
-                verificationContribs.map((c) => c.name),
-                'Invalid list of user contributors'
+                updatedList,
+                'Invalid list of contributors',
             );
     });
 
     it('UI State should show contribs when namespace available', async () => {
-        const contribList = [
-            {name: 'foo@kubeflow.org', kind: 'User'},
-            {name: 'bar@kubeflow.org', kind: 'User'},
-        ];
         mockIronAjax(
             manageUsersViewContributor.$.GetContribsAjax,
             contribList,
@@ -151,18 +173,18 @@ describe('Manage Users View Contributor', () => {
 
         expect(manageUsersViewContributor.userContributorList)
             .toEqual(
-                ['foo@kubeflow.org', 'bar@kubeflow.org'],
-                'Invalid list of user contributors'
+                contribList,
+                'Invalid list of user contributors',
             );
         expect(manageUsersViewContributor.groupContributorList)
             .toEqual([], 'Group contributor list should be empty');
     });
 
     it('Should add group contributors correctly', async () => {
-        const contribList = [{name: 'ml-team', kind: 'Group'}];
+        const contribList = [{subject: 'ml-team', role: 'contributor', kind: 'Group'}];
         const verificationContribs = [
-            {name: 'ml-team', kind: 'Group'},
-            {name: 'data-team', kind: 'Group'},
+            {subject: 'ml-team', role: 'contributor', kind: 'Group'},
+            {subject: 'data-team', role: 'contributor', kind: 'Group'},
         ];
         mockIronAjax(
             manageUsersViewContributor.$.GetContribsAjax,
@@ -188,17 +210,17 @@ describe('Manage Users View Contributor', () => {
 
         expect(manageUsersViewContributor.groupContributorList)
             .toEqual(
-                ['ml-team', 'data-team'],
-                'Invalid list of group contributors'
+                verificationContribs,
+                'Invalid list of group contributors',
             );
     });
 
     it('Should remove group contributors correctly', async () => {
         const contribList = [
-            {name: 'ml-team', kind: 'Group'},
-            {name: 'data-team', kind: 'Group'},
+            {subject: 'ml-team', role: 'contributor', kind: 'Group'},
+            {subject: 'data-team', role: 'contributor', kind: 'Group'},
         ];
-        const verificationContribs = [{name: 'data-team', kind: 'Group'}];
+        const verificationContribs = [{subject: 'data-team', role: 'contributor', kind: 'Group'}];
         mockIronAjax(
             manageUsersViewContributor.$.GetContribsAjax,
             contribList,
@@ -223,8 +245,8 @@ describe('Manage Users View Contributor', () => {
 
         expect(manageUsersViewContributor.groupContributorList)
             .toEqual(
-                ['data-team'],
-                'Invalid list of group contributors'
+                verificationContribs,
+                'Invalid list of group contributors',
             );
     });
 });

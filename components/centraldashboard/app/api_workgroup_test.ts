@@ -178,7 +178,7 @@ describe('Workgroup API', () => {
                     response: null,
                     body: {
                         bindings: [{
-                            user: {kind: 'user', name: 'test@testdomain.com'},
+                            subject: {kind: 'user', name: 'test@testdomain.com'},
                             referredNamespace: 'test',
                             roleRef: {apiGroup: '', kind: 'ClusterRole', name: 'edit'}
                         }]
@@ -390,19 +390,22 @@ describe('Workgroup API', () => {
         });
     });
     describe('Add / Remove Contributor', () => {
-        type RouteTypes = 'add' | 'remove';
+        type RouteTypes = 'add' | 'add-viewer' | 'remove';
         let url: (type: RouteTypes) => string;
         const requestBody = {contributor: 'apverma@google.com', cType: 'user'};
         const headers = {
             'content-type': 'application/json',
             [header.goog]: `${prefix.goog}test@testdomain.com`,
         };
+        const existingContributors = [
+            {subject: 'apverma@google.com', role: 'contributor', kind: 'user'},
+            {subject: 'viewer@example.com', role: 'viewer', kind: 'user'},
+        ];
 
-        beforeEach(() => {
+        const buildApi = (contributors = []) => {
             mockProfilesService = jasmine.createSpyObj<DefaultApi>(['createBinding', 'deleteBinding']);
             const api = newAPI();
-            api.getContributors = async () => ['test'];
-
+            api.getContributors = async () => contributors;
             testApp = express();
             testApp.use(express.json());
             testApp.use(attachUserGCPMiddleware);
@@ -413,6 +416,10 @@ describe('Workgroup API', () => {
                     'Unable to determine system-assigned port for test API server');
             }
             port = addressInfo.port;
+        };
+
+        beforeEach(() => {
+            buildApi();
             url = (type: RouteTypes) =>
                 `http://localhost:${port}/api/workgroup/${type}-contributor/apverma`;
         });
@@ -422,11 +429,12 @@ describe('Workgroup API', () => {
             expect(mockProfilesService.createBinding).not.toHaveBeenCalled();
         });
         it('Should error on missing contributor', async () => {
-            const [rAdd, rRemove] = await Promise.all([
+            const [rAdd, rViewer, rRemove] = await Promise.all([
                 sendTestRequest(url('add'), headers, 400, 'post'),
+                sendTestRequest(`http://localhost:${port}/api/workgroup/add-viewer/apverma`, headers, 400, 'post'),
                 sendTestRequest(url('remove'), headers, 400, 'delete'),
             ]);
-            [rAdd, rRemove].forEach(response => {
+            [rAdd, rViewer, rRemove].forEach(response => {
                 expect(response).toEqual({error: `Missing contributor field.`});
             });
             expect(mockProfilesService.createBinding).not.toHaveBeenCalled();
@@ -439,25 +447,162 @@ describe('Workgroup API', () => {
             expect(response).toEqual({error: `Contributor doesn't look like a valid email address`});
             expect(mockProfilesService.createBinding).not.toHaveBeenCalled();
         });
-        it('Should successfully add a contributor', async () => {
+        it('Should successfully add a new contributor via add-contributor endpoint', async () => {
             const response = await sendTestRequest(url('add'), headers, 200, 'post', requestBody);
-            expect(response).toEqual(['test']);
+            expect(response).toEqual([]);
             expect(mockProfilesService.createBinding).toHaveBeenCalledWith({
                 subject: {
                     kind: 'User',
                     name: 'apverma@google.com',
                 },
                 referredNamespace: 'apverma',
-                roleRef: {
-                    kind: 'ClusterRole',
-                    name: 'edit',
-                }
+                roleRef: {kind: 'ClusterRole', name: 'edit'},
             }, jasmine.anything());
             expect(mockProfilesService.deleteBinding).not.toHaveBeenCalled();
         });
+        it('Should successfully add a new viewer via add-viewer endpoint', async () => {
+            const viewerUrl = `http://localhost:${port}/api/workgroup/add-viewer/apverma`;
+            const response = await sendTestRequest(viewerUrl, headers, 200, 'post', requestBody);
+            expect(response).toEqual([]);
+            expect(mockProfilesService.createBinding).toHaveBeenCalledWith({
+                subject: {kind: 'User', name: 'apverma@google.com'},
+                referredNamespace: 'apverma',
+                roleRef: {kind: 'ClusterRole', name: 'view'},
+            }, jasmine.anything());
+            expect(mockProfilesService.deleteBinding).not.toHaveBeenCalled();
+        });
+        it('Should keep an existing requested role without recreating it', async () => {
+            buildApi(existingContributors);
+            const response = await sendTestRequest(
+                `http://localhost:${port}/api/workgroup/add-contributor/apverma`,
+                headers, 200, 'post', requestBody,
+            );
+            expect(mockProfilesService.deleteBinding).not.toHaveBeenCalled();
+            expect(mockProfilesService.createBinding).not.toHaveBeenCalled();
+            expect(response).toEqual(existingContributors);
+        });
+        ['contributor', 'viewer'].forEach((requestedRole) => {
+            const oppositeRole = requestedRole === 'contributor' ? 'viewer' : 'contributor';
+            [false, true].forEach((reverseOrder) => {
+                it(`Should reconcile both roles to ${requestedRole} with reverse order ${reverseOrder}`, async () => {
+                    const contributors = [requestedRole, oppositeRole].map((role) => ({
+                        subject: requestBody.contributor, role, kind: 'user',
+                    }));
+                    buildApi(reverseOrder ? contributors.reverse() : contributors);
+                    mockProfilesService.deleteBinding.and.callFake(() => {
+                        contributors.splice(contributors.findIndex((binding) => binding.role === oppositeRole), 1);
+                        return Promise.resolve();
+                    });
+                    const response = await sendTestRequest(
+                        `http://localhost:${port}/api/workgroup/add-${requestedRole}/apverma`,
+                        headers, 200, 'post', requestBody,
+                    );
+                    expect(response).toEqual([{subject: requestBody.contributor, role: requestedRole, kind: 'user'}]);
+                    expect(mockProfilesService.createBinding).not.toHaveBeenCalled();
+                    expect(mockProfilesService.deleteBinding).toHaveBeenCalledTimes(1);
+                    expect(mockProfilesService.deleteBinding).toHaveBeenCalledWith({
+                        subject: {kind: 'User', name: requestBody.contributor},
+                        referredNamespace: 'apverma',
+                        roleRef: {kind: 'ClusterRole', name: oppositeRole === 'viewer' ? 'view' : 'edit'},
+                    }, jasmine.anything());
+                });
+            });
+            it(`Should preserve pre-existing ${requestedRole} when opposite role cleanup fails`, async () => {
+                buildApi([requestedRole, oppositeRole].map((role) => ({
+                    subject: requestBody.contributor, role, kind: 'user',
+                })));
+                mockProfilesService.deleteBinding.and.rejectWith({
+                    response: {statusCode: 500, statusMessage: 'Internal Server Error'},
+                });
+                const response = await sendTestRequest(
+                    `http://localhost:${port}/api/workgroup/add-${requestedRole}/apverma`,
+                    headers, 500, 'post', requestBody,
+                );
+                expect(response.error).toContain('Manual cleanup required');
+                expect(mockProfilesService.createBinding).not.toHaveBeenCalled();
+                expect(mockProfilesService.deleteBinding).toHaveBeenCalledTimes(1);
+                expect(mockProfilesService.deleteBinding).toHaveBeenCalledWith({
+                    subject: {kind: 'User', name: requestBody.contributor},
+                    referredNamespace: 'apverma',
+                    roleRef: {kind: 'ClusterRole', name: oppositeRole === 'viewer' ? 'view' : 'edit'},
+                }, jasmine.anything());
+            });
+        });
+        it('Should remove old binding and create new one when upgrading role', async () => {
+            buildApi(existingContributors);
+            // viewer@example.com is currently a viewer — upgrade to contributor
+            const response = await sendTestRequest(
+                `http://localhost:${port}/api/workgroup/add-contributor/apverma`,
+                headers, 200, 'post', {contributor: 'viewer@example.com'},
+            );
+            expect(response).toEqual(existingContributors);
+            expect(mockProfilesService.deleteBinding).toHaveBeenCalledWith({
+                subject: {kind: 'User', name: 'viewer@example.com'},
+                referredNamespace: 'apverma',
+                roleRef: {kind: 'ClusterRole', name: 'view'},
+            }, jasmine.anything());
+            expect(mockProfilesService.createBinding).toHaveBeenCalledWith({
+                subject: {kind: 'User', name: 'viewer@example.com'},
+                referredNamespace: 'apverma',
+                roleRef: {kind: 'ClusterRole', name: 'edit'},
+            }, jasmine.anything());
+        });
+        it('Should remove old binding and create new one when downgrading role', async () => {
+            buildApi(existingContributors);
+            // apverma@google.com is currently a contributor — downgrade to viewer
+            const response = await sendTestRequest(
+                `http://localhost:${port}/api/workgroup/add-viewer/apverma`,
+                headers, 200, 'post', requestBody,
+            );
+            expect(response).toEqual(existingContributors);
+            expect(mockProfilesService.deleteBinding).toHaveBeenCalledWith({
+                subject: {kind: 'User', name: 'apverma@google.com'},
+                referredNamespace: 'apverma',
+                roleRef: {kind: 'ClusterRole', name: 'edit'},
+            }, jasmine.anything());
+            expect(mockProfilesService.createBinding).toHaveBeenCalledWith({
+                subject: {kind: 'User', name: 'apverma@google.com'},
+                referredNamespace: 'apverma',
+                roleRef: {kind: 'ClusterRole', name: 'view'},
+            }, jasmine.anything());
+        });
+        it('Should retain the new binding and report cleanup details when old binding delete fails', async () => {
+            buildApi(existingContributors);
+            mockProfilesService.deleteBinding.and.rejectWith({
+                response: {statusCode: 500, statusMessage: 'Internal Server Error'},
+                body: 'failed to delete authorization policy',
+            });
+            const response = await sendTestRequest(
+                `http://localhost:${port}/api/workgroup/add-contributor/apverma`,
+                headers, 500, 'post', {contributor: 'viewer@example.com'},
+            );
+            expect(response.error).toContain('Role updated but failed to remove existing assignment');
+            expect(response.error).toContain('Manual cleanup required');
+            expect(response.error).toContain('viewer@example.com');
+            expect(response.error).toContain('failed to delete authorization policy');
+            expect(mockProfilesService.createBinding).toHaveBeenCalledWith({
+                subject: {kind: 'User', name: 'viewer@example.com'},
+                referredNamespace: 'apverma',
+                roleRef: {kind: 'ClusterRole', name: 'edit'},
+            }, jasmine.anything());
+            expect(mockProfilesService.deleteBinding).toHaveBeenCalledWith({
+                subject: {kind: 'User', name: 'viewer@example.com'},
+                referredNamespace: 'apverma',
+                roleRef: {kind: 'ClusterRole', name: 'view'},
+            }, jasmine.anything());
+            expect(mockProfilesService.deleteBinding).toHaveBeenCalledTimes(1);
+        });
+        it('Should error when removing a user not in the namespace', async () => {
+            const response = await sendTestRequest(url('remove'), {...headers, 'Transfer-Encoding': 'chunked'}, 400, 'delete', {
+                contributor: 'unknown@google.com',
+            });
+            expect(response).toEqual({error: `unknown@google.com is not a contributor of apverma`});
+            expect(mockProfilesService.deleteBinding).not.toHaveBeenCalled();
+        });
         it('Should successfully remove a contributor', async () => {
+            buildApi(existingContributors);
             const response = await sendTestRequest(url('remove'), {...headers, 'Transfer-Encoding': 'chunked'}, 200, 'delete', requestBody);
-            expect(response).toEqual(['test']);
+            expect(response).toEqual(existingContributors);
             expect(mockProfilesService.createBinding).not.toHaveBeenCalled();
             expect(mockProfilesService.deleteBinding).toHaveBeenCalledWith({
                 subject: {
@@ -465,10 +610,22 @@ describe('Workgroup API', () => {
                     name: 'apverma@google.com',
                 },
                 referredNamespace: 'apverma',
-                roleRef: {
-                    kind: 'ClusterRole',
-                    name: 'edit',
-                }
+                roleRef: {kind: 'ClusterRole', name: 'edit'},
+            }, jasmine.anything());
+        });
+        it('Should successfully remove a viewer', async () => {
+            buildApi(existingContributors);
+            const removeViewerUrl =
+                `http://localhost:${port}/api/workgroup/remove-viewer/apverma`;
+            const response = await sendTestRequest(removeViewerUrl, {...headers, 'Transfer-Encoding': 'chunked'}, 200, 'delete', {
+                contributor: 'viewer@example.com',
+            });
+            expect(response).toEqual(existingContributors);
+            expect(mockProfilesService.createBinding).not.toHaveBeenCalled();
+            expect(mockProfilesService.deleteBinding).toHaveBeenCalledWith({
+                subject: {kind: 'User', name: 'viewer@example.com'},
+                referredNamespace: 'apverma',
+                roleRef: {kind: 'ClusterRole', name: 'view'},
             }, jasmine.anything());
         });
     });

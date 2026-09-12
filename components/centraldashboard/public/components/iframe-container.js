@@ -51,8 +51,10 @@ export class IframeContainer extends PolymerElement {
         this._messageListener = this._onMessageReceived.bind(this);
         window.addEventListener(MESSAGE, this._messageListener);
 
-        // Adds a click handler to be able to capture navigation events from
-        // the captured iframe and set the page property which notifies
+        /*
+         * Adds a click handler to be able to capture navigation events from
+         * the captured iframe and set the page property which notifies
+         */
         const iframe = this.$.iframe;
         this._syncIframePage = () => {
             const iframeLocation = iframe.contentWindow.location;
@@ -63,14 +65,18 @@ export class IframeContainer extends PolymerElement {
             }
         };
         iframe.addEventListener('load', () => {
-            // Skip non-HTTP(S) documents (about:blank) whose opaque
-            // origin would corrupt the parent URL binding.
+            /*
+             * Skip non-HTTP(S) documents (about:blank) whose opaque
+             * origin would corrupt the parent URL binding.
+             */
             const {protocol} = iframe.contentWindow.location;
             if (protocol === 'http:' || protocol === 'https:') {
                 this._syncIframePage();
             }
-            // hashchange and popstate are Window events; attach to
-            // contentWindow so in-iframe hash navigation syncs.
+            /*
+             * hashchange and popstate are Window events; attach to
+             * contentWindow so in-iframe hash navigation syncs.
+             */
             const {contentDocument, contentWindow} = iframe;
             contentDocument.addEventListener('click', this._syncIframePage);
             contentWindow.addEventListener('hashchange', this._syncIframePage);

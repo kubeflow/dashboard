@@ -219,11 +219,15 @@ export class WorkgroupApi {
             namespaces,
         };
     }
-
-
-    async handleContributor(action: ContributorActions, req: Request, res: Response) {
+    async handleContributor(
+        action: ContributorActions,
+        role: SimpleRole,
+        req: Request,
+        res: Response,
+    ) {
         const {namespace} = req.params;
         const {contributor, cType} = req.body as AddOrRemoveContributorRequest;
+        const subjectKind = cType || 'user';
         const {profilesService} = this;
         if (!contributor || !namespace) {
             const missing = [];
@@ -236,7 +240,7 @@ export class WorkgroupApi {
                 error: `Missing ${missing.join(' and ')} field${missing.length-1?'s':''}.`,
             });
         }
-        if ((!cType || cType === "user") && !EMAIL_RGX.test(contributor)) {
+        if (subjectKind === 'user' && !EMAIL_RGX.test(contributor)) {
             return apiError({
                 res,
                 error: `Contributor doesn't look like a valid email address`,
@@ -244,20 +248,67 @@ export class WorkgroupApi {
         }
         let errIndex = 0;
         try {
-            const binding = mapSimpleBindingToWorkgroupBinding({
-                subject: contributor,
-                kind: cType,
-                namespace,
-                role: 'contributor',
-            });
             // only pass the auth-related headers from the user's request on to kfam
             const authHeaders = ['authorization', 'cookie', this.userIdHeader];
             const {headers} = req;
             Object.keys(headers).forEach(
                 (key) => authHeaders.includes(key) || delete headers[key]
             );
+            let oldBinding: WorkgroupBinding | null = null;
+            let requestedBindingExists = false;
+            if (action === 'remove') {
+                const existing = await this.getContributors(namespace);
+                const match = existing.find(
+                    (b) => b.subject === contributor && b.role === role
+                );
+                if (!match) {
+                    return apiError({
+                        res,
+                        error: `${contributor} is not a ${role} of ${namespace}`,
+                    });
+                }
+            }
+            if (action === 'create') {
+                const existing = await this.getContributors(namespace);
+                requestedBindingExists = existing.some(
+                    (binding) => binding.subject === contributor && binding.role === role
+                );
+                const match = existing.find(
+                    (binding) => binding.subject === contributor && binding.role !== role
+                );
+                if (match) {
+                    oldBinding = mapSimpleBindingToWorkgroupBinding({
+                        subject: contributor,
+                        kind: match.kind,
+                        namespace,
+                        role: match.role,
+                    });
+                }
+            }
+            const binding = mapSimpleBindingToWorkgroupBinding({
+                subject: contributor,
+                kind: subjectKind,
+                namespace,
+                role,
+            });
             const actionAPI = action === 'create' ? 'createBinding' : 'deleteBinding';
-            await profilesService[actionAPI](binding, {headers});
+            if (!requestedBindingExists) {
+                await profilesService[actionAPI](binding, {headers});
+            }
+            // A failure here can occur after KFAM removed the old RoleBinding.
+            // Keep the new binding so the user does not lose all RBAC access.
+            if (oldBinding) {
+                try {
+                    await profilesService.deleteBinding(oldBinding, {headers});
+                } catch (cleanupErr) {
+                    const msg = `Role updated but failed to remove existing assignment` +
+                        ` for ${contributor} in ${namespace}. Manual cleanup required.`;
+                    const code = (cleanupErr.response && cleanupErr.response.statusCode) || 400;
+                    const detail = cleanupErr.body ? ` ${cleanupErr.body}` : '';
+                    console.error(`${msg}${detail}`, cleanupErr.stack ? cleanupErr : '');
+                    return apiError({res, code, error: `${msg}${detail}`});
+                }
+            }
             errIndex++;
             const contributors = await this.getContributors(namespace);
             res.json(contributors);
@@ -274,20 +325,14 @@ export class WorkgroupApi {
         }
     }
     /**
-     * Given an owned namespace, list all contributors under it
+     * Given an owned namespace, list all contributors and viewers under it
      * @param namespace Namespace to find contributors for
      */
-    async getContributors(namespace: string): Promise<Array<{name: string, kind?: string}>> {
+    async getContributors(namespace: string): Promise<SimpleBinding[]> {
         const {body} = await this.profilesService
             .readBindings(undefined, namespace);
-        const simpleBindings = mapWorkgroupBindingToSimpleBinding(body.bindings);
-        const contributors = simpleBindings
-            .filter((b) => b.role === 'contributor')
-            .map((b) => ({
-                name: b.subject,
-                kind: b.kind,
-            }));
-        return contributors;
+        return mapWorkgroupBindingToSimpleBinding(body.bindings)
+            .filter((b) => b.role === 'contributor' || b.role === 'viewer');
     }
     routes() {return Router()
         .get('/exists', async (req: Request, res: Response) => {
@@ -422,10 +467,16 @@ export class WorkgroupApi {
             }
         })
         .post('/add-contributor/:namespace', async (req: Request, res: Response) => {
-            this.handleContributor('create', req, res);
+            this.handleContributor('create', 'contributor', req, res);
+        })
+        .post('/add-viewer/:namespace', async (req: Request, res: Response) => {
+            this.handleContributor('create', 'viewer', req, res);
         })
         .delete('/remove-contributor/:namespace', async (req: Request, res: Response) => {
-            this.handleContributor('remove', req, res);
+            this.handleContributor('remove', 'contributor', req, res);
+        })
+        .delete('/remove-viewer/:namespace', async (req: Request, res: Response) => {
+            this.handleContributor('remove', 'viewer', req, res);
         });
     }
 }

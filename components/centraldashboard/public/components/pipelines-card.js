@@ -96,11 +96,11 @@ export class PipelinesCard extends utilitiesMixin(PolymerElement) {
      */
     _getListPipelinesUrl(artifactType, namespace) {
         if (!VALID_ARTIFACT_TYPES.has(artifactType)) return null;
-        let link = `/pipeline/apis/v1beta1/${artifactType}?`
-            + 'page_size=5&sort_by=created_at%20desc';
+        let link = `/pipeline/apis/v1beta1/${artifactType}?` +
+            'page_size=5&sort_by=created_at%20desc';
         if (artifactType === RUNS) {
-            link += '&resource_reference_key.type=NAMESPACE'
-            + `&resource_reference_key.id=${namespace}`;
+            link += '&resource_reference_key.type=NAMESPACE' +
+            `&resource_reference_key.id=${namespace}`;
         }
         return link;
     }
@@ -137,7 +137,7 @@ export class PipelinesCard extends utilitiesMixin(PolymerElement) {
                 created: date.toLocaleString(),
                 href: this.buildHref(
                     `/pipeline/#/${this.artifactType}/details/${p.id}`,
-                    {ns: this.namespace}
+                    {ns: this.namespace},
                 ),
                 name: p.name,
                 icon,
@@ -168,8 +168,10 @@ export class PipelinesCard extends utilitiesMixin(PolymerElement) {
             p.href = this.buildHref(p.href, {ns: namespace});
             return p;
         });
-        // We need to deep-copy and re-assign in order to trigger the
-        // re-rendering of the component
+        /*
+         * We need to deep-copy and re-assign in order to trigger the
+         * re-rendering of the component
+         */
         this.pipelines = JSON.parse(JSON.stringify(pipelines));
     }
 }

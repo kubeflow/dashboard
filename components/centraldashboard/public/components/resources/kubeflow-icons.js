@@ -1,7 +1,7 @@
 /*
-    This file defines the custom iconset we need for various assets
-    not found within iron-icons.
-*/
+ *This file defines the custom iconset we need for various assets
+ *not found within iron-icons.
+ */
 import '@polymer/iron-icon/iron-icon.js';
 import '@polymer/iron-iconset-svg/iron-iconset-svg.js';
 import '@polymer/iron-icons/communication-icons.js';
@@ -10,7 +10,6 @@ import '@polymer/iron-icons/av-icons.js';
 import '@polymer/iron-icons/editor-icons.js';
 import '@polymer/iron-icons/device-icons.js';
 
-import {html, htmlLiteral} from '@polymer/polymer/lib/utils/html-tag.js';
 
 /**
  * Converts an imported folder into a multiple <g> entries.
@@ -29,7 +28,7 @@ function getSvgGroupEntries(context) {
             // eslint-disable-next-line no-console
             console.error(
                 '[kubeflow-icons::stripSVG] Invalid SVG data provided in file',
-                name
+                name,
             );
             return '';
         }
@@ -43,11 +42,13 @@ function getSvgGroupEntries(context) {
  * @return {string} If return is empty, then handle as invalid SVG.
  */
 function stripSVG(svg) {
-    // The regex below first makes the multi-line HTML a single line.
-    // Then it ignores anything outside the svg tags including:
-    //  - The <svg> tag itself.
-    //  - Any trailing whitespace.
-    //  - <?xml> meta data.
+    /*
+     * The regex below first makes the multi-line HTML a single line.
+     * Then it ignores anything outside the svg tags including:
+     *  - The <svg> tag itself.
+     *  - Any trailing whitespace.
+     *  - <?xml> meta data.
+     */
     const content = svg
         .replace(/\r?\n|(?=>)\s+(?=<)/g, ' ')
         .replace(/^.*?<svg.*?>(.+?)<\/svg>.*$/, '$1');
@@ -60,10 +61,14 @@ function stripSVG(svg) {
 const importData = require.context('../../assets/icons', true, /\.svg$/);
 const fileData = getSvgGroupEntries(importData).join('');
 
-const template = html`<iron-iconset-svg name="kubeflow" size="24">
-<svg><defs>
-${htmlLiteral([fileData])}
-</defs></svg>
-</iron-iconset-svg>`;
+/*
+ * Build the iron-iconset-svg element imperatively to avoid
+ * htmlLiteral tagged template validation issues with webpack 5.
+ */
+const iconsetEl = document.createElement('iron-iconset-svg');
+iconsetEl.setAttribute('name', 'kubeflow');
+iconsetEl.setAttribute('size', '24');
+iconsetEl.innerHTML = `<svg><defs>${fileData}</defs></svg>`;
 
-document.head.appendChild(template.content);
+document.head.appendChild(iconsetEl);
+

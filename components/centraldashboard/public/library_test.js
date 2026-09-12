@@ -66,7 +66,7 @@ describe('CentralDashboardEventHandler', () => {
             .toHaveBeenCalledWith(
                 {
                     type: APP_CONNECTED_EVENT,
-                }, 'http://testpage.com'
+                }, 'http://testpage.com',
             );
         expect(initSpy).toHaveBeenCalledWith(CentralDashboardEventHandler,
             true);

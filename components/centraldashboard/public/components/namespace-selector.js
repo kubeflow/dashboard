@@ -203,8 +203,8 @@ export class NamespaceSelector extends PolymerElement {
 
         const owned = this.getDefaultNamespace();
 
-        if (selected === ALL_NAMESPACES
-            && allNamespacesAllowedPaths.includes(this.route.path)) {
+        if (selected === ALL_NAMESPACES &&
+            allNamespacesAllowedPaths.includes(this.route.path)) {
             return;
         }
 
@@ -246,12 +246,14 @@ export class NamespaceSelector extends PolymerElement {
      * @param {object} queryParams
      */
     onRouteChange(route, queryParams) {
-        if (route && !allNamespacesAllowedPaths.includes(route.path)
-            && this.selected === ALL_NAMESPACES) {
+        if (route && !allNamespacesAllowedPaths.includes(route.path) &&
+            this.selected === ALL_NAMESPACES) {
             const ns = this.getDefaultNamespace();
-            // Fix in order to ensure that the 'ns' parameter is not being
-            // overwritten by iron-location.
-            // See:
+            /*
+             * Fix in order to ensure that the 'ns' parameter is not being
+             * overwritten by iron-location.
+             * See:
+             */
             setTimeout(() => {
                 this.set('queryParams.ns', ns.namespace);
             });
@@ -276,10 +278,10 @@ export class NamespaceSelector extends PolymerElement {
      */
     _ownedContextChanged(namespaces, selected) {
         const namespace = (namespaces || []).find((i) =>
-            i.namespace == selected
+            i.namespace == selected,
         ) || this.selectedNamespaceIsOwned;
         this._setSelectedNamespaceIsOwned(
-            this.isOwner(namespace.role)
+            this.isOwner(namespace.role),
         );
     }
 

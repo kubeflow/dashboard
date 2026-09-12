@@ -78,4 +78,45 @@ describe('Attach User Middleware', () => {
     expect(mockRequest.user.groups).toEqual(['group-a', 'group-b']);
     expect(mockNextFunction).toHaveBeenCalled();
   });
+
+  it('Should extract groups from a JSON array groups header', () => {
+    const email = 'user@domain.com';
+    mockRequest.header.withArgs(userIdHeader).and.returnValue(email);
+    mockRequest.header.withArgs(groupsHeader).and.returnValue('["group-a","group-b"]');
+
+    middleware(mockRequest, null, mockNextFunction);
+
+    expect(mockRequest.user.groups).toEqual(['group-a', 'group-b']);
+    expect(mockNextFunction).toHaveBeenCalled();
+  });
+
+  it('Should extract groups from a base64-encoded JSON array groups header ' +
+      '(as emitted by Istio\'s RequestAuthentication.outputClaimToHeaders ' +
+      'for array JWT claims)', () => {
+    const email = 'user@domain.com';
+    const encoded =
+        Buffer.from(JSON.stringify(['group-a', 'group-b'])).toString('base64');
+    mockRequest.header.withArgs(userIdHeader).and.returnValue(email);
+    mockRequest.header.withArgs(groupsHeader).and.returnValue(encoded);
+
+    middleware(mockRequest, null, mockNextFunction);
+
+    expect(mockRequest.user.groups).toEqual(['group-a', 'group-b']);
+    expect(mockNextFunction).toHaveBeenCalled();
+  });
+
+  it('Should treat a group name that happens to be valid base64 as a ' +
+      'literal group name, not silently decode it to a different identity',
+      () => {
+    const email = 'user@domain.com';
+    // 'dGVhbQ==' is valid base64 for 'team', but it is not JSON, so it must
+    // be treated as the literal (single) group name it appears to be.
+    mockRequest.header.withArgs(userIdHeader).and.returnValue(email);
+    mockRequest.header.withArgs(groupsHeader).and.returnValue('dGVhbQ==');
+
+    middleware(mockRequest, null, mockNextFunction);
+
+    expect(mockRequest.user.groups).toEqual(['dGVhbQ==']);
+    expect(mockNextFunction).toHaveBeenCalled();
+  });
 });
