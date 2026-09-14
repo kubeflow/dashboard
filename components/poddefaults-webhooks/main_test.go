@@ -322,3 +322,89 @@ func TestSetCommandAndArgs(t *testing.T) {
 		})
 	}
 }
+
+func TestMergeMapIstioListAnnotations(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		existing map[string]string
+		defaults []map[string]string
+		out      map[string]string
+	}{
+		{
+			"Istio already excludes its telemetry port",
+			map[string]string{"traffic.sidecar.istio.io/excludeInboundPorts": "15020"},
+			[]map[string]string{{"traffic.sidecar.istio.io/excludeInboundPorts": "7078,7079"}},
+			map[string]string{"traffic.sidecar.istio.io/excludeInboundPorts": "15020,7078,7079"},
+		},
+		{
+			"Two PodDefaults exclude different ports",
+			map[string]string{"traffic.sidecar.istio.io/excludeOutboundPorts": "15020"},
+			[]map[string]string{
+				{"traffic.sidecar.istio.io/excludeOutboundPorts": "7078"},
+				{"traffic.sidecar.istio.io/excludeOutboundPorts": "7079"},
+			},
+			map[string]string{"traffic.sidecar.istio.io/excludeOutboundPorts": "15020,7078,7079"},
+		},
+		{
+			"Overlapping entries are not repeated",
+			map[string]string{"traffic.sidecar.istio.io/excludeInboundPorts": "15020,7078"},
+			[]map[string]string{{"traffic.sidecar.istio.io/excludeInboundPorts": "7078,7079"}},
+			map[string]string{"traffic.sidecar.istio.io/excludeInboundPorts": "15020,7078,7079"},
+		},
+		{
+			"Pod has no such annotation",
+			map[string]string{},
+			[]map[string]string{{"traffic.sidecar.istio.io/excludeOutboundIPRanges": "10.0.0.0/8"}},
+			map[string]string{"traffic.sidecar.istio.io/excludeOutboundIPRanges": "10.0.0.0/8"},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			defaults := make([]*map[string]string, len(test.defaults))
+			for i := range test.defaults {
+				defaults[i] = &test.defaults[i]
+			}
+			out, err := mergeMap(test.existing, defaults)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(out, test.out) {
+				t.Fatalf("%#v\n  Not Equals:\n%#v", out, test.out)
+			}
+		})
+	}
+}
+
+func TestMergeMapNonIstioAnnotationStillConflicts(t *testing.T) {
+	existing := map[string]string{"sidecar.istio.io/inject": "true"}
+	defaults := map[string]string{"sidecar.istio.io/inject": "false"}
+	if _, err := mergeMap(existing, []*map[string]string{&defaults}); err == nil {
+		t.Fatal("Expected error but got none")
+	}
+}
+
+func TestApplyPodDefaultsOnPodIstioExcludeInboundPorts(t *testing.T) {
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "example-0",
+			Annotations: map[string]string{"traffic.sidecar.istio.io/excludeInboundPorts": "15020"},
+		},
+	}
+	podDefaults := []*settingsapi.PodDefault{
+		{
+			ObjectMeta: metav1.ObjectMeta{Name: "broken-pod-default"},
+			Spec: settingsapi.PodDefaultSpec{
+				Annotations: map[string]string{"traffic.sidecar.istio.io/excludeInboundPorts": "7078,7079"},
+			},
+		},
+	}
+
+	if err := safeToApplyPodDefaultsOnPod(pod, podDefaults); err != nil {
+		t.Fatalf("pod was rejected: %v", err)
+	}
+	applyPodDefaultsOnPod(pod, podDefaults)
+
+	want := "15020,7078,7079"
+	if got := pod.Annotations["traffic.sidecar.istio.io/excludeInboundPorts"]; got != want {
+		t.Fatalf("got %q, want %q", got, want)
+	}
+}

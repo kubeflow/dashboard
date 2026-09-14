@@ -466,6 +466,34 @@ func mergeTolerations(tolerations []corev1.Toleration, podDefaults []*settingsap
 	return mergedTolerations, err
 }
 
+// istioListAnnotations are the Istio annotations whose value is a comma-separated
+// list. The Istio sidecar injector sets some of them on the pod before this webhook
+// runs, so a PodDefault that sets one has to extend the list already on the pod
+// instead of conflicting with it.
+var istioListAnnotations = map[string]bool{
+	"traffic.sidecar.istio.io/excludeInboundPorts":     true,
+	"traffic.sidecar.istio.io/excludeOutboundPorts":    true,
+	"traffic.sidecar.istio.io/excludeOutboundIPRanges": true,
+	"traffic.sidecar.istio.io/excludeInterfaces":       true,
+}
+
+// mergeList appends the entries of add that existing does not already contain,
+// keeping the order of existing.
+func mergeList(existing, add string) string {
+	var (
+		out  []string
+		seen = map[string]bool{}
+	)
+	for _, entry := range append(strings.Split(existing, ","), strings.Split(add, ",")...) {
+		if entry == "" || seen[entry] {
+			continue
+		}
+		seen[entry] = true
+		out = append(out, entry)
+	}
+	return strings.Join(out, ",")
+}
+
 // mergeMap copies the existing map and adds the keys in defaults. It returns
 // an error if it detects any conflict during the merge.
 func mergeMap(existing map[string]string, defaults []*map[string]string) (map[string]string, error) {
@@ -484,6 +512,10 @@ func mergeMap(existing map[string]string, defaults []*map[string]string) (map[st
 				continue
 			}
 			if ov != v {
+				if istioListAnnotations[k] {
+					out[k] = mergeList(ov, v)
+					continue
+				}
 				errs = append(errs, fmt.Errorf("merging has conflict on %s: \n%#v\ndoes not match\n%#v\n in pod", k, v, ov))
 			}
 		}
