@@ -478,17 +478,20 @@ var istioListAnnotations = map[string]bool{
 }
 
 // mergeList appends the entries of add that existing does not already contain,
-// keeping the order of existing.
+// keeping the order and the spelling of the entries that are already there.
+// Entries are compared with surrounding whitespace trimmed, so a pod annotated
+// "15020, 7078" is not handed a second 7078.
 func mergeList(existing, add string) string {
 	var (
 		out  []string
 		seen = map[string]bool{}
 	)
 	for _, entry := range append(strings.Split(existing, ","), strings.Split(add, ",")...) {
-		if entry == "" || seen[entry] {
+		key := strings.TrimSpace(entry)
+		if key == "" || seen[key] {
 			continue
 		}
-		seen[entry] = true
+		seen[key] = true
 		out = append(out, entry)
 	}
 	return strings.Join(out, ",")

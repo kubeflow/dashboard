@@ -352,6 +352,12 @@ func TestMergeMapIstioListAnnotations(t *testing.T) {
 			map[string]string{"traffic.sidecar.istio.io/excludeInboundPorts": "15020,7078,7079"},
 		},
 		{
+			"Pod value has spaces after the separators",
+			map[string]string{"traffic.sidecar.istio.io/excludeInboundPorts": "15020, 7078"},
+			[]map[string]string{{"traffic.sidecar.istio.io/excludeInboundPorts": "7078,7079"}},
+			map[string]string{"traffic.sidecar.istio.io/excludeInboundPorts": "15020, 7078,7079"},
+		},
+		{
 			"Pod has no such annotation",
 			map[string]string{},
 			[]map[string]string{{"traffic.sidecar.istio.io/excludeOutboundIPRanges": "10.0.0.0/8"}},
