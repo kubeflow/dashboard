@@ -148,10 +148,10 @@ func safeToApplyPodDefaultsOnPod(pod *corev1.Pod, podDefaults []*settingsapi.Pod
 		defaultAnnotations[i] = &pd.Spec.Annotations
 		defaultLabels[i] = &pd.Spec.Labels
 	}
-	if _, err := mergeMap(pod.Annotations, defaultAnnotations); err != nil {
+	if _, err := mergeMap(pod.Annotations, defaultAnnotations, istioListAnnotations); err != nil {
 		errs = append(errs, err)
 	}
-	if _, err := mergeMap(pod.Labels, defaultLabels); err != nil {
+	if _, err := mergeMap(pod.Labels, defaultLabels, nil); err != nil {
 		errs = append(errs, err)
 	}
 
@@ -498,8 +498,10 @@ func mergeList(existing, add string) string {
 }
 
 // mergeMap copies the existing map and adds the keys in defaults. It returns
-// an error if it detects any conflict during the merge.
-func mergeMap(existing map[string]string, defaults []*map[string]string) (map[string]string, error) {
+// an error if it detects any conflict during the merge. Keys in listKeys hold
+// comma-separated lists and are unioned instead of conflicting; pass nil for
+// maps such as labels where no key may be treated as a list.
+func mergeMap(existing map[string]string, defaults []*map[string]string, listKeys map[string]bool) (map[string]string, error) {
 	var (
 		out  = map[string]string{}
 		errs []error
@@ -515,7 +517,7 @@ func mergeMap(existing map[string]string, defaults []*map[string]string) (map[st
 				continue
 			}
 			if ov != v {
-				if istioListAnnotations[k] {
+				if listKeys[k] {
 					out[k] = mergeList(ov, v)
 					continue
 				}
@@ -568,13 +570,13 @@ func applyPodDefaultsOnPod(pod *corev1.Pod, podDefaults []*settingsapi.PodDefaul
 			pod.Spec.ServiceAccountName = pd.Spec.ServiceAccountName
 		}
 	}
-	annotations, err := mergeMap(pod.Annotations, defaultAnnotations)
+	annotations, err := mergeMap(pod.Annotations, defaultAnnotations, istioListAnnotations)
 	if err != nil {
 		klog.Error(err)
 	}
 	pod.ObjectMeta.Annotations = annotations
 
-	labels, err := mergeMap(pod.Labels, defaultLabels)
+	labels, err := mergeMap(pod.Labels, defaultLabels, nil)
 	if err != nil {
 		klog.Error(err)
 	}
