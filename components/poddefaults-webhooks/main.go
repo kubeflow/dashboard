@@ -148,10 +148,10 @@ func safeToApplyPodDefaultsOnPod(pod *corev1.Pod, podDefaults []*settingsapi.Pod
 		defaultAnnotations[i] = &pd.Spec.Annotations
 		defaultLabels[i] = &pd.Spec.Labels
 	}
-	if _, err := mergeMap(pod.Annotations, defaultAnnotations); err != nil {
+	if _, err := mergeMap(pod.Annotations, defaultAnnotations, istioListAnnotations); err != nil {
 		errs = append(errs, err)
 	}
-	if _, err := mergeMap(pod.Labels, defaultLabels); err != nil {
+	if _, err := mergeMap(pod.Labels, defaultLabels, nil); err != nil {
 		errs = append(errs, err)
 	}
 
@@ -466,9 +466,42 @@ func mergeTolerations(tolerations []corev1.Toleration, podDefaults []*settingsap
 	return mergedTolerations, err
 }
 
+// istioListAnnotations are the Istio annotations whose value is a comma-separated
+// list. The Istio sidecar injector sets some of them on the pod before this webhook
+// runs, so a PodDefault that sets one has to extend the list already on the pod
+// instead of conflicting with it.
+var istioListAnnotations = map[string]bool{
+	"traffic.sidecar.istio.io/excludeInboundPorts":     true,
+	"traffic.sidecar.istio.io/excludeOutboundPorts":    true,
+	"traffic.sidecar.istio.io/excludeOutboundIPRanges": true,
+	"traffic.sidecar.istio.io/excludeInterfaces":       true,
+}
+
+// mergeList appends the entries of add that existing does not already contain,
+// keeping the order and the spelling of the entries that are already there.
+// Entries are compared with surrounding whitespace trimmed, so a pod annotated
+// "15020, 7078" is not handed a second 7078.
+func mergeList(existing, add string) string {
+	var (
+		out  []string
+		seen = map[string]bool{}
+	)
+	for _, entry := range append(strings.Split(existing, ","), strings.Split(add, ",")...) {
+		key := strings.TrimSpace(entry)
+		if key == "" || seen[key] {
+			continue
+		}
+		seen[key] = true
+		out = append(out, entry)
+	}
+	return strings.Join(out, ",")
+}
+
 // mergeMap copies the existing map and adds the keys in defaults. It returns
-// an error if it detects any conflict during the merge.
-func mergeMap(existing map[string]string, defaults []*map[string]string) (map[string]string, error) {
+// an error if it detects any conflict during the merge. Keys in listKeys hold
+// comma-separated lists and are unioned instead of conflicting; pass nil for
+// maps such as labels where no key may be treated as a list.
+func mergeMap(existing map[string]string, defaults []*map[string]string, listKeys map[string]bool) (map[string]string, error) {
 	var (
 		out  = map[string]string{}
 		errs []error
@@ -484,6 +517,10 @@ func mergeMap(existing map[string]string, defaults []*map[string]string) (map[st
 				continue
 			}
 			if ov != v {
+				if listKeys[k] {
+					out[k] = mergeList(ov, v)
+					continue
+				}
 				errs = append(errs, fmt.Errorf("merging has conflict on %s: \n%#v\ndoes not match\n%#v\n in pod", k, v, ov))
 			}
 		}
@@ -533,13 +570,13 @@ func applyPodDefaultsOnPod(pod *corev1.Pod, podDefaults []*settingsapi.PodDefaul
 			pod.Spec.ServiceAccountName = pd.Spec.ServiceAccountName
 		}
 	}
-	annotations, err := mergeMap(pod.Annotations, defaultAnnotations)
+	annotations, err := mergeMap(pod.Annotations, defaultAnnotations, istioListAnnotations)
 	if err != nil {
 		klog.Error(err)
 	}
 	pod.ObjectMeta.Annotations = annotations
 
-	labels, err := mergeMap(pod.Labels, defaultLabels)
+	labels, err := mergeMap(pod.Labels, defaultLabels, nil)
 	if err != nil {
 		klog.Error(err)
 	}
