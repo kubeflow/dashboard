@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { DashboardLinks } from '../types/dashboard-links';
+import { DashboardSettings } from '../types/dashboard-settings';
 import { EnvInfo } from '../types/env-info';
 
 @Injectable({
@@ -20,5 +21,11 @@ export class CDBBackendService {
     const url = 'api/dashboard-links';
 
     return this.http.get<DashboardLinks>(url);
+  }
+
+  public getDashboardSettings(): Observable<DashboardSettings> {
+    const url = 'api/dashboard-settings';
+
+    return this.http.get<DashboardSettings>(url);
   }
 }

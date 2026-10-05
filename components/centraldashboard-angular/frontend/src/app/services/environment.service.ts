@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { ReplaySubject } from 'rxjs';
 import { DashboardLinks } from '../types/dashboard-links';
+import { DashboardSettings } from '../types/dashboard-settings';
 import { EnvInfo } from '../types/env-info';
 import { Namespace } from '../types/namespace';
 import { PlatformInfo } from '../types/platform-info';
@@ -14,6 +15,7 @@ export class EnvironmentService {
   public user = new ReplaySubject<string>(1);
   public namespaces = new ReplaySubject<Namespace[]>(1);
   public dashboardLinks = new ReplaySubject<DashboardLinks>(1);
+  public dashboardSettings = new ReplaySubject<DashboardSettings>(1);
 
   constructor(private backend: CDBBackendService) {
     this.backend.getEnvInfo().subscribe((res: EnvInfo) => {
@@ -30,6 +32,10 @@ export class EnvironmentService {
 
     this.backend.getDashboardLinks().subscribe((res: DashboardLinks) => {
       this.dashboardLinks.next(res);
+    });
+
+    this.backend.getDashboardSettings().subscribe((res: DashboardSettings) => {
+      this.dashboardSettings.next(res);
     });
   }
 }

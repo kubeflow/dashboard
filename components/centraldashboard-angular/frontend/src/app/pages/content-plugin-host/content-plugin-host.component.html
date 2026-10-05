@@ -1,0 +1,5 @@
+<main class="content-plugin-host" [attr.aria-busy]="loading">
+  <p *ngIf="loading" class="content-plugin-host__status">Loading content...</p>
+  <p *ngIf="error" class="content-plugin-host__error" role="alert">{{ error }}</p>
+  <div #outlet></div>
+</main>

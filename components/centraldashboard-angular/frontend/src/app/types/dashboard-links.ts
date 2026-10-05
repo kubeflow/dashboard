@@ -3,6 +3,18 @@ export interface DashboardLinks {
   externalLinks?: any[];
   quickLinks?: Link[];
   documentationItems?: Link[];
+  contentPlugins?: ContentPlugin[];
+}
+
+export interface ContentPlugin {
+  id: string;
+  route: string;
+  element: string;
+  bundle: string;
+  enabled?: boolean;
+  contractVersion?: number;
+  namespaced?: boolean;
+  replaces?: string;
 }
 
 export interface MenuLink {

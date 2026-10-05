@@ -5,6 +5,7 @@ metadata:
 data:
   settings: |-
     {
+      "DASHBOARD_CONTENT_PLUGINS_ENABLED": false,
       "DASHBOARD_FORCE_IFRAME": true
     }
   links: |-
@@ -114,6 +115,24 @@ data:
                 "desc": "Pipelines",
                 "link": "/pipeline/#/runs",
                 "text": "View Pipeline Runs"
+            }
+        ],
+        "contentPlugins": [
+            {
+                "id": "hello-lit",
+                "route": "/plugins/hello-lit",
+                "element": "dashboard-hello-lit",
+                "bundle": "/assets/plugins/hello-lit/main.js",
+                "enabled": true,
+                "contractVersion": 1
+            },
+            {
+                "id": "hello-react",
+                "route": "/plugins/hello-react",
+                "element": "dashboard-hello-react",
+                "bundle": "/assets/plugins/hello-react/main.js",
+                "enabled": true,
+                "contractVersion": 1
             }
         ]
     }

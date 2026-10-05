@@ -5,9 +5,11 @@ import { HomePageComponent } from './pages/home-page/home-page.component';
 import { IframeWrapperComponent } from './pages/iframe-wrapper/iframe-wrapper.component';
 import { NamespaceNeededPageComponent } from './pages/namespace-needed-page/namespace-needed-page.component';
 import { NotFoundPageComponent } from './pages/not-found-page/not-found-page.component';
+import { ContentPluginHostComponent } from './pages/content-plugin-host/content-plugin-host.component';
 
 const routes: Routes = [
   { path: '', component: HomePageComponent },
+  { path: 'plugins/:pluginId', component: ContentPluginHostComponent },
   {
     path: '_',
     component: IframeWrapperComponent,
