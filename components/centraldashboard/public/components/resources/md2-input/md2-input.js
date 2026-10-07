@@ -10,7 +10,7 @@ import {templateContent} from '../template-utils.js';
 export class Md2Input extends utilitiesMixin(PolymerElement) {
     static get template() {
         return html(templateContent(
-            `<style>${css.toString()}</style>${htmlContainer()}`
+            `<style>${css.toString()}</style>${htmlContainer()}`,
         ));
     }
     static get properties() {

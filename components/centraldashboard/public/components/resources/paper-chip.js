@@ -1,6 +1,6 @@
 /*
-    Implements a Paper Chip element.
-*/
+ *Implements a Paper Chip element.
+ */
 
 import {html, PolymerElement} from '@polymer/polymer/polymer-element.js';
 import '@polymer/paper-icon-button/paper-icon-button.js';

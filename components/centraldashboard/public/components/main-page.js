@@ -264,8 +264,10 @@ export class MainPage extends utilitiesMixin(PolymerElement) {
             hideTabs = true;
             allNamespaces = true;
             hideSidebar = false;
-            // need to use the shadowRoot selector instead of this.$ because
-            // this.$ does not contain dynamically created DOM nodes
+            /*
+             * need to use the shadowRoot selector instead of this.$ because
+             * this.$ does not contain dynamically created DOM nodes
+             */
             this._setActiveLink(this.shadowRoot.querySelector('#contributors'));
             break;
         case '':
@@ -305,12 +307,16 @@ export class MainPage extends utilitiesMixin(PolymerElement) {
     }
 
     _namespaceChanged(namespace) {
-        // update namespaced menu item when namespace is changed
-        // by namespace selector
+        /*
+         * update namespaced menu item when namespace is changed
+         * by namespace selector
+         */
 
         if (namespace) {
-            // Save the user's choice so we are able to restore it,
-            // when re-loading the page without a queryParam
+            /*
+             * Save the user's choice so we are able to restore it,
+             * when re-loading the page without a queryParam
+             */
             const localStorageKey = '/centraldashboard/selectedNamespace/' +
                 (this.user && '.' + this.user || '');
             localStorage.setItem(localStorageKey, namespace);
@@ -324,11 +330,13 @@ export class MainPage extends utilitiesMixin(PolymerElement) {
     }
 
     _buildHref(href, queryParamsChange) {
-        // The "queryParams" value from "queryParamsChange" is not updated as
-        // expected in the "iframe-link", but it works in anchor element.
-        // A temporary workaround is  to use "this.queryParams" as an input
-        // instead of "queryParamsChange.base".
-        // const queryParams = queryParamsChange.base;
+        /*
+         * The "queryParams" value from "queryParamsChange" is not updated as
+         * expected in the "iframe-link", but it works in anchor element.
+         * A temporary workaround is  to use "this.queryParams" as an input
+         * instead of "queryParamsChange.base".
+         * const queryParams = queryParamsChange.base;
+         */
         const queryParams = this.queryParams;
         if (!queryParams || !queryParams['ns']) {
             return this.buildHref(href, this.queryParams);
@@ -344,11 +352,13 @@ export class MainPage extends utilitiesMixin(PolymerElement) {
      * @return {string}
      */
     _buildExternalHref(href, queryParamsChange) {
-        // The "queryParams" value from "queryParamsChange" is not updated as
-        // expected in the "iframe-link", but it works in anchor element.
-        // A temporary workaround is  to use "this.queryParams" as an input
-        // instead of "queryParamsChange.base".
-        // const queryParams = queryParamsChange.base;
+        /*
+         * The "queryParams" value from "queryParamsChange" is not updated as
+         * expected in the "iframe-link", but it works in anchor element.
+         * A temporary workaround is  to use "this.queryParams" as an input
+         * instead of "queryParamsChange.base".
+         * const queryParams = queryParamsChange.base;
+         */
         const queryParams = this.queryParams;
         if (!queryParams || !queryParams['ns']) {
             return href.replace('{ns}', '');
@@ -457,9 +467,9 @@ export class MainPage extends utilitiesMixin(PolymerElement) {
     compareLinks(link, matchingLink) {
         const url = new URL(link, window.location.origin);
         const matchingUrl = new URL(matchingLink, window.location.origin);
-        return url.pathname.replace(/\/$/, '')
-            === matchingUrl.pathname.replace(/\/$/, '')
-            && matchingUrl.hash.startsWith(url.hash);
+        return url.pathname.replace(/\/$/, '') ===
+            matchingUrl.pathname.replace(/\/$/, '') &&
+            matchingUrl.hash.startsWith(url.hash);
     }
 
     _toggleMenuSection(e) {
@@ -545,7 +555,7 @@ export class MainPage extends utilitiesMixin(PolymerElement) {
             disabled: true,
         };
         const namespaces = this.namespaces.filter(
-            (ns) => ns.namespace !== ALL_NAMESPACES
+            (ns) => ns.namespace !== ALL_NAMESPACES,
         );
 
         const allowedUIs = ALL_NAMESPACES_ALLOWED_LIST

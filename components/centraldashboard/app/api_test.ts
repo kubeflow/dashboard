@@ -241,7 +241,7 @@ describe('Main API', () => {
 
     it('should allow access for users with any binding to the namespace', async () => {
       const namespaces: SimpleBinding[] = [
-        {namespace: 'test-namespace', role: 'viewer', user: 'user@example.com'},
+        {namespace: 'test-namespace', role: 'viewer', subject: 'user@example.com'},
       ];
       const workgroupInfo: WorkgroupInfo = {
         isClusterAdmin: false,
@@ -264,7 +264,7 @@ describe('Main API', () => {
 
     it('should deny access for users without any binding to the namespace', async () => {
       const namespaces: SimpleBinding[] = [
-        {namespace: 'other-namespace', role: 'owner', user: 'user@example.com'},
+        {namespace: 'other-namespace', role: 'owner', subject: 'user@example.com'},
       ];
       const workgroupInfo: WorkgroupInfo = {
         isClusterAdmin: false,

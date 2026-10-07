@@ -20,6 +20,7 @@ const allNamespacesAllowedPaths = ALL_NAMESPACES_ALLOWED_LIST
  */
 export class NamespaceSelector extends PolymerElement {
     static get template() {
+        /* eslint-disable max-len */
         return html`
             <style>
                 :host {
@@ -67,6 +68,18 @@ export class NamespaceSelector extends PolymerElement {
                     margin-left: .25em;
                     font-size: .8em;
                 }
+                [group]:not([owner]):not([all-namespaces]):after {
+                    content: '(group)';
+                    margin-left: .25em;
+                    font-size: .8em;
+                    color: #888;
+                }
+                [direct]:not([owner]):not([all-namespaces]):after {
+                    content: '(direct)';
+                    margin-left: .25em;
+                    font-size: .8em;
+                    color: #888;
+                }
                 paper-listbox {
                     --paper-listbox-background-color: white;
                     --paper-listbox-color: black;
@@ -95,6 +108,8 @@ export class NamespaceSelector extends PolymerElement {
                     <template is="dom-repeat" items="{{namespaces}}" as="n">
                         <paper-item name="[[n.namespace]]" title$='[[n.role]]'
                                 owner$='[[isOwner(n.role)]]'
+                                group$='[[isGroup(n.kind)]]'
+                                direct$='[[isUser(n.kind)]]'
                                 disabled$="[[n.disabled]]">
                             [[n.namespace]]
                         </paper-item>
@@ -103,6 +118,7 @@ export class NamespaceSelector extends PolymerElement {
             </paper-menu-button>
         `;
     }
+    /* eslint-enable max-len */
 
     /**
      * Object describing property-related metadata used by Polymer features
@@ -151,6 +167,14 @@ export class NamespaceSelector extends PolymerElement {
         return role == 'owner';
     }
 
+    isGroup(kind) {
+        return (kind || '').toLowerCase() === 'group';
+    }
+
+    isUser(kind) {
+        return (kind || '').toLowerCase() === 'user';
+    }
+
     /**
      * Convert the current state of this component to the visual text seen in
      * the selector
@@ -179,8 +203,8 @@ export class NamespaceSelector extends PolymerElement {
 
         const owned = this.getDefaultNamespace();
 
-        if (selected === ALL_NAMESPACES
-            && allNamespacesAllowedPaths.includes(this.route.path)) {
+        if (selected === ALL_NAMESPACES &&
+            allNamespacesAllowedPaths.includes(this.route.path)) {
             return;
         }
 
@@ -222,12 +246,14 @@ export class NamespaceSelector extends PolymerElement {
      * @param {object} queryParams
      */
     onRouteChange(route, queryParams) {
-        if (route && !allNamespacesAllowedPaths.includes(route.path)
-            && this.selected === ALL_NAMESPACES) {
+        if (route && !allNamespacesAllowedPaths.includes(route.path) &&
+            this.selected === ALL_NAMESPACES) {
             const ns = this.getDefaultNamespace();
-            // Fix in order to ensure that the 'ns' parameter is not being
-            // overwritten by iron-location.
-            // See:
+            /*
+             * Fix in order to ensure that the 'ns' parameter is not being
+             * overwritten by iron-location.
+             * See:
+             */
             setTimeout(() => {
                 this.set('queryParams.ns', ns.namespace);
             });
@@ -252,10 +278,10 @@ export class NamespaceSelector extends PolymerElement {
      */
     _ownedContextChanged(namespaces, selected) {
         const namespace = (namespaces || []).find((i) =>
-            i.namespace == selected
+            i.namespace == selected,
         ) || this.selectedNamespaceIsOwned;
         this._setSelectedNamespaceIsOwned(
-            this.isOwner(namespace.role)
+            this.isOwner(namespace.role),
         );
     }
 
