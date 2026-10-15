@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dashboard-angular-config
+data:
+  settings: |-
+    {
+      "DASHBOARD_CONTENT_PLUGINS_ENABLED": true,
+      "DASHBOARD_FORCE_IFRAME": true
+    }
