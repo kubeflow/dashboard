@@ -171,24 +171,56 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, request ctrl.Request)
 			return reconcile.Result{}, err
 		}
 	} else {
-		// Check exising namespace ownership before move forward
-		owner, ok := foundNs.Annotations["owner"]
-		if ok && owner == instance.Spec.Owner.Name {
-			oldLabels := map[string]string{}
-			for k, v := range foundNs.Labels {
-				oldLabels[k] = v
-			}
-			setNamespaceLabels(foundNs, defaultKubeflowNamespaceLabels)
-			logger.Info("List of labels to be added to found namespace", "labels", ns.Labels)
-			if !reflect.DeepEqual(oldLabels, foundNs.Labels) {
-				err = r.Update(ctx, foundNs)
-				if err != nil {
-					IncRequestErrorCounter("error updating namespace label", SEVERITY_MAJOR)
-					logger.Error(err, "error updating namespace label")
-					return reconcile.Result{}, err
-				}
-			}
-		} else {
+	    // Check existing namespace ownership before moving forward.
+	    //
+	    // A namespace that has no "owner" annotation at all has never been claimed
+	    // by any Profile (for example, it was created directly via
+	    // `kubectl create ns <name>` before the Profile CR existed). Such a
+	    // namespace is safe to adopt into this Profile rather than rejecting the
+	    // request outright. We only reject when the namespace is already owned by
+	    // a *different* user.
+	    owner, ok := foundNs.Annotations["owner"]
+	    if !ok || owner == instance.Spec.Owner.Name {
+	        oldLabels := map[string]string{}
+	        for k, v := range foundNs.Labels {
+	            oldLabels[k] = v
+	        }
+	        oldAnnotations := map[string]string{}
+	        for k, v := range foundNs.Annotations {
+	            oldAnnotations[k] = v
+	        }
+	
+	        if !ok {
+	            logger.Info("Adopting pre-existing namespace with no owner into Profile",
+	                "namespace", foundNs.Name, "owner", instance.Spec.Owner.Name)
+	            IncRequestCounter("adopt pre-existing namespace")
+	            if foundNs.Annotations == nil {
+	                foundNs.Annotations = map[string]string{}
+	            }
+	            foundNs.Annotations["owner"] = instance.Spec.Owner.Name
+	            if foundNs.Labels == nil {
+	                foundNs.Labels = map[string]string{}
+	            }
+	            if _, hasIstioLabel := foundNs.Labels[istioInjectionLabel]; !hasIstioLabel {
+	                foundNs.Labels[istioInjectionLabel] = "enabled"
+	            }
+	            if err := controllerutil.SetControllerReference(instance, foundNs, r.Scheme); err != nil {
+	                logger.Info("warning: could not set ControllerReference on adopted namespace",
+	                    "namespace", foundNs.Name, "error", err.Error())
+	            }
+	        }
+	
+	        setNamespaceLabels(foundNs, defaultKubeflowNamespaceLabels)
+	        logger.Info("List of labels to be added to found namespace", "labels", foundNs.Labels)
+	        if !reflect.DeepEqual(oldLabels, foundNs.Labels) || !reflect.DeepEqual(oldAnnotations, foundNs.Annotations) {
+	            err = r.Update(ctx, foundNs)
+	            if err != nil {
+	                IncRequestErrorCounter("error updating namespace label", SEVERITY_MAJOR)
+	                logger.Error(err, "error updating namespace label")
+	                return reconcile.Result{}, err
+	            }
+	        }
+	    } else {
 			logger.Info(fmt.Sprintf("namespace already exist, but not owned by profile creator %v",
 				instance.Spec.Owner.Name))
 			IncRequestCounter("reject profile taking over existing namespace")
