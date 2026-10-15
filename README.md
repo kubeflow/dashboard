@@ -34,6 +34,27 @@ Kubeflow Dashboard is designed to be deployed as part of a [Kubeflow Platform](h
 
 Please refer to the [Installing Kubeflow](https://www.kubeflow.org/docs/started/installing-kubeflow/) page for more information.
 
+### MLflow navigation
+
+The classic and Angular Dashboard menus include **MLflow Experiments** at
+`/mlflow`, including their KServe overlays. This entry only provides navigation:
+the deployment must separately install MLflow and configure its authenticated
+gateway route. It does not install MLflow, configure authorization, or map the
+Dashboard namespace selector to an MLflow workspace.
+
+Deployments without MLflow should remove the entry using the
+[Dashboard customization configuration](https://www.kubeflow.org/docs/components/central-dash/customize/).
+Distributions overriding the complete `data.links` value must retain the entry
+explicitly; updating the upstream base does not merge individual JSON menu items.
+
+To validate navigation without a cluster, install Kustomize and run:
+
+```bash
+python3 -m venv /tmp/dashboard-navigation-tests
+/tmp/dashboard-navigation-tests/bin/python -m pip install -r testing/requirements-navigation.txt
+/tmp/dashboard-navigation-tests/bin/python testing/shared/dashboard_navigation_test.py
+```
+
 ## Documentation
 
 The official documentation for Kubeflow Dashboard can be found [here](https://www.kubeflow.org/docs/components/central-dash/).

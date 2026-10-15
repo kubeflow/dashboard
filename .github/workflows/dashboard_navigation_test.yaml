@@ -1,0 +1,46 @@
+name: Dashboard Navigation Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+      - v*-branch
+    paths:
+      - components/centraldashboard/manifests/kustomize/**
+      - components/centraldashboard-angular/manifests/kustomize/**
+      - testing/shared/dashboard_navigation_test.py
+      - testing/requirements-navigation.txt
+      - testing/gh-actions/install_kustomize.sh
+      - .github/workflows/dashboard_navigation_test.yaml
+  push:
+    branches:
+      - main
+      - v*-branch
+    paths:
+      - components/centraldashboard/manifests/kustomize/**
+      - components/centraldashboard-angular/manifests/kustomize/**
+      - testing/shared/dashboard_navigation_test.py
+      - testing/requirements-navigation.txt
+      - testing/gh-actions/install_kustomize.sh
+      - .github/workflows/dashboard_navigation_test.yaml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  navigation-test:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Install Kustomize
+        run: ./testing/gh-actions/install_kustomize.sh
+
+      - name: Test rendered navigation
+        run: |
+          python3 -m venv "$RUNNER_TEMP/navigation-tests"
+          "$RUNNER_TEMP/navigation-tests/bin/python" -m pip install -r testing/requirements-navigation.txt
+          "$RUNNER_TEMP/navigation-tests/bin/python" testing/shared/dashboard_navigation_test.py
