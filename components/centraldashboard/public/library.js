@@ -46,8 +46,8 @@ class CentralDashboardEventHandler_ {
                 .then((data) => {
                     if (data.DASHBOARD_FORCE_IFRAME) {
                         // pre-pend `/_/` to navigate to central dashboard
-                        const newLoc = this.window.location.origin
-                            + this.window.location.href.replace(
+                        const newLoc = this.window.location.origin +
+                            this.window.location.href.replace(
                                 this.window.location.origin, '/_');
                         this.window.location.replace(newLoc);
                     }
@@ -167,14 +167,18 @@ class CentralDashboardEventHandler_ {
         this.opener.addEventListener(MESSAGE,
             this._messageEventListener);
 
-        // Notify the Dashboard that an app connected, in order for Dashboard
-        // to propagate the selected namespace. We expect the dasbhoard to be
-        // in the opener's parent window.
+        /*
+         * Notify the Dashboard that an app connected, in order for Dashboard
+         * to propagate the selected namespace. We expect the dasbhoard to be
+         * in the opener's parent window.
+         */
         this.opener.parent.postMessage({type: APP_CONNECTED_EVENT},
             this.opener.parent.origin);
 
-        // Remove event listener when the window closes in order to avoid
-        // being called with wrong context.
+        /*
+         * Remove event listener when the window closes in order to avoid
+         * being called with wrong context.
+         */
         this.window.addEventListener('beforeunload', (evt) => {
             this.detach();
         });

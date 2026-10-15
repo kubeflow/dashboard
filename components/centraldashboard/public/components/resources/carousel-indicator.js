@@ -1,6 +1,6 @@
 /*
-    This file defines the carousel indicator element.
-*/
+ *This file defines the carousel indicator element.
+ */
 
 import {html, PolymerElement} from '@polymer/polymer/polymer-element.js';
 

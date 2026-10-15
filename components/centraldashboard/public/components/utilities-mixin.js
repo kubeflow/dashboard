@@ -75,9 +75,9 @@ export default (superClass) => class extends superClass {
      * @param {object|undefined} detail Event Details
      */
     fireEvent(name, detail) {
-        const ev = name instanceof Event
-            ? name
-            : new CustomEvent(name, {detail});
+        const ev = name instanceof Event ?
+            name :
+            new CustomEvent(name, {detail});
         this.dispatchEvent(ev);
     }
 

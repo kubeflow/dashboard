@@ -23,8 +23,8 @@ export class NotFoundView extends PolymerElement {
     }
 
     /**
-      * Object describing property-related metadata used by Polymer features
-      */
+     * Object describing property-related metadata used by Polymer features
+     */
     static get properties() {
         return {
             path: String,

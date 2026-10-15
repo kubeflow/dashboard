@@ -3,7 +3,7 @@ iron-ajax#RemoveContribAjax(method='DELETE', url='[[_removeUrl(ownedNamespace.na
 iron-ajax#AddContribAjax(method='POST', url='[[_addUrl(ownedNamespace.namespace, newContribRole)]]',
     on-response='handleContribCreate', on-error='handleContribCreate', handle-as='json', content-type='application/json')
 iron-ajax#GetContribsAjax(auto='[[!empty(ownedNamespace)]]', url='/api/workgroup/get-contributors/[[ownedNamespace.namespace]]',
-    last-response='{{contributorList}}', on-error='onContribFetchError', handle-as='json')
+    on-response='handleContribFetch', on-error='onContribFetchError', handle-as='json')
 h2
     iron-icon.icon(icon='kubeflow:account-group')
     span.text
@@ -12,11 +12,20 @@ h2
         code [[ownedNamespace.namespace]]
 .content.small
     .add-row
-        md2-input(label='Email Address', value='{{newContribEmail}}', on-submit='addNewContrib', placeholder='Add by email address', error$='[[contribCreateError]]')
+        md2-input(label='Email Address', value='{{newContribEmail}}', on-submit='addNewContrib', placeholder='Add user by email address', error$='[[contribCreateError]]')
             .prefix(slot='prefix')
-                template(is='dom-repeat', items='[[contributorList]]')
-                    paper-chip(on-remove='removeContributor') [[item.user]] ([[item.role]])
+                template(is='dom-repeat', items='[[userContributorList]]')
+                    paper-chip(on-remove='removeContributor') [[item.subject]] ([[item.role]])
         paper-dropdown-menu(label='Role', no-animations, disabled$='[[!newContribEmail]]')
+            paper-listbox(slot='dropdown-content', selected='{{newContribRole}}', attr-for-selected='value')
+                paper-item(value='contributor') Edit
+                paper-item(value='viewer') View
+    .add-row
+        md2-input(label='Group', value='{{newGroupName}}', on-submit='addNewGroupContrib', placeholder='Add group by name', error$='[[contribCreateError]]')
+            .prefix(slot='prefix')
+                template(is='dom-repeat', items='[[groupContributorList]]')
+                    paper-chip(on-remove='removeGroupContributor') [[item.subject]] ([[item.role]])
+        paper-dropdown-menu(label='Role', no-animations, disabled$='[[!newGroupName]]')
             paper-listbox(slot='dropdown-content', selected='{{newContribRole}}', attr-for-selected='value')
                 paper-item(value='contributor') Edit
                 paper-item(value='viewer') View

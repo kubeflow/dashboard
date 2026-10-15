@@ -30,6 +30,7 @@ const {
   PROFILES_KFAM_SERVICE_HOST = defaultKfam,
   PROFILES_KFAM_SERVICE_PORT = '8081',
   USERID_HEADER = 'X-Goog-Authenticated-User-Email',
+  GROUPS_HEADER = 'kubeflow-groups',
   USERID_PREFIX = 'accounts.google.com:',
   REGISTRATION_FLOW = "true",
   PROMETHEUS_URL = undefined,
@@ -64,7 +65,7 @@ async function main() {
 
   app.use(express.json());
   app.use(express.static(frontEnd));
-  app.use(attachUser(USERID_HEADER, USERID_PREFIX));
+  app.use(attachUser(USERID_HEADER, USERID_PREFIX, GROUPS_HEADER));
   app.get('/debug', (req: Request, res: Response) => {
     res.json({
       user: req.user,
@@ -73,6 +74,7 @@ async function main() {
       registrationFlowAllowed,
       headersForIdentity: {
         USERID_HEADER,
+        GROUPS_HEADER,
         USERID_PREFIX,
       },
     });

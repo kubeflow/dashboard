@@ -18,8 +18,8 @@ const TEMPLATE = `
 const user = 'test@kubeflow.org';
 const ownedNs = {namespace: 'ns1', role: 'owner'};
 const contribList = [
-    {user: 'foo@kubeflow.org', role: 'contributor'},
-    {user: 'bar@kubeflow.org', role: 'viewer'},
+    {subject: 'foo@kubeflow.org', role: 'contributor', kind: 'User'},
+    {subject: 'bar@kubeflow.org', role: 'viewer', kind: 'User'},
 ];
 
 describe('Manage Users View Contributor', () => {
@@ -61,7 +61,7 @@ describe('Manage Users View Contributor', () => {
         expect(manageUsersViewContributor.$.ContribError.opened)
             .toBe(
                 true,
-                'Error toast is not opened'
+                'Error toast is not opened',
             );
         expect(manageUsersViewContributor.contribError)
             .toBe('Failed for test');
@@ -97,7 +97,7 @@ describe('Manage Users View Contributor', () => {
     });
 
     it('Should add contributors correctly', async () => {
-        const updatedList = [{user: 'ap@kubeflow.org', role: 'contributor'}];
+        const updatedList = [{subject: 'ap@kubeflow.org', role: 'contributor', kind: 'User'}];
         mockIronAjax(
             manageUsersViewContributor.$.GetContribsAjax,
             contribList,
@@ -119,15 +119,15 @@ describe('Manage Users View Contributor', () => {
 
         await yieldForRequests();
 
-        expect(manageUsersViewContributor.contributorList)
+        expect(manageUsersViewContributor.userContributorList)
             .toEqual(
                 updatedList,
-                'Invalid list of contributors'
+                'Invalid list of contributors',
             );
     });
 
     it('Should remove contributors correctly', async () => {
-        const updatedList = [{user: 'ap@kubeflow.org', role: 'contributor'}];
+        const updatedList = [{subject: 'ap@kubeflow.org', role: 'contributor', kind: 'User'}];
         mockIronAjax(
             manageUsersViewContributor.$.GetContribsAjax,
             contribList,
@@ -144,15 +144,15 @@ describe('Manage Users View Contributor', () => {
         await yieldForRequests();
 
         manageUsersViewContributor.removeContributor(
-            {model: {item: contribList[0]}}
+            {model: {item: contribList[0]}},
         );
 
         await yieldForRequests();
 
-        expect(manageUsersViewContributor.contributorList)
+        expect(manageUsersViewContributor.userContributorList)
             .toEqual(
                 updatedList,
-                'Invalid list of contributors'
+                'Invalid list of contributors',
             );
     });
 
@@ -171,10 +171,82 @@ describe('Manage Users View Contributor', () => {
         expect(manageUsersViewContributor.shadowRoot.querySelector('h2 > .text').innerText)
             .toBe('Contributors for - ns1');
 
-        expect(manageUsersViewContributor.contributorList)
+        expect(manageUsersViewContributor.userContributorList)
             .toEqual(
                 contribList,
-                'Invalid list of contributors'
+                'Invalid list of user contributors',
+            );
+        expect(manageUsersViewContributor.groupContributorList)
+            .toEqual([], 'Group contributor list should be empty');
+    });
+
+    it('Should add group contributors correctly', async () => {
+        const contribList = [{subject: 'ml-team', role: 'contributor', kind: 'Group'}];
+        const verificationContribs = [
+            {subject: 'ml-team', role: 'contributor', kind: 'Group'},
+            {subject: 'data-team', role: 'contributor', kind: 'Group'},
+        ];
+        mockIronAjax(
+            manageUsersViewContributor.$.GetContribsAjax,
+            contribList,
+        );
+        mockIronAjax(
+            manageUsersViewContributor.$.AddContribAjax,
+            verificationContribs,
+        );
+
+        manageUsersViewContributor.user = user;
+        manageUsersViewContributor.ownedNamespace = ownedNs;
+
+        flush();
+        await yieldForRequests();
+
+        const inputs = manageUsersViewContributor.shadowRoot.querySelectorAll('md2-input');
+        const groupInput = inputs[1];
+        groupInput.value = 'data-team';
+        groupInput.fireEnter();
+
+        await yieldForRequests();
+
+        expect(manageUsersViewContributor.groupContributorList)
+            .toEqual(
+                verificationContribs,
+                'Invalid list of group contributors',
+            );
+    });
+
+    it('Should remove group contributors correctly', async () => {
+        const contribList = [
+            {subject: 'ml-team', role: 'contributor', kind: 'Group'},
+            {subject: 'data-team', role: 'contributor', kind: 'Group'},
+        ];
+        const verificationContribs = [{subject: 'data-team', role: 'contributor', kind: 'Group'}];
+        mockIronAjax(
+            manageUsersViewContributor.$.GetContribsAjax,
+            contribList,
+        );
+        mockIronAjax(
+            manageUsersViewContributor.$.RemoveContribAjax,
+            verificationContribs,
+        );
+
+        manageUsersViewContributor.user = user;
+        manageUsersViewContributor.ownedNamespace = ownedNs;
+
+        flush();
+        await yieldForRequests();
+
+        const inputs = manageUsersViewContributor.shadowRoot.querySelectorAll('md2-input');
+        const groupInput = inputs[1];
+        const chip = groupInput.querySelector('paper-chip:nth-of-type(1)');
+        chip.fireRemove({});
+
+        await yieldForRequests();
+
+        expect(manageUsersViewContributor.groupContributorList)
+            .toEqual(
+                verificationContribs,
+                'Invalid list of group contributors',
             );
     });
 });
