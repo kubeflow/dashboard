@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -11,7 +12,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 type namespaceLabelSuite struct {
@@ -197,4 +201,64 @@ func createMockReconciler() *ProfileReconciler {
 		DefaultNamespaceLabelsPath: "dummy",
 	}
 	return reconciler
+}
+
+// Regression test for https://github.com/kubeflow/dashboard/issues/501.
+//
+// The Profile CRD uses +kubebuilder:subresource:status, so a plain r.Update()
+// call does not persist .Status changes. appendErrorConditionAndReturn() must
+// use r.Status().Update() so the ProfileFailed condition is visible after
+// reconciliation fails.
+func TestAppendErrorConditionPersistsStatusViaSubresource(t *testing.T) {
+	s := runtime.NewScheme()
+	if err := clientgoscheme.AddToScheme(s); err != nil {
+		t.Fatal(err)
+	}
+	if err := profilev1.AddToScheme(s); err != nil {
+		t.Fatal(err)
+	}
+
+	profile := &profilev1.Profile{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-profile",
+			Namespace: "default",
+		},
+	}
+
+	// WithStatusSubresource makes the fake client treat status as a separate
+	// subresource, mirroring how the API server behaves for CRDs with
+	// +kubebuilder:subresource:status. Without this, r.Update() and
+	// r.Status().Update() behave identically in tests.
+	cl := fake.NewClientBuilder().
+		WithScheme(s).
+		WithObjects(profile).
+		WithStatusSubresource(&profilev1.Profile{}).
+		Build()
+
+	r := &ProfileReconciler{
+		Client: cl,
+		Scheme: s,
+		Log:    ctrl.Log,
+	}
+
+	result, err := r.appendErrorConditionAndReturn(context.Background(), profile, "something went wrong")
+	assert.Nil(t, err)
+	assert.Equal(t, ctrl.Result{}, result)
+
+	// Fetch the persisted Profile and verify the condition is in .Status.
+	var got profilev1.Profile
+	if err := cl.Get(context.Background(), types.NamespacedName{Name: "test-profile", Namespace: "default"}, &got); err != nil {
+		t.Fatalf("failed to get profile: %v", err)
+	}
+
+	if len(got.Status.Conditions) == 0 {
+		t.Fatal("ProfileFailed condition was not persisted; r.Status().Update() was not called")
+	}
+	cond := got.Status.Conditions[0]
+	if cond.Type != profilev1.ProfileFailed {
+		t.Errorf("expected condition type %q, got %q", profilev1.ProfileFailed, cond.Type)
+	}
+	if cond.Message != "something went wrong" {
+		t.Errorf("expected condition message %q, got %q", "something went wrong", cond.Message)
+	}
 }

@@ -333,14 +333,17 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, request ctrl.Request)
 	return ctrl.Result{}, nil
 }
 
-// appendErrorConditionAndReturn append failure status to profile CR and mark Reconcile done. If update condition failed, request will be requeued.
+// appendErrorConditionAndReturn appends a ProfileFailed condition to the
+// Profile status and persists it. The Profile CRD uses the status subresource
+// (+kubebuilder:subresource:status), so a regular r.Update() does not persist
+// .Status changes; r.Status().Update() must be used instead.
 func (r *ProfileReconciler) appendErrorConditionAndReturn(ctx context.Context, instance *profilev1.Profile,
 	message string) (ctrl.Result, error) {
 	instance.Status.Conditions = append(instance.Status.Conditions, profilev1.ProfileCondition{
 		Type:    profilev1.ProfileFailed,
 		Message: message,
 	})
-	if err := r.Update(ctx, instance); err != nil {
+	if err := r.Status().Update(ctx, instance); err != nil {
 		return reconcile.Result{}, err
 	}
 	return reconcile.Result{}, nil
