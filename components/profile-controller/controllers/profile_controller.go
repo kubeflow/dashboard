@@ -340,7 +340,7 @@ func (r *ProfileReconciler) appendErrorConditionAndReturn(ctx context.Context, i
 		Type:    profilev1.ProfileFailed,
 		Message: message,
 	})
-	if err := r.Update(ctx, instance); err != nil {
+	if err := r.Status().Update(ctx, instance); err != nil {
 		return reconcile.Result{}, err
 	}
 	return reconcile.Result{}, nil
