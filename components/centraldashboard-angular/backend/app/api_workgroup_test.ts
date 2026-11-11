@@ -123,7 +123,8 @@ describe('Workgroup API', () => {
         it('Should retrieve information for an identity aware cluster',
             async () => {
                 mockProfilesService.v1RoleClusteradminGet
-                    .withArgs('test@testdomain.com')
+                    .withArgs('test@testdomain.com',
+                        {headers: {[header.goog]: `${prefix.goog}test@testdomain.com`}})
                     .and.returnValue(Promise.resolve({response: null, body: false}));
                 mockProfilesService.readBindings.withArgs('test@testdomain.com')
                     .and.returnValue(Promise.resolve({
@@ -164,11 +165,13 @@ describe('Workgroup API', () => {
                 expect(mockProfilesService.readBindings)
                     .toHaveBeenCalledWith('test@testdomain.com');
                 expect(mockProfilesService.v1RoleClusteradminGet)
-                    .toHaveBeenCalledWith('test@testdomain.com');
+                    .toHaveBeenCalledWith('test@testdomain.com',
+                        {headers: {[header.goog]: `${prefix.goog}test@testdomain.com`}});
             });
 
         it('Returns an error status if the Profiles service fails', async () => {
-            mockProfilesService.v1RoleClusteradminGet.withArgs('test@testdomain.com')
+            mockProfilesService.v1RoleClusteradminGet.withArgs('test@testdomain.com',
+                {headers: {[header.goog]: `${prefix.goog}test@testdomain.com`}})
                 .and.callFake(
                     () => Promise.reject(
                         {response: {statusCode: 400}, body: 'A bad thing happened'}));
@@ -194,7 +197,8 @@ describe('Workgroup API', () => {
             expect(mockProfilesService.readBindings)
                 .toHaveBeenCalledWith('test@testdomain.com');
             expect(mockProfilesService.v1RoleClusteradminGet)
-                .toHaveBeenCalledWith('test@testdomain.com');
+                .toHaveBeenCalledWith('test@testdomain.com',
+                    {headers: {[header.goog]: `${prefix.goog}test@testdomain.com`}});
         });
     });
 
@@ -237,7 +241,8 @@ describe('Workgroup API', () => {
         it('Should return for an identity aware cluster with a Workgroup',
             async () => {
                 mockProfilesService.v1RoleClusteradminGet
-                    .withArgs('test@testdomain.com')
+                    .withArgs('test@testdomain.com',
+                        {headers: {[header.goog]: `${prefix.goog}test@testdomain.com`}})
                     .and.returnValue(Promise.resolve({response: null, body: false}));
                 mockProfilesService.readBindings.withArgs('test@testdomain.com')
                     .and.returnValue(Promise.resolve({
@@ -262,12 +267,14 @@ describe('Workgroup API', () => {
                 expect(mockProfilesService.readBindings)
                     .toHaveBeenCalledWith('test@testdomain.com');
                 expect(mockProfilesService.v1RoleClusteradminGet)
-                    .toHaveBeenCalledWith('test@testdomain.com');
+                    .toHaveBeenCalledWith('test@testdomain.com',
+                        {headers: {[header.goog]: `${prefix.goog}test@testdomain.com`}});
             });
 
         it('Should return for an identity aware cluster without a Workgroup', async () => {
             mockProfilesService.v1RoleClusteradminGet
-                .withArgs('test@testdomain.com')
+                .withArgs('test@testdomain.com',
+                    {headers: {[header.goog]: `${prefix.goog}test@testdomain.com`}})
                 .and.returnValue(Promise.resolve({response: null, body: false}));
             mockProfilesService.readBindings.withArgs('test@testdomain.com')
                 .and.returnValue(Promise.resolve({
@@ -286,7 +293,8 @@ describe('Workgroup API', () => {
             expect(mockProfilesService.readBindings)
                 .toHaveBeenCalledWith('test@testdomain.com');
             expect(mockProfilesService.v1RoleClusteradminGet)
-                .toHaveBeenCalledWith('test@testdomain.com');
+                .toHaveBeenCalledWith('test@testdomain.com',
+                    {headers: {[header.goog]: `${prefix.goog}test@testdomain.com`}});
         });
     });
 

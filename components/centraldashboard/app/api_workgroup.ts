@@ -178,7 +178,10 @@ export class WorkgroupApi {
      */
     async getWorkgroupInfo(user: User.User): Promise<WorkgroupInfo> {
         const [adminResponse, bindings] = await Promise.all([
-            this.profilesService.v1RoleClusteradminGet(user.email),
+            // KFAM binds the clusteradmin query to the caller's identity
+            // header; forward the user's identity captured by attachUser.
+            this.profilesService.v1RoleClusteradminGet(
+                user.email, {headers: user.auth || {}}),
             this.profilesService.readBindings(user.email),
         ]);
         const namespaces = mapWorkgroupBindingToSimpleBinding(
