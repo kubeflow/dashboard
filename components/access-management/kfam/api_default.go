@@ -12,6 +12,8 @@ package kfam
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"path"
@@ -130,7 +132,14 @@ func (c *KfamV1Alpha1Client) CreateBinding(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	// check permission before create binding
-	useremail := c.getUserEmail(r.Header)
+	useremail, err := c.getUserEmail(r.Header)
+	if err != nil {
+		IncRequestErrorCounter(identityErrorKind(err), "", action, r.URL.Path,
+			SEVERITY_MAJOR)
+		w.WriteHeader(http.StatusUnauthorized)
+		writeResponse(w, []byte(err.Error()))
+		return
+	}
 	if c.isOwnerOrAdmin(useremail, binding.ReferredNamespace) {
 		err := c.bindingClient.Create(&binding, c.userIdHeader, c.userIdPrefix)
 		if err != nil {
@@ -183,7 +192,14 @@ func (c *KfamV1Alpha1Client) DeleteBinding(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	// check permission before delete
-	useremail := c.getUserEmail(r.Header)
+	useremail, err := c.getUserEmail(r.Header)
+	if err != nil {
+		IncRequestErrorCounter(identityErrorKind(err), "", action, r.URL.Path,
+			SEVERITY_MAJOR)
+		w.WriteHeader(http.StatusUnauthorized)
+		writeResponse(w, []byte(err.Error()))
+		return
+	}
 	if c.isOwnerOrAdmin(useremail, binding.ReferredNamespace) {
 		err := c.bindingClient.Delete(&binding)
 		if err != nil {
@@ -204,7 +220,14 @@ func (c *KfamV1Alpha1Client) DeleteBinding(w http.ResponseWriter, r *http.Reques
 func (c *KfamV1Alpha1Client) DeleteProfile(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	const action = "delete"
-	useremail := c.getUserEmail(r.Header)
+	useremail, err := c.getUserEmail(r.Header)
+	if err != nil {
+		IncRequestErrorCounter(identityErrorKind(err), "", action, r.URL.Path,
+			SEVERITY_MAJOR)
+		w.WriteHeader(http.StatusUnauthorized)
+		writeResponse(w, []byte(err.Error()))
+		return
+	}
 	profileName := path.Base(r.RequestURI)
 	// check permission before delete
 	if c.isOwnerOrAdmin(useremail, profileName) {
@@ -242,6 +265,7 @@ func (c *KfamV1Alpha1Client) ReadBinding(w http.ResponseWriter, r *http.Request)
 		if err != nil {
 			w.WriteHeader(http.StatusForbidden)
 			writeResponse(w, []byte(err.Error()))
+			return
 		}
 		for _, profile := range profList.Items {
 			namespaces = append(namespaces, profile.Name)
@@ -288,7 +312,9 @@ func (c *KfamV1Alpha1Client) QueryClusterAdmin(w http.ResponseWriter, r *http.Re
 		IncRequestCounter("", "", action, r.URL.Path)
 		w.WriteHeader(http.StatusOK)
 	} else {
-		IncRequestErrorCounter(err.Error(), "", action, r.URL.Path,
+		// err is nil at this point (query parsing already succeeded), so do not
+		// dereference it; report the actual failure, the response write.
+		IncRequestErrorCounter("write response failed", "", action, r.URL.Path,
 			SEVERITY_MAJOR)
 		w.WriteHeader(http.StatusInternalServerError)
 	}
@@ -303,8 +329,44 @@ func writeResponse(w http.ResponseWriter, msg []byte) bool {
 	return true
 }
 
-func (c *KfamV1Alpha1Client) getUserEmail(header http.Header) string {
-	return header.Get(c.userIdHeader)[len(c.userIdPrefix):]
+var (
+	errMissingIdentityHeader   = errors.New("identity header missing from request")
+	errIdentityPrefixMismatch  = errors.New("identity header value does not start with the configured prefix")
+	errEmptyIdentityAfterStrip = errors.New("identity header has an empty user after stripping the configured prefix")
+)
+
+// getUserEmail extracts the caller identity from the configured identity
+// request header, stripping the configured prefix. It returns an error instead
+// of panicking when the header is missing, when its value does not start with
+// the prefix (which previously truncated to a wrong identity), or when nothing
+// is left after stripping.
+func (c *KfamV1Alpha1Client) getUserEmail(header http.Header) (string, error) {
+	value := header.Get(c.userIdHeader)
+	if value == "" {
+		return "", fmt.Errorf("%w: %q not present in request", errMissingIdentityHeader, c.userIdHeader)
+	}
+	if !strings.HasPrefix(value, c.userIdPrefix) {
+		return "", fmt.Errorf("%w: value of %q does not start with prefix %q",
+			errIdentityPrefixMismatch, c.userIdHeader, c.userIdPrefix)
+	}
+	email := strings.TrimPrefix(value, c.userIdPrefix)
+	if email == "" {
+		return "", fmt.Errorf("%w: %q", errEmptyIdentityAfterStrip, c.userIdHeader)
+	}
+	return email, nil
+}
+
+// identityErrorKind maps a getUserEmail error to a short, stable metric kind
+// so request_kf_failure labels stay bounded.
+func identityErrorKind(err error) string {
+	switch {
+	case errors.Is(err, errIdentityPrefixMismatch):
+		return "identity prefix mismatch"
+	case errors.Is(err, errEmptyIdentityAfterStrip):
+		return "empty identity after prefix"
+	default:
+		return "missing identity header"
+	}
 }
 
 func (c *KfamV1Alpha1Client) isClusterAdmin(queryUser string) bool {
