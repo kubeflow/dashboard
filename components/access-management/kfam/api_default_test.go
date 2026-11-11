@@ -553,9 +553,11 @@ func (f *failingResponseWriter) WriteHeader(code int) { f.code = code }
 
 func TestQueryClusterAdminOnWriteFailure(t *testing.T) {
 	// Before the fix, the write-failure branch called err.Error() on a nil err
-	// and panicked; it must instead report a 500.
+	// and panicked; it must instead report a 500. The identity header must be
+	// present so the request reaches the response write.
 	kc := newIAPStyleClient(&fakeProfileClient{}, &fakeBindingClient{})
 	req := httptest.NewRequest(http.MethodGet, "/kfam/v1/role/clusteradmin?user=admin@example.com", nil)
+	req.Header.Set("x-goog-authenticated-user-email", "accounts.google.com:admin@example.com")
 	w := &failingResponseWriter{header: http.Header{}}
 
 	// A panic here would fail the test via the test goroutine.
@@ -563,5 +565,126 @@ func TestQueryClusterAdminOnWriteFailure(t *testing.T) {
 
 	if w.code != http.StatusInternalServerError {
 		t.Fatalf("status: %d, expected: 500", w.code)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// QueryClusterAdmin identity binding (regression: the endpoint used to answer
+// for any caller-supplied ?user= without consulting the request identity)
+// ---------------------------------------------------------------------------
+
+func TestQueryClusterAdminIdentityBinding(t *testing.T) {
+	const headerName = "x-goog-authenticated-user-email"
+	const prefix = "accounts.google.com:"
+
+	tests := []struct {
+		name     string
+		identity string // header value; "" means the header is not set
+		query    string
+		wantCode int
+		wantBody string // substring expected in the body
+	}{
+		{
+			name:     "no identity header asking about an admin is rejected",
+			identity: "",
+			query:    "user=admin@example.com",
+			wantCode: http.StatusUnauthorized,
+			wantBody: "identity",
+		},
+		{
+			name:     "no identity header and no query is rejected",
+			identity: "",
+			query:    "",
+			wantCode: http.StatusUnauthorized,
+			wantBody: "identity",
+		},
+		{
+			name:     "header shorter than prefix does not panic",
+			identity: "x",
+			query:    "user=admin@example.com",
+			wantCode: http.StatusUnauthorized,
+			wantBody: "identity",
+		},
+		{
+			name:     "header equal to the prefix is an empty identity",
+			identity: prefix,
+			query:    "user=admin@example.com",
+			wantCode: http.StatusUnauthorized,
+			wantBody: "identity",
+		},
+		{
+			name:     "header not carrying the prefix is rejected, not truncated",
+			identity: "othergateway:admin@example.com",
+			query:    "user=admin@example.com",
+			wantCode: http.StatusUnauthorized,
+			wantBody: "prefix",
+		},
+		{
+			name:     "authenticated non-admin without query gets own status",
+			identity: prefix + "user@example.com",
+			query:    "",
+			wantCode: http.StatusOK,
+			wantBody: "false",
+		},
+		{
+			name:     "authenticated non-admin may query own status",
+			identity: prefix + "user@example.com",
+			query:    "user=user@example.com",
+			wantCode: http.StatusOK,
+			wantBody: "false",
+		},
+		{
+			name:     "authenticated admin may query own status",
+			identity: prefix + "admin@example.com",
+			query:    "user=admin@example.com",
+			wantCode: http.StatusOK,
+			wantBody: "true",
+		},
+		{
+			name:     "non-admin enumerating an admin is forbidden",
+			identity: prefix + "user@example.com",
+			query:    "user=admin@example.com",
+			wantCode: http.StatusForbidden,
+			wantBody: "only cluster admins",
+		},
+		{
+			name:     "non-admin probing another non-admin is forbidden",
+			identity: prefix + "user@example.com",
+			query:    "user=bob@example.com",
+			wantCode: http.StatusForbidden,
+			wantBody: "only cluster admins",
+		},
+		{
+			name:     "admin may query another user",
+			identity: prefix + "admin@example.com",
+			query:    "user=bob@example.com",
+			wantCode: http.StatusOK,
+			wantBody: "false",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			kc := newIAPStyleClient(&fakeProfileClient{}, &fakeBindingClient{})
+			target := "/kfam/v1/role/clusteradmin"
+			if tt.query != "" {
+				target += "?" + tt.query
+			}
+			req := httptest.NewRequest(http.MethodGet, target, nil)
+			if tt.identity != "" {
+				req.Header.Set(headerName, tt.identity)
+			}
+			recorder := httptest.NewRecorder()
+
+			// A panic here would fail the test via the test goroutine.
+			kc.QueryClusterAdmin(recorder, req)
+
+			if recorder.Code != tt.wantCode {
+				t.Fatalf("status code: %d, expected: %d, body: %s", recorder.Code, tt.wantCode, recorder.Body.String())
+			}
+			if tt.wantBody != "" && !strings.Contains(recorder.Body.String(), tt.wantBody) {
+				t.Fatalf("body: %q, expected to contain: %q", recorder.Body.String(), tt.wantBody)
+			}
+		})
 	}
 }

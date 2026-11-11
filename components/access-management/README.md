@@ -50,3 +50,20 @@ we provide update / share / delete APIs and perform permission check on every co
   * For example filter by "namespace=abc" when need to list users of a namespace "abc"; called when need to list users of namespace "abc".
 * `delete`: delete binding; 
   * called when admin or owner revoke namespace access.
+
+## Identity and Authorization
+
+Every API request must carry the user identity in the header configured by the
+`--userid-header` / `--userid-prefix` flags (for example `kubeflow-userid` with
+an empty prefix on Dex-based deployments, or `x-goog-authenticated-user-email`
+with prefix `accounts.google.com:` on IAP-based deployments). Permission checks
+(`create`/`delete` bindings and profiles) are performed against that identity;
+without the header those endpoints respond `401 Unauthorized`.
+
+`GET /v1/role/clusteradmin` additionally binds the query to that identity:
+
+- without the identity header the endpoint responds `401 Unauthorized`;
+- the queried user defaults to the caller; a non-admin caller may only query
+  its own cluster-admin status;
+- querying the status of another user requires the caller to be a cluster
+  admin, otherwise the endpoint responds `403 Forbidden`.

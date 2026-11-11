@@ -299,21 +299,46 @@ func (c *KfamV1Alpha1Client) ReadBinding(w http.ResponseWriter, r *http.Request)
 func (c *KfamV1Alpha1Client) QueryClusterAdmin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	const action = "read"
+
+	// The endpoint answers an authorization question, so the caller must be
+	// authenticated. Identity comes from the configured identity header,
+	// exactly like every other handler in this file.
+	callerUser, err := c.getUserEmail(r.Header)
+	if err != nil {
+		IncRequestErrorCounter(identityErrorKind(err), "", action, r.URL.Path,
+			SEVERITY_MAJOR)
+		w.WriteHeader(http.StatusUnauthorized)
+		writeResponse(w, []byte(err.Error()))
+		return
+	}
+
 	queries, err := url.ParseQuery(r.URL.RawQuery)
 	if err != nil {
-		IncRequestErrorCounter(err.Error(), "", action, r.URL.Path,
+		IncRequestErrorCounter(err.Error(), callerUser, action, r.URL.Path,
 			SEVERITY_MAJOR)
 		w.WriteHeader(http.StatusForbidden)
 		writeResponse(w, []byte(err.Error()))
 		return
 	}
+
+	// The queried user defaults to the caller. A non-admin caller may only
+	// query its own cluster-admin status; asking about other users is
+	// reserved for cluster admins.
 	queryUser := queries.Get("user")
+	if queryUser == "" {
+		queryUser = callerUser
+	}
+	if queryUser != callerUser && !c.isClusterAdmin(callerUser) {
+		IncRequestCounter("forbidden", callerUser, action, r.URL.Path)
+		w.WriteHeader(http.StatusForbidden)
+		writeResponse(w, []byte("only cluster admins may query the cluster-admin status of other users"))
+		return
+	}
+
 	if writeResponse(w, []byte(strconv.FormatBool(c.isClusterAdmin(queryUser)))) {
-		IncRequestCounter("", "", action, r.URL.Path)
+		IncRequestCounter("", callerUser, action, r.URL.Path)
 		w.WriteHeader(http.StatusOK)
 	} else {
-		// err is nil at this point (query parsing already succeeded), so do not
-		// dereference it; report the actual failure, the response write.
 		IncRequestErrorCounter("write response failed", "", action, r.URL.Path,
 			SEVERITY_MAJOR)
 		w.WriteHeader(http.StatusInternalServerError)
