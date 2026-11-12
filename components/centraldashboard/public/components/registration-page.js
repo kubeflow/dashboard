@@ -84,7 +84,7 @@ export class RegistrationPage extends utilitiesMixin(PolymerElement) {
         if (finalRgx.test(this.namespaceName)) return true;
         this.showError(
             `Name can only start and end with alpha-num characters, `+
-            `dashes are only permitted between start and end. (minlength >= 1)`
+            `dashes are only permitted between start and end. (minlength >= 1)`,
         );
     }
 
@@ -109,8 +109,10 @@ export class RegistrationPage extends utilitiesMixin(PolymerElement) {
         if (this.error && this.error.response) {
             return this.waitForRedirect = false;
         }
-        // Poll for profile over a span of 20 seconds (every 300ms)
-        // if still not there, let the user click next again!
+        /*
+         * Poll for profile over a span of 20 seconds (every 300ms)
+         * if still not there, let the user click next again!
+         */
         const success = await this.pollProfile(66, 300);
         if (success) this._successSetup();
         this.waitForRedirect = false;

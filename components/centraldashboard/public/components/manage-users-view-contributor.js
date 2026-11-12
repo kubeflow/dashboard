@@ -32,7 +32,10 @@ export class ManageUsersViewContributor extends utilitiesMixin(PolymerElement) {
             user: {type: String, value: 'Loading...'},
             ownedNamespace: {type: Object, value: () => ({})},
             newContribEmail: String,
+            newGroupName: String,
             newContribRole: {type: String, value: 'contributor'},
+            userContributorList: {type: Array, value: () => []},
+            groupContributorList: {type: Array, value: () => []},
             _removingRole: {type: String, value: 'contributor'},
             contribError: Object,
         };
@@ -49,14 +52,6 @@ export class ManageUsersViewContributor extends utilitiesMixin(PolymerElement) {
         return `/api/workgroup/${endpoint}/${namespace}`;
     }
     /**
-     * Triggers an API call to create a new Contributor
-     */
-    addNewContrib() {
-        const api = this.$.AddContribAjax;
-        api.body = {contributor: this.newContribEmail};
-        api.generateRequest();
-    }
-    /**
      * Computes the remove URL based on the role being removed.
      * @param {string} namespace
      * @param {string} role
@@ -68,14 +63,50 @@ export class ManageUsersViewContributor extends utilitiesMixin(PolymerElement) {
         return `/api/workgroup/${endpoint}/${namespace}`;
     }
     /**
-     * Triggers an API call to remove a Contributor
+     * Triggers an API call to create a new user Contributor
+     */
+    addNewContrib() {
+        const api = this.$.AddContribAjax;
+        api.body = {contributor: this.newContribEmail, cType: 'user'};
+        api.generateRequest();
+    }
+    /**
+     * Triggers an API call to create a new group Contributor
+     */
+    addNewGroupContrib() {
+        const api = this.$.AddContribAjax;
+        api.body = {contributor: this.newGroupName, cType: 'group'};
+        api.generateRequest();
+    }
+    /**
+     * Triggers an API call to remove a user Contributor
      * @param {Event} e
      */
     removeContributor(e) {
         this._removingRole = e.model.item.role;
         const api = this.$.RemoveContribAjax;
-        api.body = {contributor: e.model.item.user};
+        api.body = {contributor: e.model.item.subject, cType: 'user'};
         api.generateRequest();
+    }
+    /**
+     * Triggers an API call to remove a group Contributor
+     * @param {Event} e
+     */
+    removeGroupContributor(e) {
+        this._removingRole = e.model.item.role;
+        const api = this.$.RemoveContribAjax;
+        api.body = {contributor: e.model.item.subject, cType: 'group'};
+        api.generateRequest();
+    }
+    /**
+     * Splits a contributors response array into user and group lists.
+     * @param {Array} contribs
+     */
+    _updateContributorLists(contribs) {
+        this.groupContributorList = contribs
+            .filter((c) => c.kind && c.kind.toLowerCase() === 'group');
+        this.userContributorList = contribs
+            .filter((c) => c.kind && c.kind.toLowerCase() === 'user');
     }
     /**
      * Takes an event from iron-ajax and isolates the error from a request that
@@ -101,8 +132,8 @@ export class ManageUsersViewContributor extends utilitiesMixin(PolymerElement) {
             this.contribCreateError = error;
             return;
         }
-        this.contributorList = e.detail.response;
-        this.newContribEmail = this.contribCreateError = '';
+        this._updateContributorLists(e.detail.response);
+        this.newContribEmail = this.newGroupName = this.contribCreateError = '';
     }
     /**
      * Iron-Ajax response / error handler for removeContributor
@@ -114,8 +145,19 @@ export class ManageUsersViewContributor extends utilitiesMixin(PolymerElement) {
             this.contribCreateError = error;
             return;
         }
-        this.contributorList = e.detail.response;
-        this.newContribEmail = this.contribCreateError = '';
+        this._updateContributorLists(e.detail.response);
+        this.newContribEmail = this.newGroupName = this.contribCreateError = '';
+    }
+    /**
+     * Iron-Ajax response handler for getContributors
+     * @param {IronAjaxEvent} e
+     */
+    handleContribFetch(e) {
+        if (e.detail.error) {
+            this.onContribFetchError(e);
+            return;
+        }
+        this._updateContributorLists(e.detail.response);
     }
     /**
      * Iron-Ajax error handler for getContributors

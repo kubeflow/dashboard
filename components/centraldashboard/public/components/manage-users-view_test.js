@@ -75,7 +75,7 @@ describe('Manage Users View', () => {
         expect(manageUsersView.shadowRoot.querySelector('.Namespaces vaadin-grid').items)
             .toEqual(
                 [['Owner', 'ns1'], ['Contributor', 'ns2, ns3'], ['Viewer', 'ns4, ns5']],
-                'Invalid namespace memberships'
+                'Invalid namespace memberships',
             );
     });
 
@@ -107,7 +107,7 @@ describe('Manage Users View', () => {
         expect(manageUsersView.shadowRoot.querySelector('.Cluster-Namespaces vaadin-grid').items)
             .toEqual(
                 allPeeps,
-                'Invalid list of all namespace memberships'
+                'Invalid list of all namespace memberships',
             );
     });
 });
