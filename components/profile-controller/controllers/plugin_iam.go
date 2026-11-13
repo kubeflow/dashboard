@@ -13,7 +13,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	"github.com/go-logr/logr"
 	profilev1 "github.com/kubeflow/dashboard/components/profile-controller/api/v1"
-	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -138,6 +137,227 @@ func removeIAMRoleAnnotation(sa *corev1.ServiceAccount, iamRoleArn string) {
 	}
 }
 
+func statementHasAction(statement MapOfInterfaces, targetAction string) bool {
+	action, ok := statement["Action"]
+	if !ok {
+		return false
+	}
+	switch a := action.(type) {
+	case string:
+		return strings.EqualFold(a, targetAction)
+	case []interface{}:
+		for _, item := range a {
+			if str, ok := item.(string); ok && strings.EqualFold(str, targetAction) {
+				return true
+			}
+		}
+	case []string:
+		for _, item := range a {
+			if strings.EqualFold(item, targetAction) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func getStatementFederatedArn(statement MapOfInterfaces) string {
+	principal, ok := statement["Principal"]
+	if !ok {
+		return ""
+	}
+	pMap, ok := principal.(map[string]interface{})
+	if !ok {
+		return ""
+	}
+	fed, ok := pMap["Federated"]
+	if !ok {
+		return ""
+	}
+	fedStr, ok := fed.(string)
+	if !ok {
+		return ""
+	}
+	return fedStr
+}
+
+func stringEqualsMatches(val interface{}, target string) bool {
+	switch v := val.(type) {
+	case string:
+		return v == target
+	case []interface{}:
+		for _, item := range v {
+			if str, ok := item.(string); ok && str == target {
+				return true
+			}
+		}
+	case []string:
+		for _, item := range v {
+			if item == target {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func extractSubValues(val interface{}) []string {
+	var res []string
+	if val == nil {
+		return res
+	}
+	switch v := val.(type) {
+	case string:
+		if v != "" {
+			res = append(res, v)
+		}
+	case []interface{}:
+		for _, item := range v {
+			if str, ok := item.(string); ok && str != "" {
+				res = append(res, str)
+			}
+		}
+	case []string:
+		for _, str := range v {
+			if str != "" {
+				res = append(res, str)
+			}
+		}
+	}
+	return res
+}
+
+type oidcCandidate struct {
+	index               int
+	providerArn         string
+	issuerUrl           string
+	existingSubs        []string
+	containsTargetSA    bool
+	containsNamespaceSA bool
+}
+
+func findKubeflowOIDCStatementIndex(statements []MapOfInterfaces, namespace, serviceAccountName string, isRemove bool) (int, string, error) {
+	targetSA := fmt.Sprintf(AWS_TRUST_IDENTITY_SUBJECT, namespace, serviceAccountName)
+	nsPrefix := fmt.Sprintf("system:serviceaccount:%s:", namespace)
+
+	var candidates []oidcCandidate
+
+	for i, stmt := range statements {
+		fedArn := getStatementFederatedArn(stmt)
+		if fedArn == "" || !strings.Contains(fedArn, "oidc-provider/") {
+			continue
+		}
+		if !statementHasAction(stmt, "sts:AssumeRoleWithWebIdentity") {
+			continue
+		}
+		if eff, ok := stmt["Effect"].(string); ok && eff != "Allow" {
+			continue
+		}
+
+		issuerUrl := getIssuerUrlFromProviderArn(fedArn)
+		audKey := issuerUrl + ":aud"
+		subKey := issuerUrl + ":sub"
+
+		condMap, ok := stmt["Condition"].(map[string]interface{})
+		if !ok {
+			continue
+		}
+		strEqualsMap, ok := condMap["StringEquals"].(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		// Must have aud == sts.amazonaws.com
+		if !stringEqualsMatches(strEqualsMap[audKey], AWS_DEFAULT_AUDIENCE) {
+			continue
+		}
+
+		// Extract existing subjects
+		subs := extractSubValues(strEqualsMap[subKey])
+
+		// Check if it has non-Kubernetes subjects (e.g. repo:org/repo:... for GitHub Actions)
+		hasNonK8sSubject := false
+		for _, sub := range subs {
+			if !strings.HasPrefix(sub, "system:serviceaccount:") {
+				hasNonK8sSubject = true
+				break
+			}
+		}
+		if hasNonK8sSubject {
+			// Disqualify third-party non-Kubernetes OIDC statements
+			continue
+		}
+
+		cand := oidcCandidate{
+			index:        i,
+			providerArn:  fedArn,
+			issuerUrl:    issuerUrl,
+			existingSubs: subs,
+		}
+
+		for _, sub := range subs {
+			if sub == targetSA {
+				cand.containsTargetSA = true
+			}
+			if strings.HasPrefix(sub, nsPrefix) {
+				cand.containsNamespaceSA = true
+			}
+		}
+
+		candidates = append(candidates, cand)
+	}
+
+	if isRemove {
+		var matched []oidcCandidate
+		for _, c := range candidates {
+			if c.containsTargetSA {
+				matched = append(matched, c)
+			}
+		}
+		if len(matched) == 0 {
+			// Target SA is not present in any candidate statement; this is an idempotent remove
+			return -1, "", nil
+		}
+		if len(matched) == 1 {
+			return matched[0].index, matched[0].providerArn, nil
+		}
+		return -1, "", fmt.Errorf("ambiguous trust policy: multiple candidate OIDC statements contain service account %s", targetSA)
+	}
+
+	// For Add:
+	// 1. Check idempotency: if target SA already present in any candidate statement
+	for _, c := range candidates {
+		if c.containsTargetSA {
+			return -1, "", &ConditionExistError{msg: fmt.Sprintf("service account %s already exists in trust policy", targetSA)}
+		}
+	}
+
+	// 2. If exactly one candidate already manages service accounts for this namespace
+	var nsMatched []oidcCandidate
+	for _, c := range candidates {
+		if c.containsNamespaceSA {
+			nsMatched = append(nsMatched, c)
+		}
+	}
+	if len(nsMatched) == 1 {
+		return nsMatched[0].index, nsMatched[0].providerArn, nil
+	}
+	if len(nsMatched) > 1 {
+		return -1, "", fmt.Errorf("ambiguous trust policy: multiple candidate OIDC statements contain service accounts for namespace %s", namespace)
+	}
+
+	// 3. Ambiguity evaluation on candidates
+	if len(candidates) == 0 {
+		return -1, "", errors.New("no matching OIDC trust statement found in trust policy")
+	}
+	if len(candidates) == 1 {
+		return candidates[0].index, candidates[0].providerArn, nil
+	}
+
+	// Multiple candidates exist and neither can be uniquely proven to be the Kubeflow statement
+	return -1, "", fmt.Errorf("ambiguous trust policy: found %d candidate OIDC statements; cannot safely determine Kubeflow-managed statement", len(candidates))
+}
+
 // add serviceAccountNamespace/serviceAccountName in assumeRolePolicy
 func addServiceAccountInAssumeRolePolicy(policyDocument, serviceAccountNamespace, serviceAccountName string) (string, error) {
 	var oldDoc MapOfInterfaces
@@ -150,45 +370,58 @@ func addServiceAccountInAssumeRolePolicy(policyDocument, serviceAccountNamespace
 	if err != nil {
 		return "", err
 	}
-	json.Unmarshal(statementInBytes, &statements)
-
-	oidcRoleArn := gjson.Get(policyDocument, "Statement.0.Principal.Federated").String()
-	issuerUrlWithProtocol := getIssuerUrlFromProviderArn(oidcRoleArn)
-
-	key := fmt.Sprintf("%s:sub", issuerUrlWithProtocol)
-	trustIdentity := fmt.Sprintf(AWS_TRUST_IDENTITY_SUBJECT, serviceAccountNamespace, serviceAccountName)
-
-	// We assume we only operator on first statement, don't add/remove new statement
-	statement := statements[0]
-	statementInBytes, err = json.Marshal(statement)
-	if err != nil {
+	if err := json.Unmarshal(statementInBytes, &statements); err != nil {
 		return "", err
 	}
-	identities := gjson.Get(string(statementInBytes), "Condition.StringEquals").Map()
 
-	var originalIdentities []string
-	val, ok := identities[key]
-	if ok {
-		for _, identity := range val.Array() {
-			if identity.Str == trustIdentity {
-				// check if trustIdentity is in the list, if so, we skip add it
-				return policyDocument, &ConditionExistError{}
-			}
-			originalIdentities = append(originalIdentities, identity.Str)
-		}
+	targetIdx, oidcRoleArn, err := findKubeflowOIDCStatementIndex(statements, serviceAccountNamespace, serviceAccountName, false)
+	if err != nil {
+		return policyDocument, err
 	}
 
-	// add new serviceAccountNamespace/serviceAccountName record
-	originalIdentities = append(originalIdentities, fmt.Sprintf(AWS_TRUST_IDENTITY_SUBJECT, serviceAccountNamespace, serviceAccountName))
-	document := MakeAssumeRoleWithWebIdentityPolicyDocument(oidcRoleArn, MapOfInterfaces{
-		"StringEquals": map[string][]string{
-			issuerUrlWithProtocol + ":aud": []string{AWS_DEFAULT_AUDIENCE},
-			issuerUrlWithProtocol + ":sub": originalIdentities,
-		},
-	})
+	issuerUrlWithProtocol := getIssuerUrlFromProviderArn(oidcRoleArn)
+	subKey := fmt.Sprintf("%s:sub", issuerUrlWithProtocol)
+	audKey := fmt.Sprintf("%s:aud", issuerUrlWithProtocol)
+	trustIdentity := fmt.Sprintf(AWS_TRUST_IDENTITY_SUBJECT, serviceAccountNamespace, serviceAccountName)
 
-	newAssumeRolePolicyDocument := MakePolicyDocument(document)
-	newPolicyDoc, err := json.Marshal(newAssumeRolePolicyDocument)
+	stmt := statements[targetIdx]
+
+	condObj, ok := stmt["Condition"]
+	var condMap map[string]interface{}
+	if ok && condObj != nil {
+		condMap, _ = condObj.(map[string]interface{})
+	}
+	if condMap == nil {
+		condMap = make(map[string]interface{})
+		stmt["Condition"] = condMap
+	}
+
+	strEqObj, ok := condMap["StringEquals"]
+	var strEqMap map[string]interface{}
+	if ok && strEqObj != nil {
+		strEqMap, _ = strEqObj.(map[string]interface{})
+	}
+	if strEqMap == nil {
+		strEqMap = make(map[string]interface{})
+		condMap["StringEquals"] = strEqMap
+	}
+
+	if _, ok := strEqMap[audKey]; !ok {
+		strEqMap[audKey] = []string{AWS_DEFAULT_AUDIENCE}
+	}
+
+	existingSubs := extractSubValues(strEqMap[subKey])
+	for _, id := range existingSubs {
+		if id == trustIdentity {
+			return policyDocument, &ConditionExistError{}
+		}
+	}
+	existingSubs = append(existingSubs, trustIdentity)
+	strEqMap[subKey] = existingSubs
+
+	statements[targetIdx] = stmt
+	oldDoc["Statement"] = statements
+	newPolicyDoc, err := json.Marshal(oldDoc)
 	if err != nil {
 		return "", err
 	}
@@ -197,58 +430,68 @@ func addServiceAccountInAssumeRolePolicy(policyDocument, serviceAccountNamespace
 
 func removeServiceAccountInAssumeRolePolicy(policyDocument, serviceAccountNamespace, serviceAccountName string) (string, error) {
 	var oldDoc MapOfInterfaces
-	json.Unmarshal([]byte(policyDocument), &oldDoc)
+	err := json.Unmarshal([]byte(policyDocument), &oldDoc)
+	if err != nil {
+		return "", err
+	}
 	var statements []MapOfInterfaces
 	statementInBytes, err := json.Marshal(oldDoc["Statement"])
 	if err != nil {
 		return "", err
 	}
-	json.Unmarshal(statementInBytes, &statements)
-
-	oidcRoleArn := gjson.Get(policyDocument, "Statement.0.Principal.Federated").String()
-	issuerUrlWithProtocol := getIssuerUrlFromProviderArn(oidcRoleArn)
-
-	key := fmt.Sprintf("%s:sub", issuerUrlWithProtocol)
-	trustIdentity := fmt.Sprintf(AWS_TRUST_IDENTITY_SUBJECT, serviceAccountNamespace, serviceAccountName)
-	statement := statements[0]
-
-	statementInBytes, err = json.Marshal(statement)
-	if err != nil {
+	if err := json.Unmarshal(statementInBytes, &statements); err != nil {
 		return "", err
 	}
-	identities := gjson.Get(string(statementInBytes), "Condition.StringEquals").Map()
 
-	var newIdentities []string
-	val, ok := identities[key]
-	if ok {
-		for _, identity := range val.Array() {
-			if identity.Str != trustIdentity {
-				newIdentities = append(newIdentities, identity.Str)
-			}
+	targetIdx, oidcRoleArn, err := findKubeflowOIDCStatementIndex(statements, serviceAccountNamespace, serviceAccountName, true)
+	if err != nil {
+		return policyDocument, err
+	}
+	if targetIdx == -1 {
+		return policyDocument, nil
+	}
+
+	issuerUrlWithProtocol := getIssuerUrlFromProviderArn(oidcRoleArn)
+	subKey := fmt.Sprintf("%s:sub", issuerUrlWithProtocol)
+	trustIdentity := fmt.Sprintf(AWS_TRUST_IDENTITY_SUBJECT, serviceAccountNamespace, serviceAccountName)
+
+	stmt := statements[targetIdx]
+
+	condObj, ok := stmt["Condition"]
+	var condMap map[string]interface{}
+	if ok && condObj != nil {
+		condMap, _ = condObj.(map[string]interface{})
+	}
+	if condMap == nil {
+		return policyDocument, nil
+	}
+
+	strEqObj, ok := condMap["StringEquals"]
+	var strEqMap map[string]interface{}
+	if ok && strEqObj != nil {
+		strEqMap, _ = strEqObj.(map[string]interface{})
+	}
+	if strEqMap == nil {
+		return policyDocument, nil
+	}
+
+	existingSubs := extractSubValues(strEqMap[subKey])
+	var newSubs []string
+	for _, id := range existingSubs {
+		if id != trustIdentity {
+			newSubs = append(newSubs, id)
 		}
 	}
 
-	// The reason we use this way is because if newIdentities is empty and Marshal will give a null which break policy regulation
-	var conditions MapOfInterfaces
-	if len(newIdentities) == 0 {
-		conditions = MapOfInterfaces{
-			"StringEquals": map[string][]string{
-				issuerUrlWithProtocol + ":aud": []string{AWS_DEFAULT_AUDIENCE},
-			},
-		}
+	if len(newSubs) == 0 {
+		delete(strEqMap, subKey)
 	} else {
-		conditions = MapOfInterfaces{
-			"StringEquals": map[string][]string{
-				issuerUrlWithProtocol + ":aud": []string{AWS_DEFAULT_AUDIENCE},
-				issuerUrlWithProtocol + ":sub": newIdentities,
-			},
-		}
+		strEqMap[subKey] = newSubs
 	}
 
-	document := MakeAssumeRoleWithWebIdentityPolicyDocument(oidcRoleArn, conditions)
-
-	newAssumeRolePolicyDocument := MakePolicyDocument(document)
-	newPolicyDoc, err := json.Marshal(newAssumeRolePolicyDocument)
+	statements[targetIdx] = stmt
+	oldDoc["Statement"] = statements
+	newPolicyDoc, err := json.Marshal(oldDoc)
 	if err != nil {
 		return "", err
 	}
