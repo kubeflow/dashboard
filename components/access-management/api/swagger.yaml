@@ -158,6 +158,11 @@ paths:
   /v1/role/clusteradmin:
     get:
       summary: "Query whether the user specified by query param is cluster admin"
+      description: >-
+        The caller must be authenticated via the configured user identity
+        header. The queried user defaults to the caller; a non-admin caller
+        may only query its own status, while cluster admins may query any
+        user.
       consumes:
         - "application/json"
       produces:
@@ -165,7 +170,7 @@ paths:
       parameters:
         - name: "user"
           in: "query"
-          description: "username / email"
+          description: "username / email. Must match the caller's authenticated identity unless the caller is a cluster admin"
           required: true
           type: "string"
           x-exportParamName: "User"
@@ -175,6 +180,10 @@ paths:
           description: "OK"
           schema:
             type: "boolean"
+        401:
+          description: "Unauthenticated - the request does not carry the configured user identity header"
+        403:
+          description: "Forbidden - a non-admin caller queried a user other than itself"
         500:
           description: "Internal Server Error"
 definitions:
