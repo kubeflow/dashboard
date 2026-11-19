@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -8,10 +9,18 @@ import (
 
 	profilev1 "github.com/kubeflow/dashboard/components/profile-controller/api/v1"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 type namespaceLabelSuite struct {
@@ -197,4 +206,118 @@ func createMockReconciler() *ProfileReconciler {
 		DefaultNamespaceLabelsPath: "dummy",
 	}
 	return reconciler
+}
+
+func newFakeLimitRangeReconciler(t *testing.T, objs ...client.Object) *ProfileReconciler {
+	scheme := runtime.NewScheme()
+	require.NoError(t, clientgoscheme.AddToScheme(scheme))
+	require.NoError(t, profilev1.AddToScheme(scheme))
+	return &ProfileReconciler{
+		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(objs...).Build(),
+		Scheme: scheme,
+		Log:    ctrl.Log,
+	}
+}
+
+func TestReconcileLimitRange(t *testing.T) {
+	ctx := context.Background()
+	key := types.NamespacedName{Name: KFLIMITRANGE, Namespace: "team-a"}
+	newProfile := func(spec *corev1.LimitRangeSpec) *profilev1.Profile {
+		return &profilev1.Profile{
+			ObjectMeta: metav1.ObjectMeta{Name: "team-a", UID: "team-a-uid"},
+			Spec:       profilev1.ProfileSpec{LimitRangeSpec: spec},
+		}
+	}
+	containerSpec := func(defaults corev1.ResourceList) *corev1.LimitRangeSpec {
+		return &corev1.LimitRangeSpec{Limits: []corev1.LimitRangeItem{{
+			Type:    corev1.LimitTypeContainer,
+			Default: defaults,
+		}}}
+	}
+	spec := containerSpec(corev1.ResourceList{
+		corev1.ResourceCPU:    resource.MustParse("500m"),
+		corev1.ResourceMemory: resource.MustParse("512Mi"),
+	})
+	unowned := func() *corev1.LimitRange {
+		return &corev1.LimitRange{
+			ObjectMeta: metav1.ObjectMeta{Name: KFLIMITRANGE, Namespace: "team-a"},
+			Spec: *containerSpec(corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse("2"),
+				corev1.ResourceMemory: resource.MustParse("2Gi"),
+			}),
+		}
+	}
+
+	t.Run("unset creates nothing", func(t *testing.T) {
+		r := newFakeLimitRangeReconciler(t)
+		require.NoError(t, r.reconcileLimitRange(ctx, newProfile(nil)))
+		err := r.Get(ctx, key, &corev1.LimitRange{})
+		assert.True(t, apierrors.IsNotFound(err))
+	})
+
+	t.Run("empty limits are treated as unset", func(t *testing.T) {
+		r := newFakeLimitRangeReconciler(t)
+		require.NoError(t, r.reconcileLimitRange(ctx, newProfile(&corev1.LimitRangeSpec{Limits: []corev1.LimitRangeItem{}})))
+		err := r.Get(ctx, key, &corev1.LimitRange{})
+		assert.True(t, apierrors.IsNotFound(err))
+	})
+
+	t.Run("set creates an owned LimitRange", func(t *testing.T) {
+		r := newFakeLimitRangeReconciler(t)
+		profile := newProfile(spec)
+		require.NoError(t, r.reconcileLimitRange(ctx, profile))
+		found := &corev1.LimitRange{}
+		require.NoError(t, r.Get(ctx, key, found))
+		assert.True(t, apiequality.Semantic.DeepEqual(*spec, found.Spec))
+		assert.True(t, metav1.IsControlledBy(found, profile))
+	})
+
+	t.Run("changed spec updates the LimitRange", func(t *testing.T) {
+		r := newFakeLimitRangeReconciler(t)
+		require.NoError(t, r.reconcileLimitRange(ctx, newProfile(spec)))
+		changed := containerSpec(corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("250m")})
+		require.NoError(t, r.reconcileLimitRange(ctx, newProfile(changed)))
+		found := &corev1.LimitRange{}
+		require.NoError(t, r.Get(ctx, key, found))
+		assert.True(t, apiequality.Semantic.DeepEqual(*changed, found.Spec), "got %v", found.Spec)
+	})
+
+	t.Run("equivalent quantities do not update", func(t *testing.T) {
+		r := newFakeLimitRangeReconciler(t)
+		require.NoError(t, r.reconcileLimitRange(ctx, newProfile(containerSpec(corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("1")}))))
+		before := &corev1.LimitRange{}
+		require.NoError(t, r.Get(ctx, key, before))
+		require.NoError(t, r.reconcileLimitRange(ctx, newProfile(containerSpec(corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("1000m")}))))
+		after := &corev1.LimitRange{}
+		require.NoError(t, r.Get(ctx, key, after))
+		assert.Equal(t, before.ResourceVersion, after.ResourceVersion)
+	})
+
+	t.Run("unset deletes an owned LimitRange", func(t *testing.T) {
+		r := newFakeLimitRangeReconciler(t)
+		require.NoError(t, r.reconcileLimitRange(ctx, newProfile(spec)))
+		require.NoError(t, r.reconcileLimitRange(ctx, newProfile(nil)))
+		err := r.Get(ctx, key, &corev1.LimitRange{})
+		assert.True(t, apierrors.IsNotFound(err))
+	})
+
+	t.Run("unset leaves an unowned LimitRange alone", func(t *testing.T) {
+		existing := unowned()
+		r := newFakeLimitRangeReconciler(t, existing)
+		require.NoError(t, r.reconcileLimitRange(ctx, newProfile(nil)))
+		found := &corev1.LimitRange{}
+		require.NoError(t, r.Get(ctx, key, found))
+		assert.True(t, apiequality.Semantic.DeepEqual(existing.Spec, found.Spec))
+		assert.Empty(t, found.OwnerReferences)
+	})
+
+	t.Run("set adopts and overwrites an unowned LimitRange", func(t *testing.T) {
+		r := newFakeLimitRangeReconciler(t, unowned())
+		profile := newProfile(spec)
+		require.NoError(t, r.reconcileLimitRange(ctx, profile))
+		found := &corev1.LimitRange{}
+		require.NoError(t, r.Get(ctx, key, found))
+		assert.True(t, apiequality.Semantic.DeepEqual(*spec, found.Spec))
+		assert.True(t, metav1.IsControlledBy(found, profile))
+	})
 }
