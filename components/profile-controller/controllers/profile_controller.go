@@ -280,10 +280,10 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, request ctrl.Request)
 			logger.Info("No update on resource quota", "spec", instance.Spec.ResourceQuotaSpec.String())
 		}
 	}
-	if err = r.reconcileLimitRange(ctx, instance); err != nil {
-		logger.Error(err, "error reconciling limit range", "namespace", instance.Name)
+	if limitRangeError := r.reconcileLimitRange(ctx, instance); limitRangeError != nil {
+		logger.Error(limitRangeError, "error reconciling limit range", "namespace", instance.Name)
 		IncRequestErrorCounter("error reconciling limit range", SEVERITY_MAJOR)
-		return reconcile.Result{}, err
+		return reconcile.Result{}, limitRangeError
 	}
 	if err := r.PatchDefaultPluginSpec(ctx, instance); err != nil {
 		IncRequestErrorCounter("error patching DefaultPluginSpec", SEVERITY_MAJOR)
@@ -592,51 +592,51 @@ func (r *ProfileReconciler) updateResourceQuota(profileIns *profilev1.Profile,
 	return nil
 }
 
-func (r *ProfileReconciler) reconcileLimitRange(ctx context.Context, profileIns *profilev1.Profile) error {
-	logger := r.Log.WithValues("profile", profileIns.Name)
-	found := &corev1.LimitRange{}
-	err := r.Get(ctx, types.NamespacedName{Name: KFLIMITRANGE, Namespace: profileIns.Name}, found)
-	if err != nil && !apierrors.IsNotFound(err) {
-		return err
+func (reconciler *ProfileReconciler) reconcileLimitRange(requestContext context.Context, targetProfile *profilev1.Profile) error {
+	limitRangeLogger := reconciler.Log.WithValues("profile", targetProfile.Name)
+	existingLimitRange := &corev1.LimitRange{}
+	getError := reconciler.Get(requestContext, types.NamespacedName{Name: KFLIMITRANGE, Namespace: targetProfile.Name}, existingLimitRange)
+	if getError != nil && !apierrors.IsNotFound(getError) {
+		return getError
 	}
-	exists := err == nil
-	if profileIns.Spec.LimitRangeSpec == nil || len(profileIns.Spec.LimitRangeSpec.Limits) == 0 {
-		if exists && metav1.IsControlledBy(found, profileIns) {
-			logger.Info("Deleting LimitRange", "namespace", found.Namespace, "name", found.Name)
-			return client.IgnoreNotFound(r.Delete(ctx, found))
+	limitRangeExists := getError == nil
+	if targetProfile.Spec.LimitRangeSpec == nil || len(targetProfile.Spec.LimitRangeSpec.Limits) == 0 {
+		if limitRangeExists && metav1.IsControlledBy(existingLimitRange, targetProfile) {
+			limitRangeLogger.Info("Deleting LimitRange", "namespace", existingLimitRange.Namespace, "name", existingLimitRange.Name)
+			return client.IgnoreNotFound(reconciler.Delete(requestContext, existingLimitRange))
 		}
 		return nil
 	}
-	desired := *profileIns.Spec.LimitRangeSpec.DeepCopy()
-	if !exists {
-		limitRange := &corev1.LimitRange{
+	desiredLimitRangeSpec := *targetProfile.Spec.LimitRangeSpec.DeepCopy()
+	if !limitRangeExists {
+		newLimitRange := &corev1.LimitRange{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      KFLIMITRANGE,
-				Namespace: profileIns.Name,
+				Namespace: targetProfile.Name,
 			},
-			Spec: desired,
+			Spec: desiredLimitRangeSpec,
 		}
-		if err := controllerutil.SetControllerReference(profileIns, limitRange, r.Scheme); err != nil {
-			return err
+		if ownerReferenceError := controllerutil.SetControllerReference(targetProfile, newLimitRange, reconciler.Scheme); ownerReferenceError != nil {
+			return ownerReferenceError
 		}
-		logger.Info("Creating LimitRange", "namespace", limitRange.Namespace, "name", limitRange.Name)
-		return r.Create(ctx, limitRange)
+		limitRangeLogger.Info("Creating LimitRange", "namespace", newLimitRange.Namespace, "name", newLimitRange.Name)
+		return reconciler.Create(requestContext, newLimitRange)
 	}
-	adopt := !metav1.IsControlledBy(found, profileIns)
-	if adopt {
-		if err := controllerutil.SetControllerReference(profileIns, found, r.Scheme); err != nil {
-			return err
+	adoptLimitRange := !metav1.IsControlledBy(existingLimitRange, targetProfile)
+	if adoptLimitRange {
+		if ownerReferenceError := controllerutil.SetControllerReference(targetProfile, existingLimitRange, reconciler.Scheme); ownerReferenceError != nil {
+			return ownerReferenceError
 		}
 	}
-	if adopt || !apiequality.Semantic.DeepEqual(desired, found.Spec) {
-		found.Spec = desired
-		logger.Info("Updating LimitRange", "namespace", found.Namespace, "name", found.Name)
-		return r.Update(ctx, found)
+	if adoptLimitRange || !apiequality.Semantic.DeepEqual(desiredLimitRangeSpec, existingLimitRange.Spec) {
+		existingLimitRange.Spec = desiredLimitRangeSpec
+		limitRangeLogger.Info("Updating LimitRange", "namespace", existingLimitRange.Namespace, "name", existingLimitRange.Name)
+		return reconciler.Update(requestContext, existingLimitRange)
 	}
 	return nil
 }
 
-// updateServiceAccount create or update service account "saName" with role "ClusterRoleName" in target namespace owned by "profileIns"
+// updateServiceAccount create or update service account "saName" with role "ClusterRoleName" in target namespace owned by "targetProfile"
 func (r *ProfileReconciler) updateServiceAccount(profileIns *profilev1.Profile, saName string,
 	ClusterRoleName string) error {
 	logger := r.Log.WithValues("profile", profileIns.Name)

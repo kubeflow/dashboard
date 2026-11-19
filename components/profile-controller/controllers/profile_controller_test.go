@@ -208,37 +208,37 @@ func createMockReconciler() *ProfileReconciler {
 	return reconciler
 }
 
-func newFakeLimitRangeReconciler(t *testing.T, objs ...client.Object) *ProfileReconciler {
-	scheme := runtime.NewScheme()
-	require.NoError(t, clientgoscheme.AddToScheme(scheme))
-	require.NoError(t, profilev1.AddToScheme(scheme))
+func newFakeLimitRangeReconciler(test *testing.T, existingObjects ...client.Object) *ProfileReconciler {
+	testScheme := runtime.NewScheme()
+	require.NoError(test, clientgoscheme.AddToScheme(testScheme))
+	require.NoError(test, profilev1.AddToScheme(testScheme))
 	return &ProfileReconciler{
-		Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(objs...).Build(),
-		Scheme: scheme,
+		Client: fake.NewClientBuilder().WithScheme(testScheme).WithObjects(existingObjects...).Build(),
+		Scheme: testScheme,
 		Log:    ctrl.Log,
 	}
 }
 
-func TestReconcileLimitRange(t *testing.T) {
-	ctx := context.Background()
-	key := types.NamespacedName{Name: KFLIMITRANGE, Namespace: "team-a"}
-	newProfile := func(spec *corev1.LimitRangeSpec) *profilev1.Profile {
+func TestReconcileLimitRange(test *testing.T) {
+	requestContext := context.Background()
+	limitRangeKey := types.NamespacedName{Name: KFLIMITRANGE, Namespace: "team-a"}
+	newProfile := func(limitRangeSpec *corev1.LimitRangeSpec) *profilev1.Profile {
 		return &profilev1.Profile{
 			ObjectMeta: metav1.ObjectMeta{Name: "team-a", UID: "team-a-uid"},
-			Spec:       profilev1.ProfileSpec{LimitRangeSpec: spec},
+			Spec:       profilev1.ProfileSpec{LimitRangeSpec: limitRangeSpec},
 		}
 	}
-	containerSpec := func(defaults corev1.ResourceList) *corev1.LimitRangeSpec {
+	containerSpec := func(defaultResources corev1.ResourceList) *corev1.LimitRangeSpec {
 		return &corev1.LimitRangeSpec{Limits: []corev1.LimitRangeItem{{
 			Type:    corev1.LimitTypeContainer,
-			Default: defaults,
+			Default: defaultResources,
 		}}}
 	}
-	spec := containerSpec(corev1.ResourceList{
+	defaultLimitRangeSpec := containerSpec(corev1.ResourceList{
 		corev1.ResourceCPU:    resource.MustParse("500m"),
 		corev1.ResourceMemory: resource.MustParse("512Mi"),
 	})
-	unowned := func() *corev1.LimitRange {
+	newUnownedLimitRange := func() *corev1.LimitRange {
 		return &corev1.LimitRange{
 			ObjectMeta: metav1.ObjectMeta{Name: KFLIMITRANGE, Namespace: "team-a"},
 			Spec: *containerSpec(corev1.ResourceList{
@@ -248,76 +248,76 @@ func TestReconcileLimitRange(t *testing.T) {
 		}
 	}
 
-	t.Run("unset creates nothing", func(t *testing.T) {
-		r := newFakeLimitRangeReconciler(t)
-		require.NoError(t, r.reconcileLimitRange(ctx, newProfile(nil)))
-		err := r.Get(ctx, key, &corev1.LimitRange{})
-		assert.True(t, apierrors.IsNotFound(err))
+	test.Run("unset creates nothing", func(test *testing.T) {
+		reconciler := newFakeLimitRangeReconciler(test)
+		require.NoError(test, reconciler.reconcileLimitRange(requestContext, newProfile(nil)))
+		getError := reconciler.Get(requestContext, limitRangeKey, &corev1.LimitRange{})
+		assert.True(test, apierrors.IsNotFound(getError))
 	})
 
-	t.Run("empty limits are treated as unset", func(t *testing.T) {
-		r := newFakeLimitRangeReconciler(t)
-		require.NoError(t, r.reconcileLimitRange(ctx, newProfile(&corev1.LimitRangeSpec{Limits: []corev1.LimitRangeItem{}})))
-		err := r.Get(ctx, key, &corev1.LimitRange{})
-		assert.True(t, apierrors.IsNotFound(err))
+	test.Run("empty limits are treated as unset", func(test *testing.T) {
+		reconciler := newFakeLimitRangeReconciler(test)
+		require.NoError(test, reconciler.reconcileLimitRange(requestContext, newProfile(&corev1.LimitRangeSpec{Limits: []corev1.LimitRangeItem{}})))
+		getError := reconciler.Get(requestContext, limitRangeKey, &corev1.LimitRange{})
+		assert.True(test, apierrors.IsNotFound(getError))
 	})
 
-	t.Run("set creates an owned LimitRange", func(t *testing.T) {
-		r := newFakeLimitRangeReconciler(t)
-		profile := newProfile(spec)
-		require.NoError(t, r.reconcileLimitRange(ctx, profile))
-		found := &corev1.LimitRange{}
-		require.NoError(t, r.Get(ctx, key, found))
-		assert.True(t, apiequality.Semantic.DeepEqual(*spec, found.Spec))
-		assert.True(t, metav1.IsControlledBy(found, profile))
+	test.Run("set creates an owned LimitRange", func(test *testing.T) {
+		reconciler := newFakeLimitRangeReconciler(test)
+		testProfile := newProfile(defaultLimitRangeSpec)
+		require.NoError(test, reconciler.reconcileLimitRange(requestContext, testProfile))
+		foundLimitRange := &corev1.LimitRange{}
+		require.NoError(test, reconciler.Get(requestContext, limitRangeKey, foundLimitRange))
+		assert.True(test, apiequality.Semantic.DeepEqual(*defaultLimitRangeSpec, foundLimitRange.Spec))
+		assert.True(test, metav1.IsControlledBy(foundLimitRange, testProfile))
 	})
 
-	t.Run("changed spec updates the LimitRange", func(t *testing.T) {
-		r := newFakeLimitRangeReconciler(t)
-		require.NoError(t, r.reconcileLimitRange(ctx, newProfile(spec)))
-		changed := containerSpec(corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("250m")})
-		require.NoError(t, r.reconcileLimitRange(ctx, newProfile(changed)))
-		found := &corev1.LimitRange{}
-		require.NoError(t, r.Get(ctx, key, found))
-		assert.True(t, apiequality.Semantic.DeepEqual(*changed, found.Spec), "got %v", found.Spec)
+	test.Run("changed spec updates the LimitRange", func(test *testing.T) {
+		reconciler := newFakeLimitRangeReconciler(test)
+		require.NoError(test, reconciler.reconcileLimitRange(requestContext, newProfile(defaultLimitRangeSpec)))
+		changedLimitRangeSpec := containerSpec(corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("250m")})
+		require.NoError(test, reconciler.reconcileLimitRange(requestContext, newProfile(changedLimitRangeSpec)))
+		foundLimitRange := &corev1.LimitRange{}
+		require.NoError(test, reconciler.Get(requestContext, limitRangeKey, foundLimitRange))
+		assert.True(test, apiequality.Semantic.DeepEqual(*changedLimitRangeSpec, foundLimitRange.Spec), "got %v", foundLimitRange.Spec)
 	})
 
-	t.Run("equivalent quantities do not update", func(t *testing.T) {
-		r := newFakeLimitRangeReconciler(t)
-		require.NoError(t, r.reconcileLimitRange(ctx, newProfile(containerSpec(corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("1")}))))
-		before := &corev1.LimitRange{}
-		require.NoError(t, r.Get(ctx, key, before))
-		require.NoError(t, r.reconcileLimitRange(ctx, newProfile(containerSpec(corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("1000m")}))))
-		after := &corev1.LimitRange{}
-		require.NoError(t, r.Get(ctx, key, after))
-		assert.Equal(t, before.ResourceVersion, after.ResourceVersion)
+	test.Run("equivalent quantities do not update", func(test *testing.T) {
+		reconciler := newFakeLimitRangeReconciler(test)
+		require.NoError(test, reconciler.reconcileLimitRange(requestContext, newProfile(containerSpec(corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("1")}))))
+		limitRangeBefore := &corev1.LimitRange{}
+		require.NoError(test, reconciler.Get(requestContext, limitRangeKey, limitRangeBefore))
+		require.NoError(test, reconciler.reconcileLimitRange(requestContext, newProfile(containerSpec(corev1.ResourceList{corev1.ResourceCPU: resource.MustParse("1000m")}))))
+		limitRangeAfter := &corev1.LimitRange{}
+		require.NoError(test, reconciler.Get(requestContext, limitRangeKey, limitRangeAfter))
+		assert.Equal(test, limitRangeBefore.ResourceVersion, limitRangeAfter.ResourceVersion)
 	})
 
-	t.Run("unset deletes an owned LimitRange", func(t *testing.T) {
-		r := newFakeLimitRangeReconciler(t)
-		require.NoError(t, r.reconcileLimitRange(ctx, newProfile(spec)))
-		require.NoError(t, r.reconcileLimitRange(ctx, newProfile(nil)))
-		err := r.Get(ctx, key, &corev1.LimitRange{})
-		assert.True(t, apierrors.IsNotFound(err))
+	test.Run("unset deletes an owned LimitRange", func(test *testing.T) {
+		reconciler := newFakeLimitRangeReconciler(test)
+		require.NoError(test, reconciler.reconcileLimitRange(requestContext, newProfile(defaultLimitRangeSpec)))
+		require.NoError(test, reconciler.reconcileLimitRange(requestContext, newProfile(nil)))
+		getError := reconciler.Get(requestContext, limitRangeKey, &corev1.LimitRange{})
+		assert.True(test, apierrors.IsNotFound(getError))
 	})
 
-	t.Run("unset leaves an unowned LimitRange alone", func(t *testing.T) {
-		existing := unowned()
-		r := newFakeLimitRangeReconciler(t, existing)
-		require.NoError(t, r.reconcileLimitRange(ctx, newProfile(nil)))
-		found := &corev1.LimitRange{}
-		require.NoError(t, r.Get(ctx, key, found))
-		assert.True(t, apiequality.Semantic.DeepEqual(existing.Spec, found.Spec))
-		assert.Empty(t, found.OwnerReferences)
+	test.Run("unset leaves an unowned LimitRange alone", func(test *testing.T) {
+		existingLimitRange := newUnownedLimitRange()
+		reconciler := newFakeLimitRangeReconciler(test, existingLimitRange)
+		require.NoError(test, reconciler.reconcileLimitRange(requestContext, newProfile(nil)))
+		foundLimitRange := &corev1.LimitRange{}
+		require.NoError(test, reconciler.Get(requestContext, limitRangeKey, foundLimitRange))
+		assert.True(test, apiequality.Semantic.DeepEqual(existingLimitRange.Spec, foundLimitRange.Spec))
+		assert.Empty(test, foundLimitRange.OwnerReferences)
 	})
 
-	t.Run("set adopts and overwrites an unowned LimitRange", func(t *testing.T) {
-		r := newFakeLimitRangeReconciler(t, unowned())
-		profile := newProfile(spec)
-		require.NoError(t, r.reconcileLimitRange(ctx, profile))
-		found := &corev1.LimitRange{}
-		require.NoError(t, r.Get(ctx, key, found))
-		assert.True(t, apiequality.Semantic.DeepEqual(*spec, found.Spec))
-		assert.True(t, metav1.IsControlledBy(found, profile))
+	test.Run("set adopts and overwrites an unowned LimitRange", func(test *testing.T) {
+		reconciler := newFakeLimitRangeReconciler(test, newUnownedLimitRange())
+		testProfile := newProfile(defaultLimitRangeSpec)
+		require.NoError(test, reconciler.reconcileLimitRange(requestContext, testProfile))
+		foundLimitRange := &corev1.LimitRange{}
+		require.NoError(test, reconciler.Get(requestContext, limitRangeKey, foundLimitRange))
+		assert.True(test, apiequality.Semantic.DeepEqual(*defaultLimitRangeSpec, foundLimitRange.Spec))
+		assert.True(test, metav1.IsControlledBy(foundLimitRange, testProfile))
 	})
 }
