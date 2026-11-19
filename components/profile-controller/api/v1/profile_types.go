@@ -34,6 +34,10 @@ type ProfileSpec struct {
 
 	// Resourcequota that will be applied to target namespace
 	ResourceQuotaSpec v1.ResourceQuotaSpec `json:"resourceQuotaSpec,omitempty"`
+
+	// LimitRange that will be applied to target namespace
+	// +optional
+	LimitRangeSpec *v1.LimitRangeSpec `json:"limitRangeSpec,omitempty"`
 }
 
 // Plugin is for customize actions on different platform.
