@@ -35,6 +35,7 @@ import (
 	istioSecurityClient "istio.io/client-go/pkg/apis/security/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -54,6 +55,7 @@ const AUTHZPOLICYISTIO = "ns-owner-access-istio"
 const ISTIOALLOWALL = "allow-all"
 
 const KFQUOTA = "kf-resource-quota"
+const KFLIMITRANGE = "kf-limit-range"
 const PROFILEFINALIZER = "profile-finalizer"
 
 // annotation key, consumed by kfam API
@@ -277,6 +279,11 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, request ctrl.Request)
 		} else {
 			logger.Info("No update on resource quota", "spec", instance.Spec.ResourceQuotaSpec.String())
 		}
+	}
+	if err = r.reconcileLimitRange(ctx, instance); err != nil {
+		logger.Error(err, "error reconciling limit range", "namespace", instance.Name)
+		IncRequestErrorCounter("error reconciling limit range", SEVERITY_MAJOR)
+		return reconcile.Result{}, err
 	}
 	if err := r.PatchDefaultPluginSpec(ctx, instance); err != nil {
 		IncRequestErrorCounter("error patching DefaultPluginSpec", SEVERITY_MAJOR)
@@ -581,6 +588,50 @@ func (r *ProfileReconciler) updateResourceQuota(profileIns *profilev1.Profile,
 				return err
 			}
 		}
+	}
+	return nil
+}
+
+func (r *ProfileReconciler) reconcileLimitRange(ctx context.Context, profileIns *profilev1.Profile) error {
+	logger := r.Log.WithValues("profile", profileIns.Name)
+	found := &corev1.LimitRange{}
+	err := r.Get(ctx, types.NamespacedName{Name: KFLIMITRANGE, Namespace: profileIns.Name}, found)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return err
+	}
+	exists := err == nil
+	if profileIns.Spec.LimitRangeSpec == nil || len(profileIns.Spec.LimitRangeSpec.Limits) == 0 {
+		if exists && metav1.IsControlledBy(found, profileIns) {
+			logger.Info("Deleting LimitRange", "namespace", found.Namespace, "name", found.Name)
+			return client.IgnoreNotFound(r.Delete(ctx, found))
+		}
+		return nil
+	}
+	desired := *profileIns.Spec.LimitRangeSpec.DeepCopy()
+	if !exists {
+		limitRange := &corev1.LimitRange{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      KFLIMITRANGE,
+				Namespace: profileIns.Name,
+			},
+			Spec: desired,
+		}
+		if err := controllerutil.SetControllerReference(profileIns, limitRange, r.Scheme); err != nil {
+			return err
+		}
+		logger.Info("Creating LimitRange", "namespace", limitRange.Namespace, "name", limitRange.Name)
+		return r.Create(ctx, limitRange)
+	}
+	adopt := !metav1.IsControlledBy(found, profileIns)
+	if adopt {
+		if err := controllerutil.SetControllerReference(profileIns, found, r.Scheme); err != nil {
+			return err
+		}
+	}
+	if adopt || !apiequality.Semantic.DeepEqual(desired, found.Spec) {
+		found.Spec = desired
+		logger.Info("Updating LimitRange", "namespace", found.Namespace, "name", found.Name)
+		return r.Update(ctx, found)
 	}
 	return nil
 }
