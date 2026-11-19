@@ -10,4 +10,13 @@ spec:
     hard:
       cpu: "2"
       memory: 2Gi
-      requests.nvidia.com/gpu: "1" 
+      requests.nvidia.com/gpu: "1"
+  limitRangeSpec:
+    limits:
+    - type: Container
+      default:
+        cpu: 500m
+        memory: 512Mi
+      defaultRequest:
+        cpu: 100m
+        memory: 128Mi
