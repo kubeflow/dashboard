@@ -1,6 +1,6 @@
 /*
-    This file defines an animated check mark.
-*/
+ *This file defines an animated check mark.
+ */
 
 import {html, PolymerElement} from '@polymer/polymer/polymer-element.js';
 
