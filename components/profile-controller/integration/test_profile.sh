@@ -112,6 +112,25 @@ case "$OPERATION" in
             validation_failed=true
         fi
         
+        if [ -n "$(kubectl get profile "${PROFILE_NAME}" -o jsonpath='{.spec.limitRangeSpec}')" ]; then
+            if kubectl get limitrange kf-limit-range -n "${PROFILE_NAME}" >/dev/null 2>&1; then
+                echo "LimitRange kf-limit-range found"
+                kubectl get limitrange kf-limit-range -n "${PROFILE_NAME}"
+            else
+                echo "LimitRange kf-limit-range not found"
+                validation_failed=true
+            fi
+
+            default_cpu_request=$(kubectl run limitrange-check -n "${PROFILE_NAME}" --image=busybox --restart=Never \
+                --dry-run=server -o jsonpath='{.spec.containers[0].resources.requests.cpu}' 2>/dev/null || true)
+            if [ -n "$default_cpu_request" ]; then
+                echo "Pod without resources admitted with default CPU request ${default_cpu_request}"
+            else
+                echo "Pod without resources was not admitted with a default CPU request"
+                validation_failed=true
+            fi
+        fi
+
         kubectl get profile "${PROFILE_NAME}" -o yaml
         
         if [ "$validation_failed" = true ]; then
