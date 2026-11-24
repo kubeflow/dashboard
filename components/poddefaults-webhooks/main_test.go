@@ -21,7 +21,7 @@ func TestMergeMapBad(t *testing.T) {
 			map[string]string{"foo": "buz"},
 		},
 	} {
-		if _, err := mergeMap(test.existing, []*map[string]string{&test.defaults}); err == nil {
+		if _, err := mergeMap(test.existing, []*map[string]string{&test.defaults}, nil); err == nil {
 			t.Fatal("Expected error but got none")
 		}
 	}
@@ -61,7 +61,7 @@ func TestMergeMapGood(t *testing.T) {
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			out, err := mergeMap(test.existing, []*map[string]string{&test.defaults})
+			out, err := mergeMap(test.existing, []*map[string]string{&test.defaults}, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -320,5 +320,120 @@ func TestSetCommandAndArgs(t *testing.T) {
 				t.Fatalf("%#v\n  Not Equals:\n%#v", test.in, test.out)
 			}
 		})
+	}
+}
+
+func TestMergeMapIstioListAnnotations(t *testing.T) {
+	for _, test := range []struct {
+		name     string
+		existing map[string]string
+		defaults []map[string]string
+		out      map[string]string
+	}{
+		{
+			"Istio already excludes its telemetry port",
+			map[string]string{"traffic.sidecar.istio.io/excludeInboundPorts": "15020"},
+			[]map[string]string{{"traffic.sidecar.istio.io/excludeInboundPorts": "7078,7079"}},
+			map[string]string{"traffic.sidecar.istio.io/excludeInboundPorts": "15020,7078,7079"},
+		},
+		{
+			"Two PodDefaults exclude different ports",
+			map[string]string{"traffic.sidecar.istio.io/excludeOutboundPorts": "15020"},
+			[]map[string]string{
+				{"traffic.sidecar.istio.io/excludeOutboundPorts": "7078"},
+				{"traffic.sidecar.istio.io/excludeOutboundPorts": "7079"},
+			},
+			map[string]string{"traffic.sidecar.istio.io/excludeOutboundPorts": "15020,7078,7079"},
+		},
+		{
+			"Overlapping entries are not repeated",
+			map[string]string{"traffic.sidecar.istio.io/excludeInboundPorts": "15020,7078"},
+			[]map[string]string{{"traffic.sidecar.istio.io/excludeInboundPorts": "7078,7079"}},
+			map[string]string{"traffic.sidecar.istio.io/excludeInboundPorts": "15020,7078,7079"},
+		},
+		{
+			"Pod value has spaces after the separators",
+			map[string]string{"traffic.sidecar.istio.io/excludeInboundPorts": "15020, 7078"},
+			[]map[string]string{{"traffic.sidecar.istio.io/excludeInboundPorts": "7078,7079"}},
+			map[string]string{"traffic.sidecar.istio.io/excludeInboundPorts": "15020, 7078,7079"},
+		},
+		{
+			"Pod has no such annotation",
+			map[string]string{},
+			[]map[string]string{{"traffic.sidecar.istio.io/excludeOutboundIPRanges": "10.0.0.0/8"}},
+			map[string]string{"traffic.sidecar.istio.io/excludeOutboundIPRanges": "10.0.0.0/8"},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			defaults := make([]*map[string]string, len(test.defaults))
+			for i := range test.defaults {
+				defaults[i] = &test.defaults[i]
+			}
+			out, err := mergeMap(test.existing, defaults, istioListAnnotations)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(out, test.out) {
+				t.Fatalf("%#v\n  Not Equals:\n%#v", out, test.out)
+			}
+		})
+	}
+}
+
+func TestMergeMapNonIstioAnnotationStillConflicts(t *testing.T) {
+	existing := map[string]string{"sidecar.istio.io/inject": "true"}
+	defaults := map[string]string{"sidecar.istio.io/inject": "false"}
+	if _, err := mergeMap(existing, []*map[string]string{&defaults}, istioListAnnotations); err == nil {
+		t.Fatal("Expected error but got none")
+	}
+}
+
+// Labels are never unioned, even when a label happens to use an Istio list
+// annotation name, because label values cannot contain commas.
+func TestSafeToApplyPodDefaultsOnPodIstioKeyAsLabelStillConflicts(t *testing.T) {
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "pod",
+			Labels: map[string]string{"traffic.sidecar.istio.io/excludeInboundPorts": "15020"},
+		},
+	}
+	pd := &settingsapi.PodDefault{
+		Spec: settingsapi.PodDefaultSpec{
+			Labels: map[string]string{"traffic.sidecar.istio.io/excludeInboundPorts": "7078"},
+		},
+	}
+	if err := safeToApplyPodDefaultsOnPod(pod, []*settingsapi.PodDefault{pd}); err == nil {
+		t.Fatal("Expected a label conflict error but got none")
+	}
+	applyPodDefaultsOnPod(pod, []*settingsapi.PodDefault{pd})
+	if got := pod.Labels["traffic.sidecar.istio.io/excludeInboundPorts"]; got != "15020" {
+		t.Fatalf("label was changed to %q, want it left as %q", got, "15020")
+	}
+}
+
+func TestApplyPodDefaultsOnPodIstioExcludeInboundPorts(t *testing.T) {
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "example-0",
+			Annotations: map[string]string{"traffic.sidecar.istio.io/excludeInboundPorts": "15020"},
+		},
+	}
+	podDefaults := []*settingsapi.PodDefault{
+		{
+			ObjectMeta: metav1.ObjectMeta{Name: "broken-pod-default"},
+			Spec: settingsapi.PodDefaultSpec{
+				Annotations: map[string]string{"traffic.sidecar.istio.io/excludeInboundPorts": "7078,7079"},
+			},
+		},
+	}
+
+	if err := safeToApplyPodDefaultsOnPod(pod, podDefaults); err != nil {
+		t.Fatalf("pod was rejected: %v", err)
+	}
+	applyPodDefaultsOnPod(pod, podDefaults)
+
+	want := "15020,7078,7079"
+	if got := pod.Annotations["traffic.sidecar.istio.io/excludeInboundPorts"]; got != want {
+		t.Fatalf("got %q, want %q", got, want)
 	}
 }
