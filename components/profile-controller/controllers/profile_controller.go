@@ -336,11 +336,16 @@ func (r *ProfileReconciler) Reconcile(ctx context.Context, request ctrl.Request)
 // appendErrorConditionAndReturn append failure status to profile CR and mark Reconcile done. If update condition failed, request will be requeued.
 func (r *ProfileReconciler) appendErrorConditionAndReturn(ctx context.Context, instance *profilev1.Profile,
 	message string) (ctrl.Result, error) {
+	for _, c := range instance.Status.Conditions {
+		if c.Type == profilev1.ProfileFailed && c.Message == message {
+			return reconcile.Result{}, nil
+		}
+	}
 	instance.Status.Conditions = append(instance.Status.Conditions, profilev1.ProfileCondition{
 		Type:    profilev1.ProfileFailed,
 		Message: message,
 	})
-	if err := r.Update(ctx, instance); err != nil {
+	if err := r.Status().Update(ctx, instance); err != nil {
 		return reconcile.Result{}, err
 	}
 	return reconcile.Result{}, nil
