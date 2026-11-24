@@ -69,6 +69,9 @@ export class IframeWrapperComponent implements AfterViewInit, OnDestroy {
   public namespaces: Namespace[];
   private urlSub: Subscription;
   private interval: any;
+  private readonly onWindowMessage = (ev: MessageEvent) => {
+    this.onMessageReceived(ev);
+  };
 
   constructor(private router: Router, private ns: CDBNamespaceService) {
     /**
@@ -144,9 +147,7 @@ export class IframeWrapperComponent implements AfterViewInit, OnDestroy {
       this.postNamespaceMessage();
     });
 
-    window.addEventListener(MESSAGE, ev => {
-      this.onMessageReceived(ev);
-    });
+    window.addEventListener(MESSAGE, this.onWindowMessage);
   }
 
   ngOnDestroy() {
@@ -156,6 +157,7 @@ export class IframeWrapperComponent implements AfterViewInit, OnDestroy {
     if (this.interval) {
       clearInterval(this.interval);
     }
+    window.removeEventListener(MESSAGE, this.onWindowMessage);
   }
 
   private postNamespaceMessage() {
