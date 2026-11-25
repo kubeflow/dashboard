@@ -123,6 +123,66 @@ func TestReconcile_NamespaceOwnedByAnother_ProfileFailedPersisted(t *testing.T) 
 			"if this fails the fix regressed back to r.Update()")
 }
 
+// TestReconcile_NamespaceOwnedByAnother_RepeatedReconcileDoesNotDuplicate verifies
+// that reconciling a persistent ownership conflict again does not append another
+// identical ProfileFailed condition. Each status write triggers a new reconcile,
+// so a duplicate append would grow the conditions list without bound.
+func TestReconcile_NamespaceOwnedByAnother_RepeatedReconcileDoesNotDuplicate(t *testing.T) {
+	scheme := testProfileScheme(t)
+	profile := newTestProfile("dave", "dave@example.com")
+	existingNs := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        "dave",
+			Annotations: map[string]string{"owner": "bob@example.com"},
+		},
+	}
+
+	cl := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(profile, existingNs).
+		WithStatusSubresource(&profilev1.Profile{}).
+		Build()
+
+	r := &ProfileReconciler{
+		Client:                     cl,
+		Scheme:                     scheme,
+		Log:                        ctrl.Log,
+		UserIdHeader:               "x-goog-authenticated-user-email",
+		UserIdPrefix:               "accounts.google.com:",
+		WorkloadIdentity:           "",
+		DefaultNamespaceLabelsPath: emptyLabelsFile(t),
+	}
+
+	req := ctrl.Request{NamespacedName: types.NamespacedName{Name: "dave"}}
+	countFailed := func() int {
+		var got profilev1.Profile
+		require.NoError(t, cl.Get(context.Background(), req.NamespacedName, &got))
+		n := 0
+		for _, c := range got.Status.Conditions {
+			if c.Type == profilev1.ProfileFailed {
+				n++
+			}
+		}
+		return n
+	}
+
+	_, err := r.Reconcile(context.Background(), req)
+	require.NoError(t, err)
+	require.Equal(t, 1, countFailed(), "first reconcile should record one ProfileFailed condition")
+
+	var before profilev1.Profile
+	require.NoError(t, cl.Get(context.Background(), req.NamespacedName, &before))
+
+	_, err = r.Reconcile(context.Background(), req)
+	require.NoError(t, err)
+	assert.Equal(t, 1, countFailed(), "second reconcile must not append a duplicate ProfileFailed condition")
+
+	var after profilev1.Profile
+	require.NoError(t, cl.Get(context.Background(), req.NamespacedName, &after))
+	assert.Equal(t, before.ResourceVersion, after.ResourceVersion,
+		"second reconcile must not write the Profile again")
+}
+
 // TestReconcile_NamespaceNotFound_CreatesNamespaceAndNoProfileFailed verifies that
 // the happy namespace-creation path does not set a ProfileFailed condition.
 func TestReconcile_NamespaceNotFound_CreatesNamespaceAndNoProfileFailed(t *testing.T) {
